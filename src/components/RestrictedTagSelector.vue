@@ -6,12 +6,12 @@
         @click="toggleRestrictedTagsExpansion"
       >
         <h3 class="selector-title restricted-title">
-          <i class="fa fa-exclamation-triangle"></i>
+          <i :class="getIconClass('exclamation-triangle')" class="warning-icon"></i>
           {{ $t('gallery.restrictedTags') }}
         </h3>
         <i
           class="fa expand-icon"
-          :class="isRestrictedTagsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"
+          :class="getIconClass(isRestrictedTagsExpanded ? 'chevron-up' : 'chevron-down')"
         ></i>
       </button>
       <Transition name="restricted-list">
@@ -30,10 +30,10 @@
         >
           <div class="restricted-tag-left">
             <div class="restricted-tag-indicator">
-              <i class="fa fa-check indicator-icon"></i>
+              <i :class="getIconClass('check')" class="indicator-icon"></i>
             </div>
             <div class="restricted-tag-content">
-              <i v-if="tag.icon" :class="`fa fa-${tag.icon}`" class="tag-icon"></i>
+              <i v-if="tag.icon" :class="getIconClass(tag.icon)" class="tag-icon"></i>
               <span class="tag-name">{{ tag.name[currentLanguage] || tag.name.en || tag.id }}</span>
             </div>
           </div>
@@ -56,6 +56,7 @@ import { useI18n } from 'vue-i18n';
 
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import { getIconClass } from '@/utils/icons';
 
 const { t: $t } = useI18n();
 const appStore = useAppStore();

@@ -8,14 +8,14 @@
       <h3 class="selector-title">{{ $t('gallery.tags') }}</h3>
       <i
         class="fa expand-icon"
-        :class="isNormalTagsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"
+        :class="getIconClass(isNormalTagsExpanded ? 'chevron-up' : 'chevron-down')"
       ></i>
     </button>
     <Transition name="tag-list">
       <div v-if="isNormalTagsExpanded" class="tags-list">
       <button class="tag-button" :class="{ 'active': selectedTag === 'all' }" @click="selectTag('all')">
         <div class="tag-left">
-          <i class="fa fa-th-large tag-icon"></i>
+          <i :class="getIconClass('th')" class="tag-icon"></i>
           <span class="tag-name">{{ $t('common.all') }}</span>
         </div>
         <span class="tag-count">{{ tagCounts.all }}</span>
@@ -27,7 +27,7 @@
           '--tag-hover-color': tag.color ? `${tag.color}20` : '#8b5cf620'
         }">
         <div class="tag-left">
-          <i v-if="tag.icon" :class="`fa fa-${tag.icon}`" class="tag-icon"></i>
+          <i v-if="tag.icon" :class="getIconClass(tag.icon)" class="tag-icon"></i>
           <span class="tag-name">{{ tag.name[currentLanguage] || tag.name.en || tag.id }}</span>
         </div>
         <span class="tag-count">{{ tagCounts[tag.id] || 0 }}</span>
@@ -43,6 +43,7 @@ import { useI18n } from 'vue-i18n';
 
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import { getIconClass } from '@/utils/icons';
 
 const { t: $t } = useI18n();
 const appStore = useAppStore();

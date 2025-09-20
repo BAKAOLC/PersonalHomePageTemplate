@@ -7,7 +7,7 @@
       <h3 class="selector-title">{{ $t('gallery.characters') }}</h3>
       <i
         class="fa expand-icon"
-        :class="isCharactersExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"
+        :class="getIconClass(isCharactersExpanded ? 'chevron-up' : 'chevron-down')"
       ></i>
     </button>
     <Transition name="character-list">
@@ -31,6 +31,7 @@ import { useI18n } from 'vue-i18n';
 
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import { getIconClass } from '@/utils/icons';
 
 const { t: $t } = useI18n();
 const appStore = useAppStore();

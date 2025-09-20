@@ -32,7 +32,7 @@
               class="social-link"
               :style="{ '--link-color': link.color || '#333' }"
               :title="t(link.name, currentLanguage)">
-              <i :class="`fa fa-${link.icon || 'link'}`" class="icon"></i>
+              <i :class="getIconClass(link.icon || 'link')" class="icon"></i>
               <span class="link-name">{{ t(link.name, currentLanguage) }}</span>
             </a>
           </template>
@@ -40,7 +40,7 @@
 
         <div class="action-buttons">
           <router-link to="/gallery" class="gallery-button">
-            <i class="fa fa-picture-o button-icon"></i>
+            <i :class="getIconClass('fa fa-picture-o')" class="button-icon"></i>
             {{ translate('personal.viewGallery') }}
           </router-link>
         </div>
@@ -59,6 +59,7 @@ import type { I18nText } from '@/types';
 
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import { getIconClass } from '@/utils/icons';
 
 const { t: translate } = useI18n();
 const appStore = useAppStore();

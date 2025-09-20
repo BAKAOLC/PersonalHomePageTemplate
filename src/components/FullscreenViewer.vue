@@ -147,7 +147,7 @@
         <button v-if="showGroupSelector && isMobile && groupImagesList.length > 1"
           @click="toggleMobileGroupSelector"
           class="mobile-group-selector-toggle" :class="{ 'active': isMobileGroupSelectorOpen }">
-          <i class="fa fa-th-large"></i>
+          <i :class="getIconClass('th')"></i>
           <span class="toggle-text">{{ $t('viewer.imageGroupWithCount', { count: groupImagesList.length }) }}</span>
         </button>
       </transition>
@@ -160,7 +160,7 @@
               <div class="mobile-group-selector-header">
                 <h3>{{ $t('viewer.imageGroup') }}</h3>
                 <button @click="closeMobileGroupSelector" class="close-button">
-                  <i class="fa fa-times"></i>
+                  <i :class="getIconClass('times')"></i>
                 </button>
               </div>
               <div class="mobile-group-selector-body">
@@ -385,6 +385,7 @@ import { useTags } from '@/composables/useTags';
 import { useTimers } from '@/composables/useTimers';
 import { imageCache, LoadPriority } from '@/services/imageCache';
 import { useAppStore } from '@/stores/app';
+import { getIconClass } from '@/utils/icons';
 import { AnimationDurations } from '@/utils/animations';
 
 const props = defineProps<{

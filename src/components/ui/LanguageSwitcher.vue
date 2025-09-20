@@ -1,12 +1,12 @@
 <template>
   <div class="language-switcher">
-    <button @click="toggleLanguageMenu" class="language-button" :aria-expanded="isOpen" aria-haspopup="true">
+    <button ref="buttonRef" @click="toggleLanguageMenu" class="language-button" :aria-expanded="isOpen" aria-haspopup="true">
       <globe-icon class="icon" />
       <span class="language-text">{{ displayLanguage }}</span>
       <chevron-down-icon class="arrow-icon" :class="{ 'rotate-180': isOpen }" />
     </button>
 
-    <div v-show="isOpen" class="language-menu" :class="{ 'menu-open': isOpen }">
+    <div ref="menuRef" v-show="isOpen" class="language-menu" :class="{ 'menu-open': isOpen }">
       <button v-for="lang in languages" :key="lang.value" @click="changeLanguage(lang.value)" class="language-option"
         :class="{ 'active': currentLanguage === lang.value }">
         {{ lang.label }}

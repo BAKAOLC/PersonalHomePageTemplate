@@ -1,9 +1,9 @@
 <template>
   <div class="sort-selector">
     <button @click="toggleSortMenu" class="sort-button" :aria-expanded="isOpen" aria-haspopup="true">
-      <i class="fa fa-sort sort-icon"></i>
+      <i :class="getIconClass('sort')" class="sort-icon"></i>
       <span class="sort-text">{{ displaySort }}</span>
-      <i class="fa fa-chevron-down arrow-icon" :class="{ 'rotate-180': isOpen }"></i>
+      <i :class="[getIconClass('chevron-down'), 'arrow-icon', { 'rotate-180': isOpen }]"></i>
     </button>
 
     <div v-show="isOpen" class="sort-menu" :class="{ 'menu-open': isOpen }">
@@ -21,6 +21,7 @@ import { useI18n } from 'vue-i18n';
 
 import { useTimers } from '@/composables/useTimers';
 import { useAppStore } from '@/stores/app';
+import { getIconClass } from '@/utils/icons';
 
 const { t } = useI18n();
 const appStore = useAppStore();

@@ -14,10 +14,19 @@ export interface PersonalInfo {
   links: SocialLink[];
 }
 
+// FontAwesome 图标包类型
+export type FontAwesomePackage = 'fas' | 'far' | 'fab' | 'fal' | 'fad' | 'fat' | 'fa-solid' | 'fa-regular' | 'fa-brands' | 'fa-light' | 'fa-duotone' | 'fa-thin';
+
+// FontAwesome 图标配置
+export interface FontAwesomeIcon {
+  name: string; // 图标名称，如 'github', 'envelope'
+  package?: FontAwesomePackage; // 图标包，如果未指定则使用默认包
+}
+
 export interface SocialLink {
   name: I18nText;
   url: string;
-  icon: string;
+  icon: string | FontAwesomeIcon;
   color?: string;
 }
 
@@ -25,7 +34,7 @@ export interface ImageTag {
   id: string;
   name: I18nText;
   color?: string;
-  icon?: string;
+  icon?: string | FontAwesomeIcon;
   isRestricted?: boolean; // 标识是否为限制级标签
   prerequisiteTags?: string[]; // 前置标签ID数组，只有当这些标签被选中时，当前标签才会显示
 }
@@ -76,12 +85,19 @@ export interface GiscusConfig {
   loading: 'lazy' | 'eager';
 }
 
+// FontAwesome 配置
+export interface FontAwesomeConfig {
+  defaultPackage: FontAwesomePackage; // 默认图标包
+  fallbackIcon: string; // 回退图标名称
+}
+
 export interface SiteConfig {
   personal: PersonalInfo;
   characters: Character[];
   tags: ImageTag[];
   images: CharacterImage[];
   giscus: GiscusConfig;
+  fontawesome: FontAwesomeConfig;
 }
 
 export interface LoadingConfig {

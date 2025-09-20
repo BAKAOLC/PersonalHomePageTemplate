@@ -10,7 +10,7 @@
               @input="e => updateSearchQuery((e.target as HTMLInputElement).value)"
               :placeholder="$t('gallery.searchPlaceholder')" class="search-input" />
             <button v-if="searchQuery" @click="clearSearch" class="search-clear">
-              <i class="fa fa-times" aria-hidden="true"></i>
+              <i :class="getIconClass('times')" aria-hidden="true"></i>
             </button>
           </div>
 
@@ -18,13 +18,13 @@
             <SortSelector />
             <button @click="toggleSortOrder" class="sort-order-button"
               :title="$t(sortOrder === 'asc' ? 'gallery.sortAsc' : 'gallery.sortDesc')">
-              <i :class="sortOrder === 'asc' ? 'fa fa-sort-amount-down' : 'fa fa-sort-amount-up'"></i>
+              <i :class="getIconClass(sortOrder === 'asc' ? 'sort-alpha-down' : 'sort-alpha-up')"></i>
               <span class="sort-order-text">{{ $t(sortOrder === 'asc' ? 'gallery.sortAsc' :
                 'gallery.sortDesc')
                 }}</span>
             </button>
             <button class="grid-view-toggle" @click="toggleGridView">
-              <i :class="isGridView ? 'fa fa-th-large' : 'fa fa-th-list'"></i>
+              <i :class="getIconClass(isGridView ? 'th' : 'list')"></i>
               <span class="grid-view-text">{{ $t(isGridView ? 'gallery.listView' : 'gallery.gridView')
                 }}</span>
             </button>
@@ -35,7 +35,7 @@
       <div class="gallery-content">
         <aside class="gallery-sidebar">
           <div class="sidebar-toggle md:hidden" @click="toggleMobileSidebar">
-            <i class="fa fa-filter icon"></i>
+            <i :class="getIconClass('filter')" class="icon"></i>
             {{ $t('gallery.filters') }}
           </div>
           <div class="sidebar-content" :class="{ 'active': isSidebarOpen }">
@@ -57,7 +57,7 @@
         <div class="mobile-filter-header">
           <h3>{{ $t('gallery.filters') }}</h3>
           <button @click="closeMobileSidebar" class="close-button">
-            <i class="fa fa-times"></i>
+            <i :class="getIconClass('times')"></i>
           </button>
         </div>
         <div class="mobile-filter-body">
@@ -71,7 +71,7 @@
     <!-- 返回顶部按钮 -->
     <button v-if="showScrollToTop" @click="scrollToTop" class="scroll-to-top-button"
       :style="{ bottom: scrollToTopBottom + 'px' }">
-      <i class="fa fa-chevron-up"></i>
+      <i :class="getIconClass('chevron-up')"></i>
     </button>
 
     <!-- 在画廊页面内显示全屏查看器 -->
@@ -94,6 +94,7 @@ import { useEventManager } from '@/composables/useEventManager';
 import { useMobileDetection } from '@/composables/useScreenManager';
 import { useTimers } from '@/composables/useTimers';
 import { useAppStore } from '@/stores/app';
+import { getIconClass } from '@/utils/icons';
 
 const { t: $t } = useI18n();
 const router = useRouter();

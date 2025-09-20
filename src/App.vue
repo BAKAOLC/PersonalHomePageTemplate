@@ -119,14 +119,16 @@ const updateDocumentTitle = (): void => {
   titleManager.updateCurrentTitle();
 };
 
+// 系统主题监听器清理函数
+let cleanupSystemThemeListener: (() => void) | null = null;
+
 // 初始化
 onMounted(() => {
   // 设置初始主题
-  if (appStore.isDarkMode) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
+  appStore.applyTheme();
+
+  // 设置系统主题监听器
+  cleanupSystemThemeListener = appStore.setupSystemThemeListener();
 
   // 开始预加载图像
   preloadImages();
@@ -148,6 +150,11 @@ onBeforeUnmount(() => {
     img.src = '';
   });
   preloadedImages.value = [];
+
+  // 清理系统主题监听器
+  if (cleanupSystemThemeListener) {
+    cleanupSystemThemeListener();
+  }
 });
 </script>
 

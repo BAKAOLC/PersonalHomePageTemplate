@@ -1,14 +1,12 @@
 <template>
-  <button @click="toggleTheme" class="theme-toggle" :title="t(isDarkMode ? 'theme.light' : 'theme.dark')"
-    aria-label="Toggle theme">
-    <span class="sr-only">{{ t(isDarkMode ? 'theme.light' : 'theme.dark') }}</span>
-    <sun-icon v-if="isDarkMode" class="icon" />
-    <moon-icon v-else class="icon" />
+  <button @click="toggleTheme" class="theme-toggle" :title="getThemeLabel()" aria-label="Toggle theme">
+    <span class="sr-only">{{ getThemeLabel() }}</span>
+    <component :is="getThemeIcon()" class="icon" />
   </button>
 </template>
 
 <script setup lang="ts">
-import { SunIcon, MoonIcon } from 'lucide-vue-next';
+import { SunIcon, MoonIcon, MonitorIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -17,10 +15,36 @@ import { useAppStore } from '@/stores/app';
 const { t } = useI18n();
 const appStore = useAppStore();
 
-const isDarkMode = computed(() => appStore.isDarkMode);
+const themeMode = computed(() => appStore.themeMode);
 
 const toggleTheme = (): void => {
-  appStore.toggleDarkMode();
+  appStore.toggleThemeMode();
+};
+
+// 获取当前主题图标
+const getThemeIcon = (): any => {
+  switch (themeMode.value) {
+    case 'light':
+      return SunIcon;
+    case 'dark':
+      return MoonIcon;
+    case 'auto':
+    default:
+      return MonitorIcon;
+  }
+};
+
+// 获取主题标签
+const getThemeLabel = (): string => {
+  switch (themeMode.value) {
+    case 'light':
+      return t('theme.light');
+    case 'dark':
+      return t('theme.dark');
+    case 'auto':
+    default:
+      return t('theme.auto');
+  }
 };
 </script>
 

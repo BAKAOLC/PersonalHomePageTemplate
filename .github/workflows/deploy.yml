@@ -29,13 +29,31 @@ jobs:
                   node-version: "24"
                   cache: "npm"
 
+            - name: Generate file structure hash
+              id: file-structure
+              run: |
+                  # 生成包含文件路径和内容的综合哈希
+                  STRUCTURE_HASH=$(find public/assets -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.gif" -o -name "*.webp" \) -exec echo {} \; | sort | sha256sum | cut -d' ' -f1)
+                  CONTENT_HASH=${{ hashFiles('public/assets/**/*.png', 'public/assets/**/*.jpg', 'public/assets/**/*.gif', 'public/assets/**/*.webp') }}
+                  SCRIPT_HASH=${{ hashFiles('scripts/generate-thumbnails.cjs') }}
+                  COMBINED_HASH=$(echo "${STRUCTURE_HASH}-${CONTENT_HASH}-${SCRIPT_HASH}" | sha256sum | cut -d' ' -f1)
+                  echo "structure-hash=${STRUCTURE_HASH}" >> $GITHUB_OUTPUT
+                  echo "content-hash=${CONTENT_HASH}" >> $GITHUB_OUTPUT
+                  echo "script-hash=${SCRIPT_HASH}" >> $GITHUB_OUTPUT
+                  echo "combined-hash=${COMBINED_HASH}" >> $GITHUB_OUTPUT
+                  echo "📊 文件结构哈希: ${STRUCTURE_HASH}"
+                  echo "📊 文件内容哈希: ${CONTENT_HASH}"
+                  echo "📊 脚本哈希: ${SCRIPT_HASH}"
+                  echo "📊 综合哈希: ${COMBINED_HASH}"
+
             - name: Restore thumbnail cache file
               uses: actions/cache/restore@v4
               id: cache-thumbnail-cache
               with:
                   path: .thumbnail-cache.json
-                  key: thumbnail-cache-v2-${{ hashFiles('public/assets/**/*.png', 'public/assets/**/*.jpg', 'public/assets/**/*.gif', 'public/assets/**/*.webp') }}
+                  key: thumbnail-cache-v3-${{ steps.file-structure.outputs.combined-hash }}
                   restore-keys: |
+                      thumbnail-cache-v3-
                       thumbnail-cache-v2-
                       thumbnail-cache-
 
@@ -44,8 +62,9 @@ jobs:
               id: cache-thumbnails
               with:
                   path: public/assets/thumbnails
-                  key: thumbnails-v2-${{ hashFiles('scripts/generate-thumbnails.cjs', 'public/assets/**/*.png', 'public/assets/**/*.jpg', 'public/assets/**/*.gif', 'public/assets/**/*.webp') }}
+                  key: thumbnails-v3-${{ steps.file-structure.outputs.combined-hash }}
                   restore-keys: |
+                      thumbnails-v3-
                       thumbnails-v2-
                       thumbnails-v1-
                       thumbnails-
@@ -59,36 +78,65 @@ jobs:
             - name: Generate thumbnails and check changes
               id: generate-and-check
               run: |
+                  CACHE_HIT="${{ steps.cache-thumbnail-cache.outputs.cache-hit }}"
+                  THUMBS_HIT="${{ steps.cache-thumbnails.outputs.cache-hit }}"
+                  CACHE_KEY="${{ steps.cache-thumbnail-cache.outputs.cache-matched-key }}"
+                  THUMBS_KEY="${{ steps.cache-thumbnails.outputs.cache-matched-key }}"
+
+                  echo "🔍 缓存状态检查："
+                  echo "   缓存文件命中: ${CACHE_HIT}"
+                  echo "   缩略图命中: ${THUMBS_HIT}"
+                  echo "   缓存文件匹配键: ${CACHE_KEY:-'无'}"
+                  echo "   缩略图匹配键: ${THUMBS_KEY:-'无'}"
+                  echo "   当前综合哈希: ${{ steps.file-structure.outputs.combined-hash }}"
+
                   # 记录生成前的状态
                   CACHE_BEFORE=""
                   THUMBS_BEFORE=""
                   [ -f ".thumbnail-cache.json" ] && CACHE_BEFORE=$(sha256sum .thumbnail-cache.json | cut -d' ' -f1)
                   [ -d "public/assets/thumbnails" ] && THUMBS_BEFORE=$(find public/assets/thumbnails -type f -exec sha256sum {} \; 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
 
+                  echo "   缓存文件哈希(前): ${CACHE_BEFORE:-'无'}"
+                  echo "   缩略图哈希(前): ${THUMBS_BEFORE:-'无'}"
+
                   # 生成缩略图
                   npm run generate-thumbnails
 
-                  # 检查变化并设置输出
+                  # 检查生成后的状态
                   CACHE_AFTER=""
                   THUMBS_AFTER=""
                   [ -f ".thumbnail-cache.json" ] && CACHE_AFTER=$(sha256sum .thumbnail-cache.json | cut -d' ' -f1)
                   [ -d "public/assets/thumbnails" ] && THUMBS_AFTER=$(find public/assets/thumbnails -type f -exec sha256sum {} \; 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
 
-                  # 判断是否需要保存缓存
-                  if [ "$CACHE_AFTER" != "$CACHE_BEFORE" ] && [ -n "$CACHE_AFTER" ]; then
+                  echo "   缓存文件哈希(后): ${CACHE_AFTER:-'无'}"
+                  echo "   缩略图哈希(后): ${THUMBS_AFTER:-'无'}"
+
+                  # 判断缓存文件是否需要保存
+                  EXPECTED_CACHE_KEY="thumbnail-cache-v3-${{ steps.file-structure.outputs.combined-hash }}"
+                  if [ "$CACHE_KEY" != "$EXPECTED_CACHE_KEY" ] || [ "$CACHE_AFTER" != "$CACHE_BEFORE" ]; then
                     echo "thumbnail-cache-needs-save=true" >> $GITHUB_OUTPUT
-                    echo "✅ 缓存文件已更新"
+                    if [ "$CACHE_KEY" != "$EXPECTED_CACHE_KEY" ]; then
+                      echo "✅ 缓存文件需要保存（缓存键不匹配: ${CACHE_KEY} != ${EXPECTED_CACHE_KEY}）"
+                    else
+                      echo "✅ 缓存文件需要保存（生成过程中内容已更新）"
+                    fi
                   else
                     echo "thumbnail-cache-needs-save=false" >> $GITHUB_OUTPUT
-                    echo "⏭️  缓存文件未变化"
+                    echo "⏭️  缓存文件无需保存（完全匹配且无变化）"
                   fi
 
-                  if [ "$THUMBS_AFTER" != "$THUMBS_BEFORE" ] && [ -n "$THUMBS_AFTER" ]; then
+                  # 判断缩略图是否需要保存
+                  EXPECTED_THUMBS_KEY="thumbnails-v3-${{ steps.file-structure.outputs.combined-hash }}"
+                  if [ "$THUMBS_KEY" != "$EXPECTED_THUMBS_KEY" ] || [ "$THUMBS_AFTER" != "$THUMBS_BEFORE" ]; then
                     echo "thumbnails-needs-save=true" >> $GITHUB_OUTPUT
-                    echo "✅ 缩略图已更新"
+                    if [ "$THUMBS_KEY" != "$EXPECTED_THUMBS_KEY" ]; then
+                      echo "✅ 缩略图需要保存（缓存键不匹配: ${THUMBS_KEY} != ${EXPECTED_THUMBS_KEY}）"
+                    else
+                      echo "✅ 缩略图需要保存（生成过程中内容已更新）"
+                    fi
                   else
                     echo "thumbnails-needs-save=false" >> $GITHUB_OUTPUT
-                    echo "⏭️  缩略图未变化"
+                    echo "⏭️  缩略图无需保存（完全匹配且无变化）"
                   fi
 
             - name: Build
@@ -99,26 +147,34 @@ jobs:
               if: github.event_name == 'push' && steps.generate-and-check.outputs.thumbnail-cache-needs-save == 'true'
               with:
                   path: .thumbnail-cache.json
-                  key: thumbnail-cache-v2-${{ hashFiles('public/assets/**/*.png', 'public/assets/**/*.jpg', 'public/assets/**/*.gif', 'public/assets/**/*.webp') }}
+                  key: thumbnail-cache-v3-${{ steps.file-structure.outputs.combined-hash }}
 
             - name: Save generated thumbnails
               uses: actions/cache/save@v4
               if: github.event_name == 'push' && steps.generate-and-check.outputs.thumbnails-needs-save == 'true'
               with:
                   path: public/assets/thumbnails
-                  key: thumbnails-v2-${{ hashFiles('scripts/generate-thumbnails.cjs', 'public/assets/**/*.png', 'public/assets/**/*.jpg', 'public/assets/**/*.gif', 'public/assets/**/*.webp') }}
+                  key: thumbnails-v3-${{ steps.file-structure.outputs.combined-hash }}
 
             - name: Verify cache save
               if: github.event_name == 'push'
               run: |
                   echo "=== 缓存保存确认 ==="
                   echo "当前构建完成，缓存状态："
+                  echo ""
+                  echo "🔑 缓存键信息："
+                  echo "   文件结构哈希: ${{ steps.file-structure.outputs.structure-hash }}"
+                  echo "   文件内容哈希: ${{ steps.file-structure.outputs.content-hash }}"
+                  echo "   脚本哈希: ${{ steps.file-structure.outputs.script-hash }}"
+                  echo "   综合哈希: ${{ steps.file-structure.outputs.combined-hash }}"
+                  echo ""
 
                   # 检查缓存文件状态
                   if [ -f ".thumbnail-cache.json" ]; then
                     echo "✅ 缓存文件已生成: $(wc -l < .thumbnail-cache.json) 行"
                     if [ "${{ steps.generate-and-check.outputs.thumbnail-cache-needs-save }}" = "true" ]; then
                       echo "📤 缓存文件已上传到 GitHub Actions 缓存"
+                      echo "   缓存键: thumbnail-cache-v3-${{ steps.file-structure.outputs.combined-hash }}"
                     else
                       echo "⏭️  缓存文件未变化，跳过上传"
                     fi
@@ -131,6 +187,7 @@ jobs:
                     echo "✅ 缩略图已生成: $(find public/assets/thumbnails -type f | wc -l) 个文件"
                     if [ "${{ steps.generate-and-check.outputs.thumbnails-needs-save }}" = "true" ]; then
                       echo "📤 缩略图已上传到 GitHub Actions 缓存"
+                      echo "   缓存键: thumbnails-v3-${{ steps.file-structure.outputs.combined-hash }}"
                     else
                       echo "⏭️  缩略图未变化，跳过上传"
                     fi
@@ -142,6 +199,7 @@ jobs:
                   echo "=== 缓存决策摘要 ==="
                   echo "缩略图缓存文件上传: ${{ steps.generate-and-check.outputs.thumbnail-cache-needs-save }}"
                   echo "缩略图文件上传: ${{ steps.generate-and-check.outputs.thumbnails-needs-save }}"
+                  echo "改进说明: 现在缓存键包含文件路径结构，文件重命名/移动时会正确更新缓存"
 
             - name: Setup Pages
               if: github.event_name == 'push'

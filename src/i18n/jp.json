@@ -3,7 +3,8 @@
     "title": "律影映幻",
     "loading": "ロード中...",
     "error": "エラーが発生しました！",
-    "notFound": "ページが見つかりません"
+    "notFound": "ページが見つかりません",
+    "copyright": "© 2025 OLC. 全著作権所有。"
   },
   "common": {
     "loading": "ロード中",
@@ -79,6 +80,7 @@
     "socialLinks": "ソーシャルリンク"
   },
   "viewer": {
+    "title": "画像ビューア",
     "prev": "前へ",
     "next": "次へ",
     "zoomIn": "拡大",

@@ -3,7 +3,8 @@
     "title": "Ritsukage Utsumabo",
     "loading": "Loading...",
     "error": "An error occurred!",
-    "notFound": "Page not found"
+    "notFound": "Page not found",
+    "copyright": "© 2025 OLC. All rights reserved."
   },
   "common": {
     "loading": "Loading",
@@ -79,6 +80,7 @@
     "socialLinks": "Social Links"
   },
   "viewer": {
+    "title": "Image Viewer",
     "prev": "Previous",
     "next": "Next",
     "zoomIn": "Zoom In",

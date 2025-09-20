@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 
 import { siteConfig } from '@/config/site';
 import i18n from '@/i18n';
+import { titleManager } from '@/services/titleManager';
 import { useAppStore } from '@/stores/app';
 
 const router = createRouter({
@@ -86,16 +87,7 @@ router.afterEach((to) => {
   }
 
   // 更新页面标题
-  const siteTitle = '律影映幻';
-  if (to.name === 'home') {
-    document.title = siteTitle;
-  } else if (to.name === 'gallery') {
-    document.title = `画廊 - ${siteTitle}`;
-  } else if (to.name === 'image-viewer') {
-    document.title = `图片查看器 - ${siteTitle}`;
-  } else if (to.name === 'not-found') {
-    document.title = `页面未找到 - ${siteTitle}`;
-  }
+  titleManager.updateTitle(to);
 });
 
 export default router;

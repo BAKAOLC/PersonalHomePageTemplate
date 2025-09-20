@@ -44,21 +44,74 @@ npm install
 
 > **⚠️ 重要提醒**：在开始配置前，请确保您已准备好自己的素材（图片、头像等）来替换模板中的示例内容。示例素材仅供演示，不得用于实际部署。
 
-#### 修改HTML文件
-1. **修改 `index.html`**：
-   - 更改 `<title>` 标签中的网站标题
-   - 修改 meta 标签中的描述、关键词、作者信息
-   - 更新 Open Graph 和 Twitter 卡片的 URL、标题、描述
-   - **重要：替换 FontAwesome 脚本**：
-     ```html
-     <!-- 将这行替换为您自己的 FontAwesome Kit -->
-     <script src="https://kit.fontawesome.com/a52744a7a3.js" crossorigin="anonymous"></script>
-     ```
-     请访问 [FontAwesome](https://fontawesome.com/) 获取您自己的 Kit
+#### 配置网站信息和国际化
+1. **配置网站 HTML 信息**：
+   编辑 `src/config/html.json`：
+   ```json
+   {
+     "title": "您的网站标题",
+     "description": "您的网站描述",
+     "keywords": "关键词1,关键词2,关键词3",
+     "author": "您的名称",
+     "url": "https://yoursite.com/",
+     "image": "/assets/avatar.png",
+     "themeColor": {
+       "light": "#ffffff",
+       "dark": "#1e293b"
+     },
+     "favicon": "/favicon.ico",
+     "appleTouchIcon": "/assets/avatar.png"
+   }
+   ```
+   
+   > **💡 自动化处理**：构建时会自动将这些配置应用到 `index.html` 和 `404.html`，无需手动编辑 HTML 文件！
 
-2. **修改 `public/404.html`**：
-   - 更改页面标题和描述
-   - 确保与主页面风格一致
+2. **替换 FontAwesome Kit**：
+   在 `index.html` 中找到并替换：
+   ```html
+   <!-- 将这行替换为您自己的 FontAwesome Kit -->
+   <script src="https://kit.fontawesome.com/a52744a7a3.js" crossorigin="anonymous"></script>
+   ```
+   请访问 [FontAwesome](https://fontawesome.com/) 获取您自己的 Kit
+
+3. **配置应用内多语言内容 (i18n)**：
+   项目支持中文、英文、日文三种语言。您需要修改以下文件中的应用内容：
+   
+   **编辑 `src/i18n/zh.json`（中文）**：
+   ```json
+   {
+     "app": {
+       "title": "您的网站标题",
+       "copyright": "© 2025 您的名称. 保留所有权利。"
+     }
+   }
+   ```
+   
+   **编辑 `src/i18n/en.json`（英文）**：
+   ```json
+   {
+     "app": {
+       "title": "Your Site Title",
+       "copyright": "© 2025 Your Name. All rights reserved."
+     }
+   }
+   ```
+   
+   **编辑 `src/i18n/jp.json`（日文）**：
+   ```json
+   {
+     "app": {
+       "title": "あなたのサイトタイトル",
+       "copyright": "© 2025 あなたの名前. 全著作権所有。"
+     }
+   }
+   ```
+   
+   > **💡 提示**：
+   > - **浏览器标题栏**：会根据语言切换自动更新，用户体验友好
+   > - **HTML meta 标签**：通过 `src/config/html.json` 统一配置，构建时自动应用
+   > - **应用内容**：所有界面文字都支持多语言切换
+   > - **SEO 优化**：HTML meta 标签在构建时生成，确保搜索引擎能正确索引
 
 #### 配置个人信息
 编辑 `src/config/personal.json`：
@@ -192,12 +245,16 @@ npm run build
 ├── src/
 │   ├── components/        # Vue组件
 │   ├── config/           # 配置文件
+│   │   ├── html.json     # HTML meta 标签配置 (重要：需要修改)
 │   │   ├── personal.json # 个人信息
 │   │   ├── characters.json # 角色配置
 │   │   ├── tags.json     # 标签配置
 │   │   ├── giscus.json   # 评论系统配置
 │   │   └── images/       # 图片配置文件夹
-│   ├── i18n/             # 国际化文件
+│   ├── i18n/             # 国际化文件 (重要：需要修改)
+│   │   ├── zh.json       # 中文翻译
+│   │   ├── en.json       # 英文翻译
+│   │   └── jp.json       # 日文翻译
 │   ├── stores/           # 状态管理
 │   └── views/            # 页面组件
 └── scripts/              # 构建脚本
@@ -310,6 +367,13 @@ npm run build
 - 检查网络连接
 - 考虑将 `loading` 设置为 "eager" 以提前加载
 - 确认 GitHub 服务状态正常
+
+### 多语言切换问题
+- **浏览器标题不更新**：检查 `src/i18n/` 目录下对应语言文件中的 `app.title` 配置
+- **版权信息不切换**：检查 `app.copyright` 字段是否存在于所有语言文件中
+- **语言切换后页面内容混乱**：确保所有语言文件的 JSON 结构保持一致
+- **控制台报错**：检查 JSON 文件格式是否正确，是否有语法错误
+- **SEO 问题**：搜索引擎只能看到 `index.html` 中的静态 meta 标签，动态内容对 SEO 无效
 
 ## 技术栈
 

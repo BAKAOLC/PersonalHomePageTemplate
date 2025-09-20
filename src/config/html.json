@@ -1,0 +1,14 @@
+{
+  "title": "律影映幻",
+  "description": "律影映幻的个人主页",
+  "keywords": "律影映幻,OLC,BAKAOLC,Ritsukage,Utsumabo,Ritsukage Utsumabo,小律影",
+  "author": "OLC",
+  "url": "https://ritsukage.com/",
+  "image": "/assets/avatar.png",
+  "themeColor": {
+    "light": "#ffffff",
+    "dark": "#1e293b"
+  },
+  "favicon": "/favicon.ico",
+  "appleTouchIcon": "/assets/avatar.png"
+}

@@ -3,7 +3,8 @@
     "title": "律影映幻",
     "loading": "加载中...",
     "error": "出错了！",
-    "notFound": "页面不存在"
+    "notFound": "页面不存在",
+    "copyright": "© 2025 OLC. 保留所有权利。"
   },
   "common": {
     "loading": "加载中",
@@ -79,6 +80,7 @@
     "socialLinks": "社交链接"
   },
   "viewer": {
+    "title": "图片查看器",
     "prev": "上一个",
     "next": "下一个",
     "zoomIn": "放大",

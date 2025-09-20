@@ -1,0 +1,46 @@
+版权声明 / Copyright Notice
+============================
+
+示例素材版权信息 / Example Assets Copyright Information:
+
+角色设计与艺术作品 / Character Design & Artwork:
+- 角色名称: 律影映幻 (Ritsukage Utsumabo)
+- 原始作者: OLC (BAKAOLC)
+- 艺术作品作者: 月兔弥生 (Yuetuo Yayoi) 及其他原始作者
+- 版权所有 © 2025 OLC. All Rights Reserved.
+
+本目录下的所有示例素材（包括但不限于）：
+All example assets in this directory (including but not limited to):
+- 角色设计图 / Character design images
+- 头像文件 / Avatar files  
+- 插画作品 / Illustration artworks
+- 相关艺术素材 / Related artistic materials
+
+权利保留声明 / Rights Reserved:
+这些素材均为原作者所有，享有完整的版权保护。
+These assets are owned by their original authors and are fully protected by copyright.
+
+使用限制 / Usage Restrictions:
+- ✅ 仅供模板演示使用 / For template demonstration only
+- ❌ 禁止商业使用 / Commercial use prohibited
+- ❌ 禁止再分发 / Redistribution prohibited
+- ❌ 禁止修改后使用 / Modified use prohibited
+
+使用本模板时，您必须：
+When using this template, you MUST:
+1. 完全替换所有示例素材 / Completely replace all example assets
+2. 使用您自己拥有版权的内容 / Use content you own the copyright to
+3. 删除此版权声明文件 / Remove this copyright notice file
+
+法律声明 / Legal Notice:
+未经原作者明确书面授权，任何形式的使用、复制、分发这些素材均构成版权侵权。
+Any use, reproduction, or distribution of these assets without explicit written 
+authorization from the original authors constitutes copyright infringement.
+
+违反者将承担相应的法律责任。
+Violators will bear corresponding legal responsibilities.
+
+---
+模板代码许可证 / Template Code License:
+模板的代码部分采用 MIT License
+The code portion of this template is licensed under MIT License

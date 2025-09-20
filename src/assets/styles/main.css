@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --transition-duration: 0.3s;
+  --transition-timing: ease;
+  --app-header-height: 60px;
+  --app-footer-height: 60px;
+  --gallery-header-height: 0px;
+}
+
+html, body {
+  @apply h-full w-full m-0 p-0;
+  @apply transition-colors duration-500 ease-in-out;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+  @apply font-sans antialiased;
+}
+
+#app {
+  @apply h-full w-full flex flex-col;
+}
+
+.theme-transition {
+  @apply transition-colors duration-500 ease-in-out;
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-600;
+}
+
+/* 通用卡片样式 */
+.card {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden;
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* 文字动画 */
+.animate-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r;
+  @apply from-blue-500 via-purple-500 to-pink-500;
+  background-size: 200% auto;
+  animation: textShimmer 3s linear infinite;
+}
+
+@keyframes textShimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* 响应式容器 */
+.container-fluid {
+  @apply w-full mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* 图像网格 */
+.image-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4;
+}

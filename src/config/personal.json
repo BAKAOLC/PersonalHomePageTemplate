@@ -1,0 +1,57 @@
+{
+  "avatar": "/assets/avatar.png",
+  "name": {
+    "en": "OLC",
+    "zh": "OLC",
+    "jp": "OLC"
+  },
+  "description": [
+    {
+      "en": "A person who is bored and likes to doodle",
+      "zh": "一个无聊喜欢摸鱼的人",
+      "jp": "暇で落書きが好きな人"
+    },
+    {
+      "en": "",
+      "zh": "",
+      "jp": ""
+    },
+    {
+      "en": "⚠️ TEMPLATE - Please modify this information to your own",
+      "zh": "⚠️ 模板 - 请修改为您自己的信息",
+      "jp": "⚠️ テンプレート - ご自身の情報に変更してください"
+    }
+  ],
+  "links": [
+    {
+      "name": {
+        "en": "GitHub",
+        "zh": "GitHub",
+        "jp": "GitHub"
+      },
+      "url": "https://github.com/BAKAOLC",
+      "icon": "github",
+      "color": "#333"
+    },
+    {
+      "name": {
+        "en": "X (Twitter)",
+        "zh": "X",
+        "jp": "X"
+      },
+      "url": "https://x.com/BAKAOLC",
+      "icon": "twitter",
+      "color": "#1da1f2"
+    },
+    {
+      "name": {
+        "en": "Email",
+        "zh": "邮箱",
+        "jp": "メール"
+      },
+      "url": "mailto:utsumabo@ritsukage.com",
+      "icon": "envelope",
+      "color": "#ea4335"
+    }
+  ]
+}

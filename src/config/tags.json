@@ -1,0 +1,20 @@
+[
+  {
+    "id": "commission",
+    "name": {
+      "en": "Commission",
+      "zh": "约稿",
+      "jp": "依頼"
+    },
+    "color": "#10b981"
+  },
+  {
+    "id": "chibi",
+    "name": {
+      "en": "Chibi",
+      "zh": "Q版",
+      "jp": "ちび"
+    },
+    "color": "#06b6d4"
+  }
+]

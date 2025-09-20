@@ -1,0 +1,54 @@
+{
+  "name": "personal-homepage-template",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "author": "OLC <utsumabo@ritsukage.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BAKAOLC/PersonalHomePageTemplate.git"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run prebuild && vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "prebuild": "npm run images-config:build && npm run generate-thumbnails",
+    "images-config:build": "node scripts/manage-images.cjs build",
+    "images-config:split": "node scripts/manage-images.cjs split",
+    "images-config:merge": "node scripts/manage-images.cjs merge",
+    "images-config:cleanup": "node scripts/manage-images.cjs cleanup",
+    "generate-thumbnails": "node scripts/generate-thumbnails.cjs",
+    "lint": "eslint --cache .",
+    "lint:fix": "eslint --cache --fix ."
+  },
+  "dependencies": {
+    "@giscus/vue": "^3.1.1",
+    "@vueuse/core": "^10.7.0",
+    "dayjs": "^1.11.10",
+    "lucide-vue-next": "^0.294.0",
+    "pinia": "^2.1.7",
+    "vue": "^3.3.4",
+    "vue-i18n": "^9.5.0",
+    "vue-router": "^4.2.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.11.0",
+    "@stylistic/eslint-plugin": "^2.8.0",
+    "@types/node": "^20.10.4",
+    "@typescript-eslint/eslint-plugin": "^8.6.0",
+    "@typescript-eslint/parser": "^8.6.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^9.11.0",
+    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-vue": "^9.28.0",
+    "postcss": "^8.4.32",
+    "sharp": "^0.34.3",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.3.3",
+    "vite": "^7.1.3",
+    "vue-eslint-parser": "^9.4.3",
+    "vue-tsc": "^3.0.6"
+  }
+}

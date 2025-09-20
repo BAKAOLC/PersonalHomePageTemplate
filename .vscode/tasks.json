@@ -1,0 +1,34 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build tsc",
+      "type": "shell",
+      "command": "npx tsc --noEmit -p ./tsconfig.json",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "eslint all",
+      "type": "shell",
+      "problemMatcher": "$eslint-stylish",
+      "osx": {
+        "command": "eslint_cache.sh 1 ./"
+      },
+      "windows": {
+        "command": "eslint_cache.bat 1 ./"
+      }
+    },
+    {
+      "label": "build",
+      "type": "shell",
+      "dependsOn": [
+        "build tsc",
+        "eslint all"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}

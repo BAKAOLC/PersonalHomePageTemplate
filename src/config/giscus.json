@@ -1,0 +1,12 @@
+{
+  "repo": "yourusername/your-repo",
+  "repoId": "your-repo-id",
+  "category": "General",
+  "categoryId": "your-category-id",
+  "mapping": "specific",
+  "strict": "1",
+  "reactionsEnabled": "1",
+  "emitMetadata": "0",
+  "inputPosition": "top",
+  "loading": "lazy"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "illust-qqman",
+  "name": {
+    "en": "QQ-style Little Ritsukage",
+    "zh": "Q版小律影",
+    "jp": "Q版小律影"
+  },
+  "description": {
+    "en": "QQ-style chibi artwork",
+    "zh": "Q版小律影，QQ人风格",
+    "jp": "QQスタイルのちび律影"
+  },
+  "artist": {
+    "en": "Yuetuo Yayoi",
+    "zh": "月兔弥生",
+    "jp": "月兔弥生"
+  },
+  "src": "/assets/category/ritsukage-utsumabo/miscellaneous/QQ人小律影.png",
+  "tags": [
+    "commission",
+    "chibi"
+  ],
+  "characters": [
+    "ritsukage-utsumabo"
+  ],
+  "date": "2023-02-24"
+}

@@ -1,0 +1,159 @@
+name: Deploy to GitHub Pages
+
+on:
+    push:
+        branches:
+            - master
+            - main
+    pull_request:
+        branches:
+            - master
+            - main
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: read
+            pages: write
+            id-token: write
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "24"
+                  cache: "npm"
+
+            - name: Restore thumbnail cache file
+              uses: actions/cache/restore@v4
+              id: cache-thumbnail-cache
+              with:
+                  path: .thumbnail-cache.json
+                  key: thumbnail-cache-v2-${{ hashFiles('public/assets/**/*.png', 'public/assets/**/*.jpg', 'public/assets/**/*.gif', 'public/assets/**/*.webp') }}
+                  restore-keys: |
+                      thumbnail-cache-v2-
+                      thumbnail-cache-
+
+            - name: Restore generated thumbnails
+              uses: actions/cache/restore@v4
+              id: cache-thumbnails
+              with:
+                  path: public/assets/thumbnails
+                  key: thumbnails-v2-${{ hashFiles('scripts/generate-thumbnails.cjs', 'public/assets/**/*.png', 'public/assets/**/*.jpg', 'public/assets/**/*.gif', 'public/assets/**/*.webp') }}
+                  restore-keys: |
+                      thumbnails-v2-
+                      thumbnails-v1-
+                      thumbnails-
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Create thumbnails directory if not exists
+              run: mkdir -p public/assets/thumbnails
+
+            - name: Generate thumbnails and check changes
+              id: generate-and-check
+              run: |
+                  # 记录生成前的状态
+                  CACHE_BEFORE=""
+                  THUMBS_BEFORE=""
+                  [ -f ".thumbnail-cache.json" ] && CACHE_BEFORE=$(sha256sum .thumbnail-cache.json | cut -d' ' -f1)
+                  [ -d "public/assets/thumbnails" ] && THUMBS_BEFORE=$(find public/assets/thumbnails -type f -exec sha256sum {} \; 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
+
+                  # 生成缩略图
+                  npm run generate-thumbnails
+
+                  # 检查变化并设置输出
+                  CACHE_AFTER=""
+                  THUMBS_AFTER=""
+                  [ -f ".thumbnail-cache.json" ] && CACHE_AFTER=$(sha256sum .thumbnail-cache.json | cut -d' ' -f1)
+                  [ -d "public/assets/thumbnails" ] && THUMBS_AFTER=$(find public/assets/thumbnails -type f -exec sha256sum {} \; 2>/dev/null | sort | sha256sum | cut -d' ' -f1)
+
+                  # 判断是否需要保存缓存
+                  if [ "$CACHE_AFTER" != "$CACHE_BEFORE" ] && [ -n "$CACHE_AFTER" ]; then
+                    echo "thumbnail-cache-needs-save=true" >> $GITHUB_OUTPUT
+                    echo "✅ 缓存文件已更新"
+                  else
+                    echo "thumbnail-cache-needs-save=false" >> $GITHUB_OUTPUT
+                    echo "⏭️  缓存文件未变化"
+                  fi
+
+                  if [ "$THUMBS_AFTER" != "$THUMBS_BEFORE" ] && [ -n "$THUMBS_AFTER" ]; then
+                    echo "thumbnails-needs-save=true" >> $GITHUB_OUTPUT
+                    echo "✅ 缩略图已更新"
+                  else
+                    echo "thumbnails-needs-save=false" >> $GITHUB_OUTPUT
+                    echo "⏭️  缩略图未变化"
+                  fi
+
+            - name: Build
+              run: npm run build
+
+            - name: Save thumbnail cache file
+              uses: actions/cache/save@v4
+              if: github.event_name == 'push' && steps.generate-and-check.outputs.thumbnail-cache-needs-save == 'true'
+              with:
+                  path: .thumbnail-cache.json
+                  key: thumbnail-cache-v2-${{ hashFiles('public/assets/**/*.png', 'public/assets/**/*.jpg', 'public/assets/**/*.gif', 'public/assets/**/*.webp') }}
+
+            - name: Save generated thumbnails
+              uses: actions/cache/save@v4
+              if: github.event_name == 'push' && steps.generate-and-check.outputs.thumbnails-needs-save == 'true'
+              with:
+                  path: public/assets/thumbnails
+                  key: thumbnails-v2-${{ hashFiles('scripts/generate-thumbnails.cjs', 'public/assets/**/*.png', 'public/assets/**/*.jpg', 'public/assets/**/*.gif', 'public/assets/**/*.webp') }}
+
+            - name: Verify cache save
+              if: github.event_name == 'push'
+              run: |
+                  echo "=== 缓存保存确认 ==="
+                  echo "当前构建完成，缓存状态："
+
+                  # 检查缓存文件状态
+                  if [ -f ".thumbnail-cache.json" ]; then
+                    echo "✅ 缓存文件已生成: $(wc -l < .thumbnail-cache.json) 行"
+                    if [ "${{ steps.generate-and-check.outputs.thumbnail-cache-needs-save }}" = "true" ]; then
+                      echo "📤 缓存文件已上传到 GitHub Actions 缓存"
+                    else
+                      echo "⏭️  缓存文件未变化，跳过上传"
+                    fi
+                  else
+                    echo "❌ 缓存文件未生成"
+                  fi
+
+                  # 检查缩略图状态
+                  if [ -d "public/assets/thumbnails" ] && [ "$(find public/assets/thumbnails -type f | wc -l)" -gt 0 ]; then
+                    echo "✅ 缩略图已生成: $(find public/assets/thumbnails -type f | wc -l) 个文件"
+                    if [ "${{ steps.generate-and-check.outputs.thumbnails-needs-save }}" = "true" ]; then
+                      echo "📤 缩略图已上传到 GitHub Actions 缓存"
+                    else
+                      echo "⏭️  缩略图未变化，跳过上传"
+                    fi
+                  else
+                    echo "❌ 缩略图未生成或为空"
+                  fi
+
+                  echo ""
+                  echo "=== 缓存决策摘要 ==="
+                  echo "缩略图缓存文件上传: ${{ steps.generate-and-check.outputs.thumbnail-cache-needs-save }}"
+                  echo "缩略图文件上传: ${{ steps.generate-and-check.outputs.thumbnails-needs-save }}"
+
+            - name: Setup Pages
+              if: github.event_name == 'push'
+              uses: actions/configure-pages@v4
+
+            - name: Upload artifact
+              if: github.event_name == 'push'
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: ./dist
+
+            - name: Deploy to GitHub Pages
+              if: github.event_name == 'push'
+              id: deployment
+              uses: actions/deploy-pages@v4

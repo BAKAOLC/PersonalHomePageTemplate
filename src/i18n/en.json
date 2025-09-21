@@ -128,8 +128,9 @@
     "searchResults": "Search Results",
     "noSearchResults": "No matching links found",
     "linkCount": "{count} links",
-    "generateFriendLink": "Generate Friend Link",
-    "friendLinkGenerated": "Friend link info generated",
+    "generateFriendLink": "Get Site Link",
+    "generateFriendLinkDesc": "Get this website's link information for friend link exchange",
+    "friendLinkGenerated": "Site Link Information",
     "copyToClipboard": "Copy to Clipboard",
     "copied": "Copied"
   },

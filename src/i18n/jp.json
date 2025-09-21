@@ -128,8 +128,9 @@
     "searchResults": "検索結果",
     "noSearchResults": "一致するリンクが見つかりません",
     "linkCount": "{count} 個のリンク",
-    "generateFriendLink": "友達リンク情報を生成",
-    "friendLinkGenerated": "友達リンク情報が生成されました",
+    "generateFriendLink": "サイトリンクを取得",
+    "generateFriendLinkDesc": "友達リンク交換のために、このウェブサイトのリンク情報を取得します",
+    "friendLinkGenerated": "サイトリンク情報",
     "copyToClipboard": "クリップボードにコピー",
     "copied": "コピーしました"
   },

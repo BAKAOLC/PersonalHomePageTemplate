@@ -128,8 +128,9 @@
     "searchResults": "搜索结果",
     "noSearchResults": "没有找到匹配的友链",
     "linkCount": "{count} 个友链",
-    "generateFriendLink": "生成友链信息",
-    "friendLinkGenerated": "友链信息已生成",
+    "generateFriendLink": "获取本站友链",
+    "generateFriendLinkDesc": "获取本网站的友链信息，方便与其他站长交换友链",
+    "friendLinkGenerated": "本站友链信息",
     "copyToClipboard": "复制到剪贴板",
     "copied": "已复制"
   },

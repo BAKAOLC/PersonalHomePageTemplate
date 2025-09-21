@@ -10,6 +10,9 @@
             <h1 class="site-title">{{ t('app.title') }}</h1>
           </router-link>
 
+          <!-- 导航栏 -->
+          <navigation-bar />
+
           <div class="header-controls">
             <language-switcher class="language-control" />
             <theme-toggle class="theme-control" />
@@ -40,6 +43,7 @@ import { useI18n } from 'vue-i18n';
 
 import LoadingScreen from '@/components/LoadingScreen.vue';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher.vue';
+import NavigationBar from '@/components/ui/NavigationBar.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import { siteConfig } from '@/config/site';
 import { titleManager } from '@/services/titleManager';
@@ -176,15 +180,19 @@ onBeforeUnmount(() => {
 
 .header-content {
   @apply container mx-auto px-4;
-  @apply flex items-center justify-between;
+  @apply flex items-center;
   min-height: 60px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
 }
 
 .logo-link {
   @apply flex items-center gap-3;
   @apply text-gray-900 dark:text-white;
   @apply no-underline;
+  @apply justify-self-start;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -200,6 +208,7 @@ onBeforeUnmount(() => {
 
 .header-controls {
   @apply flex items-center gap-3;
+  @apply justify-self-end;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -244,14 +253,17 @@ onBeforeUnmount(() => {
   }
 
   .header-content {
-    @apply flex-row items-center justify-between;
+    @apply flex items-center justify-between;
     @apply py-3;
     min-height: auto;
+    display: flex;
+    grid-template-columns: none;
     gap: 0.5rem;
   }
 
   .logo-link {
     gap: 0.5rem;
+    @apply justify-self-auto;
   }
 
   .logo {
@@ -264,6 +276,7 @@ onBeforeUnmount(() => {
 
   .header-controls {
     @apply gap-2;
+    @apply justify-self-auto;
   }
 }
 </style>

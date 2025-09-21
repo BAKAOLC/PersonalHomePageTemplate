@@ -12,34 +12,72 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('@/views/Home.vue'),
+      meta: {
+        titleKey: null, // 首页只显示站点标题
+      },
     },
     {
       path: '/gallery',
       name: 'gallery',
       component: () => import('@/views/Gallery.vue'),
+      meta: {
+        titleKey: 'gallery.title',
+      },
+    },
+    {
+      path: '/links',
+      name: 'links',
+      component: () => import('@/views/Links.vue'),
+      meta: {
+        titleKey: 'links.title',
+      },
     },
     {
       path: '/viewer/:imageId',
       name: 'image-viewer',
       component: () => import('@/views/ImageViewer.vue'),
       props: true,
+      meta: {
+        titleKey: 'viewer.title',
+      },
     },
     {
       path: '/viewer/:imageId/:childImageId',
       name: 'image-viewer-child',
       component: () => import('@/views/ImageViewer.vue'),
       props: true,
+      meta: {
+        titleKey: 'viewer.title',
+      },
     },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFound.vue'),
+      meta: {
+        titleKey: 'app.notFound',
+      },
     },
   ],
 });
 
-// 路由前置守卫：处理图像组重定向
-router.beforeEach((to, _from, next) => {
+// 路由前置守卫：处理图像组重定向和功能禁用重定向
+router.beforeEach((to: any, _from: any, next: any) => {
+  // 检查功能是否被禁用，如果禁用则自动重定向到首页
+  if (to.name === 'gallery') {
+    if (!siteConfig.features.gallery) {
+      console.log('Gallery feature is disabled, redirecting to home');
+      return next({ name: 'home', replace: true });
+    }
+  }
+
+  if (to.name === 'links') {
+    if (!siteConfig.features.links) {
+      console.log('Links feature is disabled, redirecting to home');
+      return next({ name: 'home', replace: true });
+    }
+  }
+
   // 检查是否访问单个图像路由且imageId是图像组
   if (to.name === 'image-viewer' && to.params.imageId) {
     const imageId = to.params.imageId as string;
@@ -79,8 +117,11 @@ router.beforeEach((to, _from, next) => {
   next();
 });
 
+// 设置路由实例到标题管理器
+titleManager.setRouter(router);
+
 // 路由后置守卫：确保页面状态正确
-router.afterEach((to) => {
+router.afterEach((to: any) => {
   // 确保页面滚动到顶部（除非有hash）
   if (!to.hash) {
     window.scrollTo(0, 0);

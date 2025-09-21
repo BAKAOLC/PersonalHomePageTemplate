@@ -12,6 +12,5 @@ import PersonalSection from '@/components/PersonalSection.vue';
 .home-page {
   @apply h-full;
   @apply flex flex-col;
-  @apply overflow-auto;
 }
 </style>

@@ -36,7 +36,10 @@
   "nav": {
     "home": "ホーム",
     "gallery": "ギャラリー",
-    "about": "について"
+    "links": "リンク",
+    "about": "について",
+    "toggleMenu": "メニュー切り替え",
+    "menu": "メニュー"
   },
   "theme": {
     "light": "ライトモード",
@@ -109,6 +112,22 @@
     "progress": "進捗",
     "tip": "ヒント",
     "enteringSite": "サイトに入ります..."
+  },
+  "links": {
+    "title": "リンク",
+    "subtitle": "友達と便利なリソース",
+    "noLinks": "リンクがありません",
+    "categories": "カテゴリ",
+    "allCategories": "すべてのカテゴリ",
+    "visitSite": "サイトを訪問",
+    "tags": "タグ",
+    "description": "説明",
+    "backToHome": "ホームに戻る",
+    "searchPlaceholder": "リンクを検索...",
+    "clearSearch": "検索をクリア",
+    "searchResults": "検索結果",
+    "noSearchResults": "一致するリンクが見つかりません",
+    "linkCount": "{count} 個のリンク"
   },
   "debug": {
     "imageIdEmpty": "画像IDが空です、ナビゲートできません",

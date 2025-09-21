@@ -1,7 +1,11 @@
 <template>
-  <section class="personal-section">
-    <div class="container mx-auto px-4 py-4 sm:py-6 md:py-8 lg:py-12">
-      <div class="text-center mb-8">
+  <section class="personal-section" :style="backgroundStyle">
+    <!-- 背景遮罩层 -->
+    <div v-if="hasBackgroundImage" class="background-overlay"></div>
+
+    <div class="container mx-auto px-4 py-8">
+      <div class="content-card" :class="{ 'glass-effect': hasBackgroundImage }">
+        <div class="text-center mb-8">
         <div class="avatar-container">
           <ProgressiveImage
             :src="personal.avatar"
@@ -44,13 +48,14 @@
             {{ translate('personal.viewGallery') }}
           </router-link>
         </div>
+        </div>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import ProgressiveImage from './ProgressiveImage.vue';
@@ -67,6 +72,39 @@ const appStore = useAppStore();
 const { personal } = siteConfig;
 const currentLanguage = computed(() => appStore.currentLanguage);
 
+// 随机背景图像
+const currentBackgroundImage = ref<string | null>(null);
+
+// 计算属性：是否有背景图像
+const hasBackgroundImage = computed(() => !!currentBackgroundImage.value);
+
+// 计算属性：背景样式
+const backgroundStyle = computed(() => {
+  if (!currentBackgroundImage.value) {
+    return {};
+  }
+
+  return {
+    backgroundImage: `url(${currentBackgroundImage.value})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+});
+
+// 选择随机背景图像
+const selectRandomBackground = (): void => {
+  if (personal.backgroundImages && personal.backgroundImages.length > 0) {
+    const randomIndex = Math.floor(Math.random() * personal.backgroundImages.length);
+    currentBackgroundImage.value = personal.backgroundImages[randomIndex];
+  }
+};
+
+// 组件挂载时选择随机背景
+onMounted(() => {
+  selectRandomBackground();
+});
+
 // 本地化辅助函数
 const t = (text: I18nText, lang: string): string => {
   return text[lang as keyof I18nText] || text.en || '';
@@ -75,11 +113,64 @@ const t = (text: I18nText, lang: string): string => {
 
 <style scoped>
 .personal-section {
-  @apply min-h-full flex flex-col justify-center;
+  @apply h-full flex flex-col justify-center;
   @apply bg-gradient-to-b from-white to-gray-100;
   @apply dark:from-gray-900 dark:to-gray-800;
   @apply overflow-auto;
   @apply py-8;
+  @apply relative;
+  transition: all 0.5s ease-in-out;
+}
+
+/* 背景遮罩层 */
+.background-overlay {
+  @apply absolute inset-0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(1px);
+  z-index: 1;
+}
+
+/* 内容卡片 */
+.content-card {
+  @apply relative;
+  @apply max-w-2xl mx-auto;
+  z-index: 2;
+  transition: all 0.5s ease-in-out;
+}
+
+/* 磨砂玻璃效果 */
+.glass-effect {
+  @apply backdrop-blur-md;
+  @apply border border-white/30 dark:border-gray-700/30;
+  @apply rounded-2xl;
+  @apply shadow-2xl;
+  @apply p-8;
+  @apply max-w-2xl;
+  margin: 0 auto;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+
+  /* 亮色主题：偏白的混合色 - 增加不透明度 */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.35) 100%
+  );
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.37),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+/* 暗色主题：偏黑的混合色 - 增加不透明度 */
+.dark .glass-effect {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
 }
 
 .avatar-container {
@@ -105,6 +196,15 @@ const t = (text: I18nText, lang: string): string => {
   animation-delay: 0.2s;
 }
 
+/* 有背景图像时的文字颜色优化 */
+.glass-effect .name {
+  @apply text-gray-900 dark:text-white;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+}
+
 .description {
   @apply max-w-md mx-auto mb-8;
   @apply text-gray-600 dark:text-gray-300;
@@ -112,6 +212,14 @@ const t = (text: I18nText, lang: string): string => {
   animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: both;
   animation-delay: 0.3s;
+}
+
+.glass-effect .description {
+  @apply text-gray-900 dark:text-gray-100;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 1px 1px rgba(0, 0, 0, 0.2);
+  font-weight: 500;
 }
 
 .description-line {
@@ -124,7 +232,7 @@ const t = (text: I18nText, lang: string): string => {
 }
 
 .social-link {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg;
+  @apply flex items-center px-4 py-2 rounded-lg;
   @apply text-sm font-medium;
   @apply transition-all duration-300;
   @apply transform hover:-translate-y-1;
@@ -134,6 +242,22 @@ const t = (text: I18nText, lang: string): string => {
   animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: both;
   transform-origin: center;
+  min-width: 120px;
+  width: 120px;
+  position: relative;
+}
+
+.social-link .icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.social-link .link-name {
+  margin-left: 28px;
+  text-align: center;
+  flex: 1;
 }
 
 /* 响应式变化时的特殊动画 */
@@ -176,6 +300,53 @@ const t = (text: I18nText, lang: string): string => {
   animation-delay: 0.7s;
 }
 
+.glass-effect .gallery-button {
+  backdrop-filter: blur(8px);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.95) 0%,
+    rgba(37, 99, 235, 0.95) 100%
+  ) !important;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.glass-effect .gallery-button:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 1) 0%,
+    rgba(29, 78, 216, 1) 100%
+  ) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.glass-effect .social-link {
+  backdrop-filter: blur(8px);
+  /* 保持原有的颜色，只添加透明度和模糊效果 */
+  background-color: var(--link-color) !important;
+  opacity: 0.95;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-effect .social-link:hover {
+  opacity: 1;
+  transform: scale(1.05) translateY(-2px);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.3),
+    0 3px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 暗色主题下的社交链接 */
+.dark .glass-effect .social-link {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
 .button-icon {
   @apply w-5 h-5;
 }
@@ -184,7 +355,7 @@ const t = (text: I18nText, lang: string): string => {
 @media (max-height: 700px) {
   .personal-section {
     @apply justify-start py-4;
-    min-height: auto;
+    @apply h-full;
   }
 
   .container {
@@ -266,7 +437,16 @@ const t = (text: I18nText, lang: string): string => {
 @media (max-width: 640px) {
   .personal-section {
     @apply justify-start py-4;
-    min-height: auto;
+    @apply h-full;
+  }
+
+  .glass-effect {
+    @apply p-6;
+    @apply max-w-full;
+    margin: 0 0.5rem;
+    /* 移动端保持与桌面端相同的模糊效果 */
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
   }
 
   .social-links {
@@ -275,9 +455,18 @@ const t = (text: I18nText, lang: string): string => {
   }
 
   .social-link {
-    @apply w-full justify-center;
+    min-width: 200px;
+    width: 200px;
     max-width: 280px;
     transform: scale(0.98);
+  }
+
+  .social-link .icon {
+    left: 16px;
+  }
+
+  .social-link .link-name {
+    margin-left: 36px;
   }
 
   .social-link:hover {

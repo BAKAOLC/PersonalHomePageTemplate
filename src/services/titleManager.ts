@@ -8,6 +8,7 @@ import i18n from '@/i18n';
  */
 export class TitleManager {
   private static instance: TitleManager;
+  private router: any | null = null;
 
   private constructor() {
     // Private constructor for singleton pattern
@@ -21,48 +22,45 @@ export class TitleManager {
   }
 
   /**
+   * 设置路由实例
+   */
+  public setRouter(router: any): void {
+    this.router = router;
+  }
+
+  /**
    * 根据路由信息更新页面标题
    */
   public updateTitle(route: RouteLocationNormalized): void {
     const { t } = i18n.global;
     const siteTitle = t('app.title');
 
-    if (route.name === 'home') {
-      document.title = siteTitle;
-    } else if (route.name === 'gallery') {
-      document.title = `${t('gallery.title')} - ${siteTitle}`;
-    } else if (route.name === 'image-viewer' || route.name === 'image-viewer-child') {
-      document.title = `${t('viewer.title')} - ${siteTitle}`;
-    } else if (route.name === 'not-found') {
-      document.title = `${t('app.notFound')} - ${siteTitle}`;
+    // 从路由元数据获取标题键
+    const titleKey = route.meta?.titleKey as string | null;
+
+    if (titleKey) {
+      // 如果有标题键，使用格式：页面标题 - 站点标题
+      const pageTitle = t(titleKey);
+      document.title = `${pageTitle} - ${siteTitle}`;
     } else {
+      // 如果没有标题键（如首页），只显示站点标题
       document.title = siteTitle;
     }
   }
 
   /**
    * 更新当前页面标题（用于语言切换时）
+   * 使用路由实例获取当前路由信息
    */
   public updateCurrentTitle(): void {
-    // 获取当前路由信息
-    const currentRoute = window.location.hash;
-
-    // 简单的路由匹配逻辑
-    let routeName = 'home';
-    if (currentRoute.includes('/gallery')) {
-      routeName = 'gallery';
-    } else if (currentRoute.includes('/viewer/')) {
-      routeName = 'image-viewer';
-    } else if (currentRoute.includes('/not-found') || currentRoute.includes('pathMatch')) {
-      routeName = 'not-found';
+    if (!this.router) {
+      console.warn('Router instance not set in TitleManager');
+      return;
     }
 
-    // 创建模拟的路由对象
-    const mockRoute = {
-      name: routeName,
-    } as RouteLocationNormalized;
-
-    this.updateTitle(mockRoute);
+    // 使用路由实例获取当前路由
+    const currentRoute = this.router.currentRoute.value;
+    this.updateTitle(currentRoute);
   }
 }
 

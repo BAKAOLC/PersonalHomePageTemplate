@@ -36,7 +36,10 @@
   "nav": {
     "home": "Home",
     "gallery": "Gallery",
-    "about": "About"
+    "links": "Links",
+    "about": "About",
+    "toggleMenu": "Toggle Menu",
+    "menu": "Menu"
   },
   "theme": {
     "light": "Light Mode",
@@ -109,6 +112,22 @@
     "progress": "Progress",
     "tip": "Tip",
     "enteringSite": "Entering site..."
+  },
+  "links": {
+    "title": "Links",
+    "subtitle": "My friends and useful resources",
+    "noLinks": "No links available",
+    "categories": "Categories",
+    "allCategories": "All Categories",
+    "visitSite": "Visit Site",
+    "tags": "Tags",
+    "description": "Description",
+    "backToHome": "Back to Home",
+    "searchPlaceholder": "Search links...",
+    "clearSearch": "Clear search",
+    "searchResults": "Search Results",
+    "noSearchResults": "No matching links found",
+    "linkCount": "{count} links"
   },
   "debug": {
     "imageIdEmpty": "Image ID is empty, cannot navigate",

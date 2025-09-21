@@ -7,11 +7,17 @@ export interface I18nText {
 // 语言类型
 export type Language = 'en' | 'zh' | 'jp';
 
+// 路由元数据类型
+export interface RouteMeta {
+  titleKey?: string | null; // 页面标题的国际化键
+}
+
 export interface PersonalInfo {
   avatar: string;
   name: I18nText;
   description: I18nText[];
   links: SocialLink[];
+  backgroundImages?: string[]; // 可选的随机背景图像列表
 }
 
 // FontAwesome 图标包类型
@@ -91,6 +97,13 @@ export interface FontAwesomeConfig {
   fallbackIcon: string; // 回退图标名称
 }
 
+// 功能配置
+export interface FeaturesConfig {
+  gallery: boolean;
+  links: boolean;
+  comments: boolean;
+}
+
 export interface SiteConfig {
   personal: PersonalInfo;
   characters: Character[];
@@ -98,6 +111,7 @@ export interface SiteConfig {
   images: CharacterImage[];
   giscus: GiscusConfig;
   fontawesome: FontAwesomeConfig;
+  features: FeaturesConfig;
 }
 
 export interface LoadingConfig {
@@ -189,4 +203,32 @@ export interface ImageOperationMethods {
 // 键盘快捷键配置
 export interface KeyboardShortcuts {
   [key: string]: () => void;
+}
+
+// 友链相关类型
+export interface FriendLink {
+  id: string;
+  name: string;
+  url: string;
+  avatar?: string;
+  description: I18nText;
+  tags?: string[];
+}
+
+export interface LinkCategory {
+  id: string;
+  name: I18nText;
+  description: I18nText;
+  links: FriendLink[];
+}
+
+export interface LinksConfig {
+  tags?: Record<string, I18nText>;
+  categories: LinkCategory[];
+  settings: {
+    showTags: boolean;
+    showDescription: boolean;
+    showAvatar: boolean;
+    defaultAvatar: string;
+  };
 }

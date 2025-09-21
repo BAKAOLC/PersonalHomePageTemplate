@@ -127,7 +127,11 @@
     "clearSearch": "検索をクリア",
     "searchResults": "検索結果",
     "noSearchResults": "一致するリンクが見つかりません",
-    "linkCount": "{count} 個のリンク"
+    "linkCount": "{count} 個のリンク",
+    "generateFriendLink": "友達リンク情報を生成",
+    "friendLinkGenerated": "友達リンク情報が生成されました",
+    "copyToClipboard": "クリップボードにコピー",
+    "copied": "コピーしました"
   },
   "debug": {
     "imageIdEmpty": "画像IDが空です、ナビゲートできません",

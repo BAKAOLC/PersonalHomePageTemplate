@@ -127,7 +127,11 @@
     "clearSearch": "清除搜索",
     "searchResults": "搜索结果",
     "noSearchResults": "没有找到匹配的友链",
-    "linkCount": "{count} 个友链"
+    "linkCount": "{count} 个友链",
+    "generateFriendLink": "生成友链信息",
+    "friendLinkGenerated": "友链信息已生成",
+    "copyToClipboard": "复制到剪贴板",
+    "copied": "已复制"
   },
   "debug": {
     "imageIdEmpty": "图片ID为空，无法导航",

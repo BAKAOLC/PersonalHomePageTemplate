@@ -1,6 +1,7 @@
 <template>
   <div class="language-switcher">
-    <button ref="buttonRef" @click="toggleLanguageMenu" class="language-button" :aria-expanded="isOpen" aria-haspopup="true">
+    <button ref="buttonRef" @click="toggleLanguageMenu"
+     class="language-button" :aria-expanded="isOpen" aria-haspopup="true">
       <globe-icon class="icon" />
       <span class="language-text">{{ displayLanguage }}</span>
       <chevron-down-icon class="arrow-icon" :class="{ 'rotate-180': isOpen }" />

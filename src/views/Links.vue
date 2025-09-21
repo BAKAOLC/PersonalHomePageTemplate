@@ -5,6 +5,14 @@
         <h1 class="links-title">{{ $t('links.title') }}</h1>
         <p class="links-subtitle">{{ $t('links.subtitle') }}</p>
 
+        <!-- 生成友链信息按钮 -->
+        <div class="friend-link-generator">
+          <button @click="generateFriendLinkInfo" class="generate-button">
+            <i :class="getIconClass('code')" class="icon"></i>
+            {{ $t('links.generateFriendLink') }}
+          </button>
+        </div>
+
         <!-- 搜索栏 -->
         <div class="search-bar">
           <div class="search-input-container">
@@ -174,7 +182,9 @@ import type { I18nText, LinksConfig } from '@/types';
 import ProgressiveImage from '@/components/ProgressiveImage.vue';
 import { useMobileDetection } from '@/composables/useScreenManager';
 import { useTimers } from '@/composables/useTimers';
+import htmlConfig from '@/config/html.json';
 import linksConfigData from '@/config/links.json';
+import personalConfig from '@/config/personal.json';
 import { useAppStore } from '@/stores/app';
 import { getIconClass } from '@/utils/icons';
 
@@ -350,6 +360,255 @@ const visitLink = (url: string): void => {
   window.open(url, '_blank', 'noopener,noreferrer');
 };
 
+// 生成友链信息
+const generateFriendLinkInfo = (): void => {
+  const currentUrl = window.location.origin;
+  const name = personalConfig.name[currentLanguage.value as keyof typeof personalConfig.name] || personalConfig.name.zh;
+  const blogName = htmlConfig.title;
+  const avatarUrl = `${currentUrl}${personalConfig.avatar}`;
+
+  const friendLinkInfo = {
+    name: name,
+    blogName: blogName,
+    url: currentUrl,
+    logo: avatarUrl,
+  };
+
+  const jsonString = JSON.stringify(friendLinkInfo, null, 2);
+  // 复制到剪贴板
+  navigator.clipboard.writeText(jsonString).then(() => {
+    // 显示成功提示
+    showNotification($t('links.copied'));
+  }).catch(() => {
+    // 如果剪贴板API不可用，则显示弹窗
+    showJsonModal(jsonString);
+  });
+};
+
+// 显示通知
+const showNotification = (message: string): void => {
+  // 创建通知元素
+  const notification = document.createElement('div');
+  notification.textContent = message;
+  notification.className = 'friend-link-notification';
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideIn 0.3s ease-out;
+  `;
+
+  // 添加动画样式
+  if (!document.querySelector('#friend-link-notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'friend-link-notification-styles';
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(notification);
+
+  // 3秒后移除通知
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease-in';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }, 3000);
+};
+
+// 显示JSON弹窗（备用方案）
+const showJsonModal = (jsonString: string): void => {
+  const modal = document.createElement('div');
+  modal.className = 'friend-link-modal';
+  modal.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>${$t('links.friendLinkGenerated')}</h3>
+          <button class="modal-close" onclick="this.closest('.friend-link-modal').remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <textarea readonly class="json-textarea">${jsonString}</textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="copy-button" onclick="
+            const textarea = this.closest('.modal-content').querySelector('.json-textarea');
+            textarea.select();
+            document.execCommand('copy');
+            this.textContent = '${$t('links.copied')}';
+            setTimeout(() => this.textContent = '${$t('links.copyToClipboard')}', 2000);
+          ">${$t('links.copyToClipboard')}</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2000;
+  `;
+
+  // 添加模态框样式
+  if (!document.querySelector('#friend-link-modal-styles')) {
+    const style = document.createElement('style');
+    style.id = 'friend-link-modal-styles';
+    style.textContent = `
+      .friend-link-modal .modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .friend-link-modal .modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 80vh;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      }
+      .dark .friend-link-modal .modal-content {
+        background: #1f2937;
+      }
+      .friend-link-modal .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .dark .friend-link-modal .modal-header {
+        border-bottom-color: #374151;
+      }
+      .friend-link-modal .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #111827;
+      }
+      .dark .friend-link-modal .modal-header h3 {
+        color: #f9fafb;
+      }
+      .friend-link-modal .modal-close {
+        background: none;
+        border: none;
+        font-size: 16px;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+      }
+      .friend-link-modal .modal-close:hover {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .dark .friend-link-modal .modal-close:hover {
+        background: #374151;
+        color: #d1d5db;
+      }
+      .friend-link-modal .modal-body {
+        padding: 20px;
+      }
+      .friend-link-modal .json-textarea {
+        width: 100%;
+        height: 200px;
+        padding: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        resize: vertical;
+        background: #f9fafb;
+        color: #111827;
+      }
+      .dark .friend-link-modal .json-textarea {
+        background: #111827;
+        color: #f9fafb;
+        border-color: #4b5563;
+      }
+      .friend-link-modal .modal-footer {
+        padding: 20px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .dark .friend-link-modal .modal-footer {
+        border-top-color: #374151;
+      }
+      .friend-link-modal .copy-button {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .friend-link-modal .copy-button:hover {
+        background: #2563eb;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(modal);
+
+  // 点击遮罩层关闭
+  modal.querySelector('.modal-overlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      modal.remove();
+    }
+  });
+};
+
 // 滚动处理
 const handleScroll = (): void => {
   if (!linksMain.value) return;
@@ -449,6 +708,27 @@ onBeforeUnmount(() => {
 .links-subtitle {
   @apply text-gray-600 dark:text-gray-400 mb-4;
   @apply text-lg;
+}
+
+.friend-link-generator {
+  @apply mb-4;
+}
+
+.generate-button {
+  @apply flex items-center gap-2 px-4 py-2;
+  @apply bg-blue-500 hover:bg-blue-600;
+  @apply text-white font-medium;
+  @apply rounded-lg shadow-sm hover:shadow-md;
+  @apply transition-all duration-200;
+  @apply border-none cursor-pointer;
+}
+
+.generate-button:hover {
+  transform: translateY(-1px);
+}
+
+.generate-button .icon {
+  @apply w-4 h-4;
 }
 
 .search-bar {

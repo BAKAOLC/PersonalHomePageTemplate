@@ -385,8 +385,8 @@ import { useTags } from '@/composables/useTags';
 import { useTimers } from '@/composables/useTimers';
 import { imageCache, LoadPriority } from '@/services/imageCache';
 import { useAppStore } from '@/stores/app';
-import { getIconClass } from '@/utils/icons';
 import { AnimationDurations } from '@/utils/animations';
+import { getIconClass } from '@/utils/icons';
 
 const props = defineProps<{
   imageId: string;

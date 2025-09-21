@@ -127,7 +127,11 @@
     "clearSearch": "Clear search",
     "searchResults": "Search Results",
     "noSearchResults": "No matching links found",
-    "linkCount": "{count} links"
+    "linkCount": "{count} links",
+    "generateFriendLink": "Generate Friend Link",
+    "friendLinkGenerated": "Friend link info generated",
+    "copyToClipboard": "Copy to Clipboard",
+    "copied": "Copied"
   },
   "debug": {
     "imageIdEmpty": "Image ID is empty, cannot navigate",

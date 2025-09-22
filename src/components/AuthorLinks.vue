@@ -27,7 +27,7 @@ import { ExternalLinkIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { AuthorLink, I18nText } from '@/types';
+import type { AuthorLink, I18nText, SitesConfig } from '@/types';
 
 import siteNames from '@/config/sites.json';
 import { useAppStore } from '@/stores/app';
@@ -140,7 +140,7 @@ const getLinkName = (link: AuthorLink): string => {
     const hostname = url.hostname.toLowerCase();
 
     // 使用配置文件中的网站名称映射
-    const siteConfig = siteNames as Record<string, I18nText>;
+    const siteConfig = siteNames as SitesConfig;
 
     // 智能匹配域名，支持子域名和多种变体
     for (const [configDomain, siteInfo] of Object.entries(siteConfig)) {
@@ -163,9 +163,25 @@ const getFaviconUrl = (link: AuthorLink): string | undefined => {
     return link.favicon;
   }
 
-  // 尝试从 URL 获取 favicon
+  // 尝试从 sites 配置中获取 iconUrl
   try {
     const url = new URL(link.url);
+    const hostname = url.hostname.toLowerCase();
+
+    // 使用配置文件中的网站图标映射
+    const siteConfig = siteNames as SitesConfig;
+
+    // 智能匹配域名，支持子域名和多种变体
+    for (const [configDomain, siteInfo] of Object.entries(siteConfig)) {
+      if (isMatchingDomain(hostname, configDomain)) {
+        if (siteInfo.iconUrl) {
+          return siteInfo.iconUrl;
+        }
+        break;
+      }
+    }
+
+    // 如果没有在配置中找到，回退到默认 favicon
     return `${url.protocol}//${url.hostname}/favicon.ico`;
   } catch {
     return undefined;

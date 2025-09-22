@@ -284,3 +284,11 @@ export interface LinksConfig {
     defaultAvatar: string;
   };
 }
+
+// 网站配置类型
+export interface SiteInfo extends I18nText {
+  iconUrl?: string; // 可选的网站图标URL
+}
+
+// Sites 配置类型
+export type SitesConfig = Record<string, SiteInfo>;

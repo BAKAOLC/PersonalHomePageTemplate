@@ -2,106 +2,133 @@
   "twitter.com": {
     "en": "Twitter",
     "zh": "推特",
-    "jp": "ツイッター"
+    "jp": "ツイッター",
+    "iconUrl": "https://abs.twimg.com/favicons/twitter.3.ico"
   },
   "x.com": {
     "en": "X",
     "zh": "X",
-    "jp": "X"
+    "jp": "X",
+    "iconUrl": "https://abs.twimg.com/favicons/twitter.3.ico"
   },
   "pixiv.net": {
     "en": "Pixiv",
     "zh": "P站",
-    "jp": "ピクシブ"
+    "jp": "ピクシブ",
+    "iconUrl": "https://www.pixiv.net/favicon.ico"
   },
   "github.com": {
     "en": "GitHub",
     "zh": "GitHub",
-    "jp": "GitHub"
+    "jp": "GitHub",
+    "iconUrl": "https://github.com/favicon.ico"
   },
   "instagram.com": {
     "en": "Instagram",
     "zh": "Instagram",
-    "jp": "インスタグラム"
+    "jp": "インスタグラム",
+    "iconUrl": "https://static.cdninstagram.com/rsrc.php/v4/yI/r/VsNE-OHk_8a.png"
   },
   "weibo.com": {
     "en": "Weibo",
     "zh": "微博",
-    "jp": "ウェイボー"
+    "jp": "ウェイボー",
+    "iconUrl": "https://weibo.com/favicon.ico"
   },
   "bilibili.com": {
     "en": "Bilibili",
     "zh": "B站",
-    "jp": "ビリビリ"
+    "jp": "ビリビリ",
+    "iconUrl": "https://www.bilibili.com/favicon.ico"
   },
   "youtube.com": {
     "en": "YouTube",
     "zh": "YouTube",
-    "jp": "ユーチューブ"
+    "jp": "ユーチューブ",
+    "iconUrl": "https://www.youtube.com/favicon.ico"
   },
   "artstation.com": {
     "en": "ArtStation",
     "zh": "ArtStation",
-    "jp": "アートステーション"
+    "jp": "アートステーション",
+    "iconUrl": "https://www.artstation.com/favicon.ico"
   },
   "deviantart.com": {
     "en": "DeviantArt",
     "zh": "DeviantArt",
-    "jp": "デヴィアントアート"
+    "jp": "デヴィアントアート",
+    "iconUrl": "https://www.deviantart.com/favicon.ico"
   },
   "behance.net": {
     "en": "Behance",
     "zh": "Behance",
-    "jp": "ビハンス"
+    "jp": "ビハンス",
+    "iconUrl": "https://a5.behance.net/fe8889b5234d81ea607da2787abc94c6b47be868/img/site/favicon.png"
   },
   "dribbble.com": {
     "en": "Dribbble",
     "zh": "Dribbble",
-    "jp": "ドリブル"
+    "jp": "ドリブル",
+    "iconUrl": "https://cdn.dribbble.com/assets/favicon-192x192-d70ad402693bdd1a8460da7f9f3c590e817da7369c5287789ac968cf6947d214.png"
   },
   "facebook.com": {
     "en": "Facebook",
     "zh": "Facebook",
-    "jp": "フェイスブック"
+    "jp": "フェイスブック",
+    "iconUrl": "https://static.xx.fbcdn.net/rsrc.php/y1/r/ay1hV6OlegS.ico"
   },
   "linkedin.com": {
     "en": "LinkedIn",
     "zh": "领英",
-    "jp": "リンクトイン"
+    "jp": "リンクトイン",
+    "iconUrl": "https://static.licdn.com/sc/h/al2o9zrvru7aqj8e1x2rzsrca"
   },
   "tiktok.com": {
     "en": "TikTok",
     "zh": "抖音",
-    "jp": "ティックトック"
+    "jp": "ティックトック",
+    "iconUrl": "https://www.tiktok.com/favicon.ico"
   },
   "reddit.com": {
     "en": "Reddit",
     "zh": "Reddit",
-    "jp": "レディット"
+    "jp": "レディット",
+    "iconUrl": "https://www.redditstatic.com/desktop2x/img/favicon/favicon-96x96.png"
   },
   "discord.com": {
     "en": "Discord",
     "zh": "Discord",
-    "jp": "ディスコード"
+    "jp": "ディスコード",
+    "iconUrl": "https://discord.com/assets/f9bb9c4af2b9c32a2c5ee0014661546d.png"
   },
   "twitch.tv": {
     "en": "Twitch",
     "zh": "Twitch",
-    "jp": "ツイッチ"
+    "jp": "ツイッチ",
+    "iconUrl": "https://static.twitchcdn.net/assets/favicon-32-e29e246c157142c94346.png"
   },
   "patreon.com": {
     "en": "Patreon",
     "zh": "Patreon",
-    "jp": "パトレオン"
+    "jp": "パトレオン",
+    "iconUrl": "https://c5.patreon.com/external/favicon/rebrand/favicon-32.png"
   },
   "ko-fi.com": {
     "en": "Ko-fi",
     "zh": "Ko-fi",
-    "jp": "Ko-fi"
+    "jp": "Ko-fi",
+    "iconUrl": "https://ko-fi.com/favicon.ico"
   },
   "mihuashi.com": {
     "en": "Mihuashi",
     "zh": "米画师",
-    "jp": "ミューシャ"
+    "jp": "ミューシャ",
+    "iconUrl": "https://www.mihuashi.com/favicon.ico"
+  },
+  "skeb.jp": {
+    "en": "Skeb",
+    "zh": "Skeb",
+    "jp": "Skeb",
+    "iconUrl": "https://fcdn.skeb.jp/assets/v1/commons/favicon-32x32.png"
   }
 }

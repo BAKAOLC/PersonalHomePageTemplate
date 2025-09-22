@@ -1,5 +1,28 @@
 {
   "gallery": true,
   "links": true,
-  "comments": true
+  "comments": true,
+  "viewer": {
+    "showImageList": true,
+    "showImageGroupList": true,
+    "showTitle": true,
+    "showDescription": true,
+    "showArtist": true,
+    "showDate": true,
+    "showTags": true,
+    "showCommentsButton": true
+  },
+  "viewerUI": {
+    "imageList": true,
+    "imageGroupList": true,
+    "viewerTitle": true,
+    "infoPanel": {
+      "title": true,
+      "description": true,
+      "artist": true,
+      "date": true,
+      "tags": true
+    },
+    "commentsButton": true
+  }
 }

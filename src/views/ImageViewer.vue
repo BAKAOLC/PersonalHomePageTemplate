@@ -1,28 +1,55 @@
 <template>
   <div class="image-viewer-page">
-    <fullscreen-viewer :image-id="imageId" :child-image-id="childImageId" :is-active="true" @close="closeViewer" />
+    <fullscreen-viewer
+      :image-id="imageId"
+      :child-image-id="childImageId"
+      :is-active="true"
+      :viewer-u-i-config="effectiveConfig"
+      @close="closeViewer"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from 'vue';
+import { onMounted, onBeforeUnmount, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import type { ViewerUIConfig } from '@/types';
+
 import FullscreenViewer from '@/components/FullscreenViewer.vue';
 import { useEventManager } from '@/composables/useEventManager';
+import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
 
-// 获取路由参数
-defineProps<{
+// 获取路由参数和配置
+const props = defineProps<{
   imageId: string;
   childImageId?: string;
+  viewerUIConfig?: ViewerUIConfig; // 可选的配置参数
 }>();
 
 const { t } = useI18n();
 const router = useRouter();
 const eventManager = useEventManager();
 const appStore = useAppStore();
+
+// 计算有效的配置：优先使用传入的配置，然后是路由state中的配置，最后是默认配置
+const effectiveConfig = computed((): ViewerUIConfig => {
+  // 优先使用props传入的配置
+  if (props.viewerUIConfig) {
+    return props.viewerUIConfig;
+  }
+
+  // 然后尝试从路由state中获取配置（画廊传递的配置）
+  const stateConfig = history.state?.viewerUIConfig;
+  if (stateConfig) {
+    return stateConfig;
+  }
+
+  // 最后使用默认配置
+  return siteConfig.features.viewerUI;
+});
 
 // 关闭查看器
 const closeViewer = (): void => {

@@ -277,14 +277,23 @@ const openViewer = (event: CustomEvent): void => {
       // 图像组：导航到 /viewer/:parentId/:firstValidChildId
       const firstValidChildId = appStore.getFirstValidChildId(image);
       if (firstValidChildId) {
-        router.push(`/viewer/${event.detail.imageId}/${firstValidChildId}`);
+        router.push({
+          name: 'image-viewer-child',
+          params: {
+            imageId: event.detail.imageId,
+            childImageId: firstValidChildId,
+          },
+        });
       } else {
         // 如果没有有效的子图像，这个组图应该不会在过滤列表中出现
         console.warn($t('debug.imageGroupNoValidChildren'));
       }
     } else {
       // 普通图像：导航到 /viewer/:imageId
-      router.push(`/viewer/${event.detail.imageId}`);
+      router.push({
+        name: 'image-viewer',
+        params: { imageId: event.detail.imageId },
+      });
     }
   } else {
     console.warn($t('debug.invalidImageId'));

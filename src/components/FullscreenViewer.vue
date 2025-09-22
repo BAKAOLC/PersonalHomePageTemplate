@@ -4,8 +4,8 @@
     'transition-active': transitionActive,
     'closing': isClosing
   }" @keydown.esc="close" tabindex="0">
-    <div class="viewer-header">
-      <div class="viewer-title">
+    <div class="viewer-header" :class="{ 'no-title': !effectiveViewerConfig.viewerTitle }">
+      <div v-if="effectiveViewerConfig.viewerTitle" class="viewer-title">
         {{ currentImage ? t(currentImage.name, currentLanguage) : '' }}
       </div>
 
@@ -22,14 +22,22 @@
           :class="{ 'disabled': isZoomDisabled }" :disabled="isZoomDisabled">
           <zoom-in-icon class="icon" />
         </button>
-        <button class="control-button" @click="toggleInfoPanel"
+        <button
+          v-if="hasInfoContent"
+          class="control-button"
+          @click="toggleInfoPanel"
           :class="{ 'disabled': infoPanelAnimating || mobileInfoOverlayAnimating }"
-          :disabled="infoPanelAnimating || mobileInfoOverlayAnimating" :title="getInfoButtonTitle()">
+          :disabled="infoPanelAnimating || mobileInfoOverlayAnimating"
+          :title="getInfoButtonTitle()">
           <info-icon class="icon" />
         </button>
-        <button class="control-button" @click="toggleCommentsModal"
+        <button
+          v-if="effectiveViewerConfig.commentsButton && siteConfig.features.comments"
+          class="control-button"
+          @click="toggleCommentsModal"
           :class="{ 'disabled': commentsModalAnimating }"
-          :disabled="commentsModalAnimating" :title="getCommentsButtonTitle()">
+          :disabled="commentsModalAnimating"
+          :title="getCommentsButtonTitle()">
           <message-circle-icon class="icon" />
         </button>
         <button class="control-button close-button" @click="close" :title="t('viewer.close')">
@@ -41,7 +49,9 @@
     <div class="viewer-content">
       <!-- 主图像区域 -->
       <div class="main-image-area"
-        :class="{ 'with-left-group-selector': showGroupSelector && !isMobile }"
+        :class="{
+          'with-left-group-selector': effectiveViewerConfig.imageGroupList && showGroupSelector && !isMobile
+        }"
         :style="mainImageAreaStyle">
         <div class="image-container" ref="imageContainer" @wheel="handleImageWheel" @mousedown="handleImageMouseDown"
           @touchstart="handleImageTouchStart" @touchmove="handleImageTouchMove" @touchend="handleImageTouchEnd">
@@ -81,7 +91,7 @@
 
       <!-- 桌面端图像组选择器 - 左侧布局 -->
       <transition name="desktop-group-selector-slide">
-        <div v-if="showGroupSelector && !isMobile"
+        <div v-if="effectiveViewerConfig.imageGroupList && showGroupSelector && !isMobile"
           class="group-selector left-side"
           :class="{ 'resizing': isDraggingGroupResize }"
           :style="{ width: groupSelectorWidth ? `${groupSelectorWidth}px` : '200px' }">
@@ -144,9 +154,11 @@
 
       <!-- 移动端图像组悬浮按钮 -->
       <transition name="mobile-group-button-fade">
-        <button v-if="showGroupSelector && isMobile && groupImagesList.length > 1"
+        <button
+          v-if="effectiveViewerConfig.imageGroupList && showGroupSelector && isMobile && groupImagesList.length > 1"
           @click="toggleMobileGroupSelector"
-          class="mobile-group-selector-toggle" :class="{ 'active': isMobileGroupSelectorOpen }">
+          class="mobile-group-selector-toggle"
+          :class="{ 'active': isMobileGroupSelectorOpen }">
           <i :class="getIconClass('th')"></i>
           <span class="toggle-text">{{ $t('viewer.imageGroupWithCount', { count: groupImagesList.length }) }}</span>
         </button>
@@ -154,7 +166,10 @@
 
       <!-- 移动端图像组悬浮窗 -->
       <transition name="mobile-group-selector-fade">
-        <div v-if="isMobileGroupSelectorOpen" class="mobile-group-selector-overlay" @click="closeMobileGroupSelector">
+        <div
+          v-if="effectiveViewerConfig.imageGroupList && isMobileGroupSelectorOpen"
+          class="mobile-group-selector-overlay"
+          @click="closeMobileGroupSelector">
           <transition name="mobile-group-selector-slide">
             <div v-if="isMobileGroupSelectorOpen" class="mobile-group-selector-content" @click.stop>
               <div class="mobile-group-selector-header">
@@ -219,7 +234,7 @@
       </transition>
     </div>
 
-    <div class="viewer-navigation">
+    <div v-if="effectiveViewerConfig.imageList" class="viewer-navigation">
       <button class="nav-button prev-button" @click="prevImage" :disabled="!hasPrevImage" :title="t('viewer.prev')">
         <chevron-left-icon class="icon" />
       </button>
@@ -268,28 +283,34 @@
 
     <!-- 桌面端信息面板 -->
     <transition name="slide-fade">
-      <div v-show="showInfoPanel && !isMobile" class="viewer-footer">
+      <div v-show="hasInfoContent && showInfoPanel && !isMobile" class="viewer-footer">
         <div class="info-toggle-button" @click="toggleInfoPanel" style="display: none;">
           <!-- 信息切换按钮已移至顶部控制栏 -->
         </div>
 
         <div class="image-info">
-          <div class="info-group">
-            <h3 class="info-title">{{ t(currentImage?.name, currentLanguage) }}</h3>
-            <p class="info-description">{{ t(getDescriptionWithFallback, currentLanguage) }}</p>
+          <div
+            v-if="effectiveViewerConfig.infoPanel.title || effectiveViewerConfig.infoPanel.description"
+            class="info-group">
+            <h3
+              v-if="effectiveViewerConfig.infoPanel.title"
+              class="info-title">{{ t(currentImage?.name, currentLanguage) }}</h3>
+            <p
+              v-if="effectiveViewerConfig.infoPanel.description"
+              class="info-description">{{ t(getDescriptionWithFallback, currentLanguage) }}</p>
           </div>
 
-          <div class="info-group">
+          <div v-if="effectiveViewerConfig.infoPanel.artist" class="info-group">
             <h4 class="info-subtitle">{{ $t('gallery.artist') }}</h4>
             <p>{{ t(getArtistWithFallback, currentLanguage) }}</p>
           </div>
 
-          <div class="info-group">
+          <div v-if="effectiveViewerConfig.infoPanel.date" class="info-group">
             <h4 class="info-subtitle">{{ $t('gallery.date') }}</h4>
             <p>{{ currentImage?.date || 'N/A' }}</p>
           </div>
 
-          <div class="info-group">
+          <div v-if="effectiveViewerConfig.infoPanel.tags" class="info-group">
             <h4 class="info-subtitle">{{ $t('gallery.tags') }}</h4>
             <div class="tags-list">
               <span v-for="tagId in getSortedTags(currentImage?.tags || [])" :key="tagId" class="tag"
@@ -315,22 +336,28 @@
             </div>
 
             <div class="mobile-info-content">
-              <div class="info-group">
-                <h3 class="info-title">{{ t(currentImage?.name, currentLanguage) }}</h3>
-                <p class="info-description">{{ t(getDescriptionWithFallback, currentLanguage) }}</p>
+              <div
+                v-if="effectiveViewerConfig.infoPanel.title || effectiveViewerConfig.infoPanel.description"
+                class="info-group">
+                <h3
+                  v-if="effectiveViewerConfig.infoPanel.title"
+                  class="info-title">{{ t(currentImage?.name, currentLanguage) }}</h3>
+                <p
+                  v-if="effectiveViewerConfig.infoPanel.description"
+                  class="info-description">{{ t(getDescriptionWithFallback, currentLanguage) }}</p>
               </div>
 
-              <div class="info-group">
+              <div v-if="effectiveViewerConfig.infoPanel.artist" class="info-group">
                 <h4 class="info-subtitle">{{ $t('gallery.artist') }}</h4>
                 <p>{{ t(getArtistWithFallback, currentLanguage) }}</p>
               </div>
 
-              <div class="info-group">
+              <div v-if="effectiveViewerConfig.infoPanel.date" class="info-group">
                 <h4 class="info-subtitle">{{ $t('gallery.date') }}</h4>
                 <p>{{ currentImage?.date || 'N/A' }}</p>
               </div>
 
-              <div class="info-group">
+              <div v-if="effectiveViewerConfig.infoPanel.tags" class="info-group">
                 <h4 class="info-subtitle">{{ $t('gallery.tags') }}</h4>
                 <div class="tags-list">
                   <span v-for="tagId in getSortedTags(currentImage?.tags || [])" :key="tagId" class="tag"
@@ -347,7 +374,10 @@
 
     <!-- 评论模态框 -->
     <transition name="comments-modal-fade">
-      <div v-show="showCommentsModal" class="comments-modal-overlay" @click="closeCommentsModal">
+      <div
+        v-show="effectiveViewerConfig.commentsButton && siteConfig.features.comments && showCommentsModal"
+        class="comments-modal-overlay"
+        @click="closeCommentsModal">
         <transition name="comments-modal-slide">
           <div v-show="showCommentsModal" class="comments-modal-panel" @click.stop>
             <div class="comments-modal-header">
@@ -376,13 +406,14 @@ import { useRouter } from 'vue-router';
 import GiscusComments from './GiscusComments.vue';
 import ProgressiveImage from './ProgressiveImage.vue';
 
-import type { I18nText } from '@/types';
+import type { I18nText, ViewerUIConfig } from '@/types';
 
 import thumbnailMap from '@/assets/thumbnail-map.json';
 import { useEventManager } from '@/composables/useEventManager';
 import { useMobileDetection } from '@/composables/useScreenManager';
 import { useTags } from '@/composables/useTags';
 import { useTimers } from '@/composables/useTimers';
+import { siteConfig } from '@/config/site';
 import { imageCache, LoadPriority } from '@/services/imageCache';
 import { useAppStore } from '@/stores/app';
 import { AnimationDurations } from '@/utils/animations';
@@ -392,6 +423,7 @@ const props = defineProps<{
   imageId: string;
   childImageId?: string;
   isActive: boolean;
+  viewerUIConfig?: ViewerUIConfig;
 }>();
 
 const emit = defineEmits<{
@@ -407,6 +439,33 @@ const { isMobile, onScreenChange } = useMobileDetection();
 const { getSortedTags, getTagColor, getTagName } = useTags();
 
 const currentLanguage = computed(() => appStore.currentLanguage);
+
+// 合并默认配置和传入的配置
+const effectiveViewerConfig = computed((): ViewerUIConfig => {
+  const defaultConfig = siteConfig.features.viewerUI;
+  return {
+    imageList: props.viewerUIConfig?.imageList ?? defaultConfig.imageList,
+    imageGroupList: props.viewerUIConfig?.imageGroupList ?? defaultConfig.imageGroupList,
+    viewerTitle: props.viewerUIConfig?.viewerTitle ?? defaultConfig.viewerTitle,
+    infoPanel: {
+      title: props.viewerUIConfig?.infoPanel?.title ?? defaultConfig.infoPanel.title,
+      description: props.viewerUIConfig?.infoPanel?.description ?? defaultConfig.infoPanel.description,
+      artist: props.viewerUIConfig?.infoPanel?.artist ?? defaultConfig.infoPanel.artist,
+      date: props.viewerUIConfig?.infoPanel?.date ?? defaultConfig.infoPanel.date,
+      tags: props.viewerUIConfig?.infoPanel?.tags ?? defaultConfig.infoPanel.tags,
+    },
+    commentsButton: props.viewerUIConfig?.commentsButton ?? defaultConfig.commentsButton,
+  };
+});
+
+// 检查信息栏是否有任何内容需要显示
+const hasInfoContent = computed((): boolean => {
+  return effectiveViewerConfig.value.infoPanel.title
+         || effectiveViewerConfig.value.infoPanel.description
+         || effectiveViewerConfig.value.infoPanel.artist
+         || effectiveViewerConfig.value.infoPanel.date
+         || effectiveViewerConfig.value.infoPanel.tags;
+});
 
 // 缩略图容器引用
 const thumbnailsContainer = ref<HTMLElement>();
@@ -1196,6 +1255,7 @@ const closeMobileInfoOverlay = (): void => {
 // 评论模态框切换
 const toggleCommentsModal = (): void => {
   if (commentsModalAnimating.value) return;
+  if (!effectiveViewerConfig.value.commentsButton || !siteConfig.features.comments) return;
 
   commentsModalAnimating.value = true;
   showCommentsModal.value = !showCommentsModal.value;
@@ -2666,6 +2726,14 @@ const t = (text: I18nText | string | undefined, lang?: string): string => {
   @apply flex items-center justify-between;
   @apply py-3 px-4;
   @apply bg-white/90 border-b border-gray-200;
+}
+
+.viewer-header.no-title {
+  @apply justify-end;
+}
+
+.viewer-header .viewer-title {
+  @apply flex-1;
 }
 
 .dark .viewer-header {

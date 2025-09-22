@@ -19,6 +19,7 @@
     "images-config:merge": "node scripts/manage-images.cjs merge",
     "images-config:cleanup": "node scripts/manage-images.cjs cleanup",
     "generate-thumbnails": "node scripts/generate-thumbnails.cjs",
+    "cleanup-backups": "node scripts/cleanup-backups.cjs",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache --fix ."
   },
@@ -43,6 +44,8 @@
     "eslint": "^9.11.0",
     "eslint-plugin-import": "^2.30.0",
     "eslint-plugin-vue": "^9.28.0",
+    "iconv-lite": "^0.7.0",
+    "jschardet": "^3.1.4",
     "postcss": "^8.4.32",
     "sharp": "^0.34.3",
     "tailwindcss": "^3.3.6",

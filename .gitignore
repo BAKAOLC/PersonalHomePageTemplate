@@ -122,5 +122,13 @@ temp/
 *.swp
 *.swo
 
+# All backup files
+*.backup.*
+*.backup
+*.bak
+*.old
+.#*
+#*#
+
 # Local Netlify folder
 .netlify

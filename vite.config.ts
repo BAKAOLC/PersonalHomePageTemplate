@@ -8,10 +8,19 @@ const require = createRequire(import.meta.url);
 const htmlConfigPlugin = require('./vite-plugins/html-config-plugin.cjs');
 const imagesConfigPlugin = require('./vite-plugins/images-config-plugin.cjs');
 const { thumbnailPlugin } = require('./vite-plugins/thumbnail-plugin.cjs');
+const utf8EncodingPlugin = require('./vite-plugins/utf8-encoding-plugin.cjs');
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    utf8EncodingPlugin({
+      // 可以自定义配置选项
+      verbose: true,
+      autoConvert: true,
+      extensions: ['.vue', '.js', '.ts', '.json', '.css', '.scss', '.less', '.html', '.md', '.txt'],
+      excludeDirs: ['node_modules', 'dist', '.git', '.vscode'],
+      minConfidence: 0.8,
+    }),
     htmlConfigPlugin(),
     imagesConfigPlugin(),
     thumbnailPlugin(),

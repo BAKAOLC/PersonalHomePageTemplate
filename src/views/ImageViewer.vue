@@ -3,6 +3,7 @@
     <fullscreen-viewer
       :image-id="imageId"
       :child-image-id="childImageId"
+      :external-image="externalImage"
       :is-active="true"
       :viewer-u-i-config="effectiveConfig"
       @close="closeViewer"
@@ -15,7 +16,7 @@ import { onMounted, onBeforeUnmount, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import type { ViewerUIConfig } from '@/types';
+import type { ViewerUIConfig, ExternalImageInfo } from '@/types';
 
 import FullscreenViewer from '@/components/FullscreenViewer.vue';
 import { useEventManager } from '@/composables/useEventManager';
@@ -24,8 +25,9 @@ import { useAppStore } from '@/stores/app';
 
 // 获取路由参数和配置
 const props = defineProps<{
-  imageId: string;
+  imageId?: string;
   childImageId?: string;
+  externalImage?: ExternalImageInfo; // 外部图像信息（包含URL和其他信息）
   viewerUIConfig?: ViewerUIConfig; // 可选的配置参数
 }>();
 
@@ -45,6 +47,23 @@ const effectiveConfig = computed((): ViewerUIConfig => {
   const stateConfig = history.state?.viewerUIConfig;
   if (stateConfig) {
     return stateConfig;
+  }
+
+  // 如果是外部图像模式，使用全关闭的默认配置
+  if (props.externalImage) {
+    return {
+      imageList: false,
+      imageGroupList: false,
+      viewerTitle: false,
+      infoPanel: {
+        title: false,
+        description: false,
+        artist: false,
+        date: false,
+        tags: false,
+      },
+      commentsButton: false,
+    };
   }
 
   // 最后使用默认配置

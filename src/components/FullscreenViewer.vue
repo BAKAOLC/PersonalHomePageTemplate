@@ -406,7 +406,7 @@ import { useRouter } from 'vue-router';
 import GiscusComments from './GiscusComments.vue';
 import ProgressiveImage from './ProgressiveImage.vue';
 
-import type { I18nText, ViewerUIConfig } from '@/types';
+import type { I18nText, ViewerUIConfig, ExternalImageInfo } from '@/types';
 
 import thumbnailMap from '@/assets/thumbnail-map.json';
 import { useEventManager } from '@/composables/useEventManager';
@@ -420,10 +420,11 @@ import { AnimationDurations } from '@/utils/animations';
 import { getIconClass } from '@/utils/icons';
 
 const props = defineProps<{
-  imageId: string;
+  imageId?: string;
   childImageId?: string;
+  externalImage?: ExternalImageInfo; // 外部图像信息（包含URL和其他信息）
   isActive: boolean;
-  viewerUIConfig?: ViewerUIConfig;
+  viewerUIConfig?: ViewerUIConfig; // 结构化配置参数
 }>();
 
 const emit = defineEmits<{
@@ -515,7 +516,7 @@ const imagesList = computed(() => {
     if (props.childImageId) {
       // 访问子图像：/:imageId/:childImageId
       // 显示完整的图集，但会索引到目标childImage
-      const parentImage = appStore.getImageById(props.imageId);
+      const parentImage = props.imageId ? appStore.getImageById(props.imageId) : null;
       if (parentImage && parentImage.childImages && parentImage.childImages.length > 0) {
         const validImages = appStore.getValidImagesInGroup(parentImage);
         if (validImages.length > 0) {
@@ -531,10 +532,10 @@ const imagesList = computed(() => {
       return [];
     } else {
       // 访问图像：/:imageId
-      const image = appStore.getImageById(props.imageId);
+      const image = props.imageId ? appStore.getImageById(props.imageId) : null;
       if (image) {
         // 检查这个imageId是否是一个childImage
-        const groupInfo = appStore.getImageGroupByChildId(props.imageId);
+        const groupInfo = props.imageId ? appStore.getImageGroupByChildId(props.imageId) : null;
         if (groupInfo) {
           // 如果imageId是childImage，只显示这一张子图像（不允许切换）
           return [image];
@@ -605,6 +606,22 @@ const currentIndex = computed(() => {
 });
 
 const currentImage = computed(() => {
+  // 如果传入了外部图像信息，创建一个临时的图像对象
+  if (props.externalImage) {
+    const info = props.externalImage;
+    return {
+      id: 'external-image',
+      name: info.name || { en: 'External Image', zh: '外部图像', jp: '外部画像' },
+      description: info.description || { en: '', zh: '', jp: '' },
+      artist: info.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' },
+      src: info.url,
+      tags: info.tags || [],
+      characters: [],
+      date: info.date,
+      childImages: undefined,
+    };
+  }
+
   // 如果有子图像ID，优先获取子图像的具体信息
   if (currentChildImageId.value) {
     const childImage = appStore.getImageById(currentChildImageId.value);
@@ -619,9 +636,11 @@ const currentImage = computed(() => {
   }
 
   // 最后的备用方案
-  const directImage = appStore.getImageById(props.imageId);
-  if (directImage) {
-    return directImage;
+  if (props.imageId) {
+    const directImage = appStore.getImageById(props.imageId);
+    if (directImage) {
+      return directImage;
+    }
   }
 
   return null;
@@ -663,7 +682,7 @@ const showGroupSelector = computed(() => {
   // 如果是直接访问单个子图像 (/:childImageId)，不显示组选择器
   if (isDirectAccess.value && !props.childImageId) {
     // 检查是否是直接访问子图像
-    const groupInfo = appStore.getImageGroupByChildId(props.imageId);
+    const groupInfo = props.imageId ? appStore.getImageGroupByChildId(props.imageId) : null;
     if (groupInfo) {
       // 直接访问子图像，不显示组选择器
       return false;

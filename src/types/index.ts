@@ -70,6 +70,16 @@ export interface CharacterImage {
   childImages?: ChildImage[]; // child images for image groups
 }
 
+// 外部图像信息（用于查看任意URL图像）
+export interface ExternalImageInfo {
+  url: string; // 图像URL
+  name?: I18nText; // 可选的图像名称
+  description?: I18nText; // 可选的图像描述
+  artist?: I18nText; // 可选的作者信息
+  date?: string; // 可选的创作时间
+  tags?: string[]; // 可选的标签
+}
+
 export interface Character {
   id: string;
   name: I18nText;

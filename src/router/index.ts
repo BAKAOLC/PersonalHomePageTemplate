@@ -51,6 +51,46 @@ const router = createRouter({
       },
     },
     {
+      path: '/viewer-url',
+      name: 'external-image-viewer',
+      component: () => import('@/views/ImageViewer.vue'),
+      props: (route: any) => ({
+        externalImage: route.query.url
+          ? {
+            url: route.query.url as string,
+            name: route.query.name
+              ? {
+                en: route.query.name,
+                zh: route.query.name,
+                jp: route.query.name,
+              }
+              : undefined,
+            description: route.query.description
+              ? {
+                en: route.query.description,
+                zh: route.query.description,
+                jp: route.query.description,
+              }
+              : undefined,
+            artist: route.query.artist
+              ? {
+                en: route.query.artist,
+                zh: route.query.artist,
+                jp: route.query.artist,
+              }
+              : undefined,
+            date: route.query.date as string,
+            tags: route.query.tags
+              ? (route.query.tags as string).split(',')
+              : undefined,
+          }
+          : undefined,
+      }),
+      meta: {
+        titleKey: 'viewer.title',
+      },
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFound.vue'),

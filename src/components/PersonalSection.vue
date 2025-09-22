@@ -1,7 +1,5 @@
 <template>
   <section class="personal-section" :style="backgroundStyle">
-    <!-- 背景遮罩层 -->
-    <div v-if="hasBackgroundImage" class="background-overlay"></div>
 
     <div class="container mx-auto px-4 py-8">
       <div class="content-card" :class="{ 'glass-effect': hasBackgroundImage }">
@@ -85,7 +83,7 @@ const backgroundStyle = computed(() => {
   }
 
   return {
-    backgroundImage: `url(${currentBackgroundImage.value})`,
+    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url(${currentBackgroundImage.value})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
@@ -120,14 +118,6 @@ const t = (text: I18nText, lang: string): string => {
   @apply py-8;
   @apply relative;
   transition: all 0.5s ease-in-out;
-}
-
-/* 背景遮罩层 */
-.background-overlay {
-  @apply absolute inset-0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(1px);
-  z-index: 1;
 }
 
 /* 内容卡片 */

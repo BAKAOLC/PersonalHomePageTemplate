@@ -105,7 +105,8 @@
     "comments": "评论",
     "showComments": "显示评论",
     "hideComments": "隐藏评论",
-    "resizeGroupSelector": "拖拽调整图像列表宽度"
+    "resizeGroupSelector": "拖拽调整图像列表宽度",
+    "visitAuthorPage": "访问 {name}"
   },
   "loading": {
     "title": "正在加载",

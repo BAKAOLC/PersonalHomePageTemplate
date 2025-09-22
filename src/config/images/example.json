@@ -10,11 +10,21 @@
     "zh": "Q版小律影，QQ人风格",
     "jp": "QQスタイルのちび律影"
   },
-  "artist": {
-    "en": "Yuetuo Yayoi",
-    "zh": "月兔弥生",
-    "jp": "月兔弥生"
-  },
+  "artist": [
+    {
+      "en": "Yuetuo Yayoi",
+      "zh": "月兔弥生",
+      "jp": "月兔弥生"
+    }
+  ],
+  "authorLinks": [
+    {
+      "url": "https://space.bilibili.com/105158"
+    },
+    {
+      "url": "https://www.mihuashi.com/profiles/11962"
+    }
+  ],
   "src": "/assets/category/ritsukage-utsumabo/miscellaneous/QQ人小律影.png",
   "tags": [
     "commission",

@@ -302,7 +302,17 @@
 
           <div v-if="effectiveViewerConfig.infoPanel.artist" class="info-group">
             <h4 class="info-subtitle">{{ $t('gallery.artist') }}</h4>
-            <p>{{ t(getArtistWithFallback, currentLanguage) }}</p>
+            <div class="artist-info">
+              <div class="artist-names">
+                <span v-for="(artist, index) in getArtistListWithFallback" :key="index" class="artist-tag">
+                  {{ t(artist, currentLanguage) }}
+                </span>
+              </div>
+              <author-links
+                :author-links="getAuthorLinksWithFallback.current"
+                :fallback-author-links="getAuthorLinksWithFallback.fallback"
+              />
+            </div>
           </div>
 
           <div v-if="effectiveViewerConfig.infoPanel.date" class="info-group">
@@ -349,7 +359,17 @@
 
               <div v-if="effectiveViewerConfig.infoPanel.artist" class="info-group">
                 <h4 class="info-subtitle">{{ $t('gallery.artist') }}</h4>
-                <p>{{ t(getArtistWithFallback, currentLanguage) }}</p>
+                <div class="artist-info">
+                  <div class="artist-names">
+                    <span v-for="(artist, index) in getArtistListWithFallback" :key="index" class="artist-tag">
+                      {{ t(artist, currentLanguage) }}
+                    </span>
+                  </div>
+                  <author-links
+                    :author-links="getAuthorLinksWithFallback.current"
+                    :fallback-author-links="getAuthorLinksWithFallback.fallback"
+                  />
+                </div>
               </div>
 
               <div v-if="effectiveViewerConfig.infoPanel.date" class="info-group">
@@ -403,6 +423,7 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import AuthorLinks from './AuthorLinks.vue';
 import GiscusComments from './GiscusComments.vue';
 import ProgressiveImage from './ProgressiveImage.vue';
 
@@ -708,9 +729,9 @@ const mainImageAreaStyle = computed(() => {
 const hasPrevImage = computed(() => currentIndex.value > 0);
 const hasNextImage = computed(() => currentIndex.value < imagesList.value.length - 1);
 
-// Artist 和 Description 的 fallback 助手函数
-const getArtistWithFallback = computed(() => {
-  if (!currentImage.value) return { en: 'N/A', zh: 'N/A', jp: 'N/A' };
+// 获取作者列表
+const getArtistListWithFallback = computed(() => {
+  if (!currentImage.value) return [{ en: 'N/A', zh: 'N/A', jp: 'N/A' }];
 
   // 优先级：子图像 -> 父图像 -> fallback
   const currentGroup = currentImageGroup.value;
@@ -720,13 +741,40 @@ const getArtistWithFallback = computed(() => {
     const { parentImage } = currentGroup;
 
     // 子图像有artist则用子图像的，否则用父图像的，最后fallback
-    return childImage.artist || parentImage.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' };
+    const artist = childImage.artist || parentImage.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' };
+    return Array.isArray(artist) ? artist : [artist];
   }
 
   // 当前是父图像或普通图像
-  return currentImage.value.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' };
+  const artist = currentImage.value.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' };
+  return Array.isArray(artist) ? artist : [artist];
 });
 
+// 获取作者链接（支持继承）
+const getAuthorLinksWithFallback = computed(() => {
+  if (!currentImage.value) return { current: [], fallback: [] };
+
+  // 优先级：子图像 -> 父图像
+  const currentGroup = currentImageGroup.value;
+  if (currentGroup && !currentGroup.isParent) {
+    // 当前是子图像
+    const childImage = currentImage.value;
+    const { parentImage } = currentGroup;
+
+    return {
+      current: childImage.authorLinks || [],
+      fallback: parentImage.authorLinks || [],
+    };
+  }
+
+  // 当前是父图像或普通图像
+  return {
+    current: currentImage.value.authorLinks || [],
+    fallback: [],
+  };
+});
+
+// 获取描述
 const getDescriptionWithFallback = computed(() => {
   if (!currentImage.value) return { en: '', zh: '', jp: '' };
 
@@ -3206,6 +3254,22 @@ const t = (text: I18nText | string | undefined, lang?: string): string => {
 
 .dark .info-description {
   @apply text-gray-300;
+}
+
+.artist-info {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.artist-names {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.artist-tag {
+  @apply inline-flex items-center px-2.5 py-1
+         bg-blue-100 dark:bg-blue-900/30
+         text-blue-800 dark:text-blue-200
+         text-sm font-medium rounded-full
+         transition-colors duration-200;
 }
 
 .tags-list {

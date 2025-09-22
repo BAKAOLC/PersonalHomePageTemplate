@@ -1,0 +1,107 @@
+{
+  "twitter.com": {
+    "en": "Twitter",
+    "zh": "推特",
+    "jp": "ツイッター"
+  },
+  "x.com": {
+    "en": "X",
+    "zh": "X",
+    "jp": "X"
+  },
+  "pixiv.net": {
+    "en": "Pixiv",
+    "zh": "P站",
+    "jp": "ピクシブ"
+  },
+  "github.com": {
+    "en": "GitHub",
+    "zh": "GitHub",
+    "jp": "GitHub"
+  },
+  "instagram.com": {
+    "en": "Instagram",
+    "zh": "Instagram",
+    "jp": "インスタグラム"
+  },
+  "weibo.com": {
+    "en": "Weibo",
+    "zh": "微博",
+    "jp": "ウェイボー"
+  },
+  "bilibili.com": {
+    "en": "Bilibili",
+    "zh": "B站",
+    "jp": "ビリビリ"
+  },
+  "youtube.com": {
+    "en": "YouTube",
+    "zh": "YouTube",
+    "jp": "ユーチューブ"
+  },
+  "artstation.com": {
+    "en": "ArtStation",
+    "zh": "ArtStation",
+    "jp": "アートステーション"
+  },
+  "deviantart.com": {
+    "en": "DeviantArt",
+    "zh": "DeviantArt",
+    "jp": "デヴィアントアート"
+  },
+  "behance.net": {
+    "en": "Behance",
+    "zh": "Behance",
+    "jp": "ビハンス"
+  },
+  "dribbble.com": {
+    "en": "Dribbble",
+    "zh": "Dribbble",
+    "jp": "ドリブル"
+  },
+  "facebook.com": {
+    "en": "Facebook",
+    "zh": "Facebook",
+    "jp": "フェイスブック"
+  },
+  "linkedin.com": {
+    "en": "LinkedIn",
+    "zh": "领英",
+    "jp": "リンクトイン"
+  },
+  "tiktok.com": {
+    "en": "TikTok",
+    "zh": "抖音",
+    "jp": "ティックトック"
+  },
+  "reddit.com": {
+    "en": "Reddit",
+    "zh": "Reddit",
+    "jp": "レディット"
+  },
+  "discord.com": {
+    "en": "Discord",
+    "zh": "Discord",
+    "jp": "ディスコード"
+  },
+  "twitch.tv": {
+    "en": "Twitch",
+    "zh": "Twitch",
+    "jp": "ツイッチ"
+  },
+  "patreon.com": {
+    "en": "Patreon",
+    "zh": "Patreon",
+    "jp": "パトレオン"
+  },
+  "ko-fi.com": {
+    "en": "Ko-fi",
+    "zh": "Ko-fi",
+    "jp": "Ko-fi"
+  },
+  "mihuashi.com": {
+    "en": "Mihuashi",
+    "zh": "米画师",
+    "jp": "ミューシャ"
+  }
+}

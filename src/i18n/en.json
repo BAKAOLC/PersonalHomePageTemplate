@@ -105,7 +105,8 @@
     "comments": "Comments",
     "showComments": "Show Comments",
     "hideComments": "Hide Comments",
-    "resizeGroupSelector": "Drag to resize image list"
+    "resizeGroupSelector": "Drag to resize image list",
+    "visitAuthorPage": "Visit {name}"
   },
   "loading": {
     "title": "Loading",

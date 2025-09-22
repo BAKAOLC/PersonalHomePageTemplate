@@ -105,7 +105,8 @@
     "comments": "コメント",
     "showComments": "コメントを表示",
     "hideComments": "コメントを隠す",
-    "resizeGroupSelector": "ドラッグして画像リストの幅を調整"
+    "resizeGroupSelector": "ドラッグして画像リストの幅を調整",
+    "visitAuthorPage": "{name} を訪問"
   },
   "loading": {
     "title": "ロード中",

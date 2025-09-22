@@ -4,6 +4,13 @@ export interface I18nText {
   jp: string;
 }
 
+// 作者链接配置
+export interface AuthorLink {
+  url: string; // 目标链接，用于跳转到作者主页之类的地方
+  favicon?: string; // 目标网站的favicon url，如果没提供就尝试从 url 获取
+  name?: I18nText; // i18n的目标名称，如果没提供就尝试从 url 获取
+}
+
 // 语言类型
 export type Language = 'en' | 'zh' | 'jp';
 
@@ -50,7 +57,8 @@ export interface ChildImage {
   name?: I18nText;
   listName?: I18nText; // Optional - name displayed in child image list viewer
   description?: I18nText;
-  artist?: I18nText;
+  artist?: I18nText | I18nText[]; // 支持单个或多个作者
+  authorLinks?: AuthorLink[]; // 作者链接数组
   src: string;
   tags?: string[]; // tag IDs
   characters?: string[]; // character IDs
@@ -62,7 +70,8 @@ export interface CharacterImage {
   name: I18nText;
   listName?: I18nText; // Optional - name displayed in child image list viewer
   description?: I18nText; // Optional - fallback to empty string
-  artist?: I18nText; // Optional - fallback to "N/A"
+  artist?: I18nText | I18nText[]; // 支持单个或多个作者
+  authorLinks?: AuthorLink[]; // 作者链接数组
   src?: string; // Optional for image groups where src is only in childImages
   tags: string[]; // tag IDs
   characters: string[]; // character IDs
@@ -75,7 +84,8 @@ export interface ExternalImageInfo {
   url: string; // 图像URL
   name?: I18nText; // 可选的图像名称
   description?: I18nText; // 可选的图像描述
-  artist?: I18nText; // 可选的作者信息
+  artist?: I18nText | I18nText[]; // 支持单个或多个作者
+  authorLinks?: AuthorLink[]; // 作者链接数组
   date?: string; // 可选的创作时间
   tags?: string[]; // 可选的标签
 }

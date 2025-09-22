@@ -11,7 +11,7 @@ const jschardet = require('jschardet');
 function utf8EncodingPlugin(options = {}) {
   const defaultOptions = {
     // 需要检查的文件扩展名
-    extensions: ['.vue', '.js', '.ts', '.json', '.css', '.scss', '.less', '.html', '.md', '.txt'],
+    extensions: ['.vue', '.js', '.ts', '.json', '.css', '.scss', '.less', '.html', '.md', '.txt', '.cjs'],
     // 需要排除的目录
     excludeDirs: ['node_modules', 'dist', '.git', '.vscode'],
     // 是否在控制台显示详细信息
@@ -61,13 +61,21 @@ function utf8EncodingPlugin(options = {}) {
 
             if (stat.isDirectory()) {
               // 跳过排除的目录
-              if (!config.excludeDirs.some(excludeDir => fullPath.includes(excludeDir) || item === excludeDir)) {
+              const relativePath = path.relative(process.cwd(), fullPath);
+              const shouldExclude = config.excludeDirs.some(excludeDir => item === excludeDir
+                || relativePath.startsWith(excludeDir)
+                || relativePath.includes(`${path.sep}${excludeDir}${path.sep}`)
+                || relativePath.endsWith(`${path.sep}${excludeDir}`));
+              if (!shouldExclude) {
                 checkDirectory(fullPath);
               }
             } else if (stat.isFile()) {
               // 检查文件扩展名
               const ext = path.extname(item).toLowerCase();
               if (config.extensions.includes(ext)) {
+                if (config.verbose) {
+                  console.log(`🔍 检查文件: ${path.relative(process.cwd(), fullPath)}`);
+                }
                 plugin.checkFileEncoding(fullPath, issues);
                 checkedFiles++;
               }

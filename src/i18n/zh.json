@@ -135,21 +135,5 @@
     "friendLinkGenerated": "本站友链信息",
     "copyToClipboard": "复制到剪贴板",
     "copied": "已复制"
-  },
-  "debug": {
-    "imageIdEmpty": "图片ID为空，无法导航",
-    "imageGroupNoValidChildren": "图像组没有有效的子图像，无法打开查看器",
-    "invalidImageId": "无效的图片ID，无法打开查看器",
-    "invalidImageIdUpdate": "无效的图片ID，无法更新查看器",
-    "invalidImageIdNavigate": "无效的图片ID，无法导航",
-    "invalidImageData": "无效的图片数据，无法查看",
-    "circularDependency": "检测到循环依赖",
-    "screenChangeError": "屏幕变化回调执行出错",
-    "screenInitError": "屏幕变化回调初始化执行出错",
-    "thumbnailLoadFailed": "缩略图加载失败",
-    "progressLoadFailed": "进度加载失败，回退到普通加载",
-    "cannotGetFilteredImages": "无法获取过滤后的子图像，使用默认第一个",
-    "redirectImageGroup": "重定向图像组到子图像",
-    "featureDisabled": "{feature}功能已禁用，重定向到首页"
   }
 }

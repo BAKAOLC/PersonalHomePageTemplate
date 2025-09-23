@@ -32,7 +32,7 @@ export class TitleManager {
    * 根据路由信息更新页面标题
    */
   public updateTitle(route: RouteLocationNormalized): void {
-    const { t } = i18n.global;
+    const { t } = i18n.global as any;
     const siteTitle = t('app.title');
 
     // 从路由元数据获取标题键

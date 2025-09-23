@@ -16,8 +16,14 @@ export interface LanguagesConfig {
 // 动态语言类型 - 基于配置文件
 export type Language = string;
 
-// 动态多语言文本接口 - 支持任意语言键，也可以是简单字符串
+// 动态多语言文本接口 - 支持任意语言键，也可以是简单字符串或i18n引用
 export type I18nText = Record<string, string> | string;
+
+// i18n引用类型 - 用于在配置中引用i18n键
+export type I18nReference = `$t:${string}`;
+
+// 扩展的多语言文本类型 - 支持i18n引用
+export type ExtendedI18nText = I18nText | I18nReference;
 
 // 作者链接配置
 export interface AuthorLink {

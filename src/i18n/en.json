@@ -135,21 +135,5 @@
     "friendLinkGenerated": "Site Link Information",
     "copyToClipboard": "Copy to Clipboard",
     "copied": "Copied"
-  },
-  "debug": {
-    "imageIdEmpty": "Image ID is empty, cannot navigate",
-    "imageGroupNoValidChildren": "Image group has no valid children, cannot open viewer",
-    "invalidImageId": "Invalid image ID, cannot open viewer",
-    "invalidImageIdUpdate": "Invalid image ID, cannot update viewer",
-    "invalidImageIdNavigate": "Invalid image ID, cannot navigate",
-    "invalidImageData": "Invalid image data, cannot view",
-    "circularDependency": "Circular dependency detected",
-    "screenChangeError": "Screen change callback execution error",
-    "screenInitError": "Screen change callback initialization error",
-    "thumbnailLoadFailed": "Thumbnail loading failed",
-    "progressLoadFailed": "Progress loading failed, fallback to normal loading",
-    "cannotGetFilteredImages": "Cannot get filtered child images, using default first",
-    "redirectImageGroup": "Redirect image group to child image",
-    "featureDisabled": "{feature} feature is disabled, redirecting to home"
   }
 }

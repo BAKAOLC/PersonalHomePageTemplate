@@ -205,7 +205,7 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 
 const viewImage = (image: CharacterImage): void => {
   if (!image || !image.id) {
-    console.warn($t('debug.invalidImageData'));
+    console.warn('Invalid image data, cannot view');
     return;
   }
 

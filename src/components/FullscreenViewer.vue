@@ -832,7 +832,7 @@ const goToImage = (index: number): void => {
   if (index >= 0 && index < imagesList.value.length) {
     const targetImage = imagesList.value[index];
     if (!targetImage?.id) {
-      console.warn($t('debug.imageIdEmpty'));
+      console.warn('Image ID is empty, cannot navigate');
       return;
     }
 

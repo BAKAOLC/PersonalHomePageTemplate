@@ -4,6 +4,25 @@ import type { Language } from '@/types';
 
 import { getDefaultLanguage, getFallbackLanguage, getEnabledLanguages, isValidLanguage, getLanguagesConfig } from '@/utils/language';
 
+// 使用 Vite 的 glob 导入功能动态加载所有语言文件
+const languageModules = import.meta.glob('./*.json', { eager: true });
+
+// 动态构建语言消息映射
+const messages: Record<string, any> = {};
+const enabledLanguages = getEnabledLanguages();
+
+// 加载所有启用的语言文件
+for (const lang of enabledLanguages) {
+  const modulePath = `./${lang}.json`;
+  const module = languageModules[modulePath];
+
+  if (module) {
+    messages[lang] = (module as any).default || module;
+  } else {
+    console.warn(`Language file '${lang}.json' not found.`);
+  }
+}
+
 const getNavigatorLanguage = (): Language => {
   const browserLang = navigator.language.toLowerCase();
   const languagesConfig = getLanguagesConfig();
@@ -67,67 +86,12 @@ if (storedLocale && isValidLanguage(storedLocale)) {
   }
 }
 
-// 使用 Vite 的 glob 导入功能动态加载所有语言文件
-const languageModules = import.meta.glob('./*.json', { eager: false });
-
-// 动态加载语言文件
-const loadLanguageMessages = async (): Promise<Record<string, any>> => {
-  const messages: Record<string, any> = {};
-  const enabledLanguages = getEnabledLanguages();
-
-  for (const lang of enabledLanguages) {
-    const modulePath = `./${lang}.json`;
-    const moduleLoader = languageModules[modulePath];
-
-    if (moduleLoader) {
-      try {
-        const module = await moduleLoader();
-        messages[lang] = (module as any).default || module;
-      } catch (error) {
-        console.warn(`Failed to load language file for '${lang}':`, error);
-      }
-    } else {
-      console.warn(`Language file '${lang}.json' not found.`);
-      console.warn('Available language files:', Object.keys(languageModules));
-    }
-  }
-
-  return messages;
-};
-
-// 异步初始化 i18n
-const initializeI18n = async (): Promise<any> => {
-  const messages = await loadLanguageMessages();
-
-  // 最终安全检查：确保选择的语言在消息对象中存在
-  if (!messages[locale]) {
-    console.warn(`Selected locale '${locale}' not available in messages, falling back to '${getFallbackLanguage()}'`);
-    locale = getFallbackLanguage() as Language;
-
-    // 如果回退语言也不存在，使用第一个可用的语言
-    if (!messages[locale] && Object.keys(messages).length > 0) {
-      locale = Object.keys(messages)[0] as Language;
-      console.warn(`Fallback locale not available, using first available: '${locale}'`);
-    }
-  }
-
-  return createI18n({
-    legacy: false,
-    locale: locale,
-    fallbackLocale: getFallbackLanguage(),
-    messages,
-  });
-};
-
-// 导出异步初始化函数和同步的临时实例
-export const createI18nInstance = initializeI18n;
-
-// 创建一个临时的 i18n 实例，用于应用启动时的占位
-const tempI18n = createI18n({
+// 创建 i18n 实例
+const i18n = createI18n({
   legacy: false,
-  locale: getDefaultLanguage() as Language,
+  locale: locale,
   fallbackLocale: getFallbackLanguage(),
-  messages: {}, // 空消息，稍后会被替换
+  messages,
 });
 
-export default tempI18n;
+export default i18n;

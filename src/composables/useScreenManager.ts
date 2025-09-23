@@ -1,7 +1,5 @@
 import { ref, computed, onMounted, type ComputedRef, type Ref } from 'vue';
 
-import i18n from '@/i18n';
-
 /**
  * 屏幕尺寸变化回调函数类型
  */
@@ -111,7 +109,7 @@ const updateScreenInfo = (): void => {
       try {
         callback(screenInfo);
       } catch (error) {
-        console.error(i18n.global.t('debug.screenChangeError'), error);
+        console.error('Screen change callback execution error', error);
       }
     });
   }
@@ -203,7 +201,7 @@ export function useScreenManager(): ScreenManager {
     try {
       callback(screenInfo.value);
     } catch (error) {
-      console.error(i18n.global.t('debug.screenInitError'), error);
+      console.error('Screen change callback initialization error', error);
     }
 
     // 返回取消注册函数

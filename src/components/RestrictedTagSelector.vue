@@ -66,7 +66,7 @@ const appStore = useAppStore();
 const canTagBeVisible = (tagId: string, visited = new Set<string>()): boolean => {
   // 防止循环依赖
   if (visited.has(tagId)) {
-    console.warn(`${$t('debug.circularDependency')}: ${tagId}`);
+    console.warn(`Circular dependency detected: ${tagId}`);
     return false;
   }
 

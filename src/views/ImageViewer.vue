@@ -13,7 +13,6 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import type { ViewerUIConfig, ExternalImageInfo } from '@/types';
@@ -31,7 +30,6 @@ const props = defineProps<{
   viewerUIConfig?: ViewerUIConfig; // 可选的配置参数
 }>();
 
-const { t } = useI18n();
 const router = useRouter();
 const eventManager = useEventManager();
 const appStore = useAppStore();
@@ -94,7 +92,7 @@ const handleViewerNavigate = (event: CustomEvent): void => {
       });
     }
   } else {
-    console.warn(t('debug.invalidImageIdNavigate'));
+    console.warn('Invalid image ID, cannot navigate');
   }
 };
 

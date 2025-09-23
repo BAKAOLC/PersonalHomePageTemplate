@@ -135,21 +135,5 @@
     "friendLinkGenerated": "サイトリンク情報",
     "copyToClipboard": "クリップボードにコピー",
     "copied": "コピーしました"
-  },
-  "debug": {
-    "imageIdEmpty": "画像IDが空です、ナビゲートできません",
-    "imageGroupNoValidChildren": "画像グループに有効な子画像がありません、ビューアを開けません",
-    "invalidImageId": "無効な画像ID、ビューアを開けません",
-    "invalidImageIdUpdate": "無効な画像ID、ビューアを更新できません",
-    "invalidImageIdNavigate": "無効な画像ID、ナビゲートできません",
-    "invalidImageData": "無効な画像データ、表示できません",
-    "circularDependency": "循環依存が検出されました",
-    "screenChangeError": "画面変更コールバック実行エラー",
-    "screenInitError": "画面変更コールバック初期化エラー",
-    "thumbnailLoadFailed": "サムネイル読み込み失敗",
-    "progressLoadFailed": "プログレス読み込み失敗、通常読み込みにフォールバック",
-    "cannotGetFilteredImages": "フィルタされた子画像を取得できません、デフォルトの最初を使用",
-    "redirectImageGroup": "画像グループを子画像にリダイレクト",
-    "featureDisabled": "{feature}機能が無効です、ホームにリダイレクト"
   }
 }

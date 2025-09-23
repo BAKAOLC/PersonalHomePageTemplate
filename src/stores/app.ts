@@ -68,17 +68,18 @@ export const useAppStore = defineStore('app', () => {
     setThemeMode(modes[nextIndex]);
   };
 
+  // 处理系统主题变化
+  const handleSystemThemeChange = (e: { matches: boolean }): void => {
+    systemDarkMode.value = e.matches;
+    // 如果当前是自动模式，需要重新应用主题
+    if (themeMode.value === 'auto') {
+      applyTheme();
+    }
+  };
+
   // 监听系统主题变化
   const setupSystemThemeListener = (): (() => void) => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handleSystemThemeChange = (e: { matches: boolean }): void => {
-      systemDarkMode.value = e.matches;
-      // 如果当前是自动模式，需要重新应用主题
-      if (themeMode.value === 'auto') {
-        applyTheme();
-      }
-    };
 
     mediaQuery.addEventListener('change', handleSystemThemeChange);
 

@@ -1,7 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import { siteConfig } from '@/config/site';
-import i18n from '@/i18n';
 import { titleManager } from '@/services/titleManager';
 import { useAppStore } from '@/stores/app';
 
@@ -85,19 +84,17 @@ const router = createRouter({
 
 // 路由前置守卫：处理图像组重定向和功能禁用重定向
 router.beforeEach((to: any, _from: any, next: any) => {
-  const { t } = i18n.global as any;
-
   // 检查功能是否被禁用，如果禁用则自动重定向到首页
   if (to.name === 'gallery') {
     if (!siteConfig.features.gallery) {
-      console.log(t('debug.featureDisabled', { feature: t('nav.gallery') }));
+      console.log('Gallery feature is disabled, redirecting to home');
       return next({ name: 'home', replace: true });
     }
   }
 
   if (to.name === 'links') {
     if (!siteConfig.features.links) {
-      console.log(t('debug.featureDisabled', { feature: t('nav.links') }));
+      console.log('Links feature is disabled, redirecting to home');
       return next({ name: 'home', replace: true });
     }
   }
@@ -121,10 +118,10 @@ router.beforeEach((to: any, _from: any, next: any) => {
         }
       } catch (error) {
         // 如果store不可用，使用默认的第一个子图像
-        console.warn(t('debug.cannotGetFilteredImages'), error);
+        console.warn('Cannot get filtered child images, using default first', error);
       }
 
-      console.log(t('debug.redirectImageGroup', { imageId, childId: firstChildId }));
+      console.log(`Redirect image group to child image: ${imageId} -> ${firstChildId}`);
 
       return next({
         name: 'image-viewer-child',

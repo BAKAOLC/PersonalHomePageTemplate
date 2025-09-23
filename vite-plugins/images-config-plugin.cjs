@@ -140,10 +140,6 @@ function imagesConfigPlugin() {
 
   return {
     name: 'images-config',
-    buildStart() {
-      // 在构建开始时合并配置
-      mergeImagesConfig();
-    },
     configureServer(server) {
       // 在开发模式下监听文件变化
       const { watcher } = server;

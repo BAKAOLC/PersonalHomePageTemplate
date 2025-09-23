@@ -159,10 +159,6 @@ function articlesConfigPlugin() {
 
   return {
     name: 'articles-config',
-    buildStart() {
-      // 在构建开始时合并配置
-      mergeArticlesConfig();
-    },
     configureServer(server) {
       // 在开发模式下监听文件变化
       const { watcher } = server;

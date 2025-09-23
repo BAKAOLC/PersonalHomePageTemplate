@@ -10,9 +10,9 @@
     "url": "https://github.com/BAKAOLC/PersonalHomePageTemplate.git"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run prebuild && vite",
     "build": "npm run prebuild && vue-tsc --noEmit && vite build",
-    "preview": "vite preview",
+    "preview": "npm run prebuild && vite preview",
     "prebuild": "npm run images-config:build && npm run articles-config:build && npm run generate-thumbnails",
     "images-config:build": "node scripts/manage-images.cjs build",
     "images-config:split": "node scripts/manage-images.cjs split",

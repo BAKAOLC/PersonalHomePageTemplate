@@ -407,7 +407,7 @@
               </button>
             </div>
             <div class="comments-modal-content">
-              <GiscusComments :unique-id="currentDisplayImageId" />
+              <GiscusComments :unique-id="currentDisplayImageId" prefix="image-viewer" />
             </div>
           </div>
         </transition>

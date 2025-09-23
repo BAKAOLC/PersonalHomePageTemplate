@@ -184,7 +184,14 @@ export interface FeaturesConfig {
   viewerUI: ViewerUIConfig; // 新的结构化Viewer配置
 }
 
+// 应用基础配置
+export interface AppConfig {
+  title: I18nText;
+  copyright: I18nText;
+}
+
 export interface SiteConfig {
+  app: AppConfig;
   personal: PersonalInfo;
   characters: Character[];
   tags: ImageTag[];

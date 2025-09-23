@@ -1,10 +1,8 @@
 {
   "app": {
-    "title": "Ritsukage Utsumabo",
     "loading": "Loading...",
     "error": "An error occurred!",
-    "notFound": "Page not found",
-    "copyright": "© 2025 OLC. All rights reserved."
+    "notFound": "Page not found"
   },
   "common": {
     "loading": "Loading",
@@ -159,6 +157,7 @@
     "relatedArticles": "Related Articles",
     "prevArticle": "Previous",
     "nextArticle": "Next",
+    "copyLink": "Copy Link",
     "backToList": "Back to List",
     "sortBy": "Sort by",
     "sortDate": "Date",

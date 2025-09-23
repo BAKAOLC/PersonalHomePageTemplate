@@ -1,10 +1,8 @@
 {
   "app": {
-    "title": "律影映幻",
     "loading": "加载中...",
     "error": "出错了！",
-    "notFound": "页面不存在",
-    "copyright": "© 2025 OLC. 保留所有权利。"
+    "notFound": "页面不存在"
   },
   "common": {
     "loading": "加载中",
@@ -159,6 +157,7 @@
     "relatedArticles": "相关文章",
     "prevArticle": "上一篇",
     "nextArticle": "下一篇",
+    "copyLink": "复制链接",
     "backToList": "返回列表",
     "sortBy": "排序方式",
     "sortDate": "按日期",

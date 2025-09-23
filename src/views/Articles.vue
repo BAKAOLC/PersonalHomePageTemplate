@@ -394,6 +394,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 
 import type { Article, ArticleFilterState, ArticlePagination, ArticleCategoriesConfig } from '@/types';
 
@@ -416,10 +417,21 @@ import {
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
+// Props for route parameters
+interface Props {
+  articleId?: string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  articleId: undefined,
+});
+
 // 导入配置
 const { t: $t } = useI18n();
 const appStore = useAppStore();
 const { onScreenChange } = useMobileDetection();
+const route = useRoute();
+const router = useRouter();
 
 // 响应式数据
 const searchQuery = ref('');
@@ -616,16 +628,36 @@ const jumpToPage = (): void => {
 
 const openArticle = (article: Article): void => {
   selectedArticle.value = article;
+  // 更新URL但不刷新页面
+  router.push({ name: 'article-detail', params: { articleId: article.id } });
 };
 
 const closeArticle = (): void => {
   selectedArticle.value = null;
+  // 返回到文章列表页面
+  router.push({ name: 'articles' });
 };
 
 const navigateToArticle = (articleId: string): void => {
   const article = articles.value.find(a => a.id === articleId);
   if (article) {
     selectedArticle.value = article;
+    // 更新URL
+    router.push({ name: 'article-detail', params: { articleId: article.id } });
+  }
+};
+
+// 从URL参数打开文章
+const openArticleFromRoute = (): void => {
+  const articleId = props.articleId || route.params.articleId as string;
+  if (articleId) {
+    const article = articles.value.find(a => a.id === articleId);
+    if (article) {
+      selectedArticle.value = article;
+    } else {
+      // 如果文章不存在，重定向到文章列表
+      router.replace({ name: 'articles' });
+    }
   }
 };
 
@@ -701,6 +733,9 @@ onMounted(() => {
 
   // 添加页数选择器外部点击监听器
   document.addEventListener('click', handlePageSizeClickOutside);
+
+  // 检查是否需要从URL参数打开文章
+  openArticleFromRoute();
 });
 
 onBeforeUnmount(() => {

@@ -31,6 +31,7 @@ const appStore = useAppStore();
 // Props for dynamic configuration
 interface Props {
   uniqueId?: string;
+  prefix?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -53,7 +54,7 @@ const {
   },
 } = siteConfig;
 
-const term = computed(() => `image-viewer-${props.uniqueId}`);
+const term = computed(() => `${props.prefix || 'comment'}-${props.uniqueId}`);
 
 // Dynamic theme and language
 const theme = computed(() => appStore.isDarkMode ? 'dark' : 'light');

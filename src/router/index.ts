@@ -32,6 +32,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/articles/:articleId',
+      name: 'article-detail',
+      component: () => import('@/views/Articles.vue'),
+      props: true,
+      meta: {
+        titleKey: 'articles.title',
+      },
+    },
+    {
       path: '/links',
       name: 'links',
       component: () => import('@/views/Links.vue'),

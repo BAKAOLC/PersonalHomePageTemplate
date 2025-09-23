@@ -44,6 +44,9 @@
 
           <!-- 控制按钮 -->
           <div class="viewer-controls">
+            <button class="control-button copy-button" @click="copyArticleLink" :title="$t('articles.copyLink')">
+              <i :class="getIconClass('link')" class="icon"></i>
+            </button>
             <button class="control-button close-button" @click="close" :title="$t('common.close')">
               <i :class="getIconClass('times')" class="icon"></i>
             </button>
@@ -100,7 +103,7 @@
             <h3 class="comments-title">{{ $t('articles.comments') }}</h3>
           </div>
           <div class="comments-container">
-            <GiscusComments :key="article.id" />
+            <GiscusComments :key="article.id" :unique-id="article.id" prefix="article" />
           </div>
         </div>
       </div>
@@ -250,6 +253,28 @@ const navigateTo = (articleId: string): void => {
   emit('navigate', articleId);
 };
 
+const copyArticleLink = async (): Promise<void> => {
+  try {
+    const url = `${window.location.origin}${window.location.pathname}#/articles/${props.article.id}`;
+    await navigator.clipboard.writeText(url);
+
+    // 这里可以添加一个提示消息，但为了简单起见，我们使用console.log
+    console.log('文章链接已复制到剪贴板');
+
+    // 可以考虑添加一个toast提示
+    // showToast('文章链接已复制到剪贴板');
+  } catch (err) {
+    console.error('复制链接失败:', err);
+    // 降级方案：选择文本
+    const textArea = document.createElement('textarea');
+    textArea.value = `${window.location.origin}${window.location.pathname}#/articles/${props.article.id}`;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  }
+};
+
 // 监听器
 watch(() => props.article, () => {
   if (viewerContent.value) {
@@ -377,6 +402,12 @@ onBeforeUnmount(() => {
   @apply rounded-lg;
   @apply transition-all duration-200;
   @apply border-none;
+}
+
+.copy-button {
+  @apply bg-blue-100 dark:bg-blue-900/20;
+  @apply text-blue-600 dark:text-blue-400;
+  @apply hover:bg-blue-200 dark:hover:bg-blue-900/40;
 }
 
 .close-button {

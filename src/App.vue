@@ -7,7 +7,7 @@
         <div class="header-content">
           <router-link to="/" class="logo-link">
             <img :src="siteConfig.personal.avatar" alt="Logo" class="logo" />
-            <h1 class="site-title">{{ t('app.title') }}</h1>
+            <h1 class="site-title">{{ appTitle }}</h1>
           </router-link>
 
           <!-- 导航栏 -->
@@ -30,7 +30,7 @@
 
       <footer class="footer">
         <div class="footer-content">
-          <p>{{ t('app.copyright') }}</p>
+          <p>{{ appCopyright }}</p>
         </div>
       </footer>
     </template>
@@ -48,9 +48,14 @@ import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import { siteConfig } from '@/config/site';
 import { titleManager } from '@/services/titleManager';
 import { useAppStore } from '@/stores/app';
+import { getAppTitle, getAppCopyright } from '@/utils/appConfig';
 
-const { t, locale } = useI18n();
+const { locale } = useI18n();
 const appStore = useAppStore();
+
+// 应用配置的计算属性
+const appTitle = computed(() => getAppTitle(appStore.currentLanguage));
+const appCopyright = computed(() => getAppCopyright(appStore.currentLanguage));
 
 // 存储预加载的图片引用，用于清理
 const preloadedImages = ref<HTMLImageElement[]>([]);

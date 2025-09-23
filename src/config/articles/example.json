@@ -1,0 +1,34 @@
+[
+  {
+    "id": "hello-world",
+    "title": {
+      "zh": "Hello World - 我的第一篇文章",
+      "en": "Hello World - My First Article",
+      "jp": "Hello World - 最初の記事"
+    },
+    "cover": "/assets/category/ritsukage-utsumabo/miscellaneous/QQ人小律影.png",
+    "categories": [
+      "tech",
+      "thoughts"
+    ],
+    "date": "2025-09-24",
+    "content": {
+      "zh": "# 欢迎来到我的博客\n\n这是我的第一篇文章，用来测试文章系统的功能。\n\n## 功能特点\n\n- 支持 Markdown 格式\n- 多语言支持\n- 响应式设计\n- 评论系统\n\n希望你喜欢这个博客系统！",
+      "en": "# Welcome to My Blog\n\nThis is my first article to test the article system functionality.\n\n## Features\n\n- Markdown format support\n- Multi-language support\n- Responsive design\n- Comment system\n\nHope you enjoy this blog system!",
+      "jp": "# 私のブログへようこそ\n\nこれは記事システムの機能をテストするための最初の記事です。\n\n## 特徴\n\n- Markdown形式のサポート\n- 多言語サポート\n- レスポンシブデザイン\n- コメントシステム\n\nこのブログシステムを楽しんでいただければ幸いです！"
+    },
+    "allowComments": true
+  },
+  {
+    "id": "vue-tutorial",
+    "title": "Vue.js 开发教程",
+    "cover": "/assets/category/ritsukage-utsumabo/miscellaneous/QQ人小律影.png",
+    "categories": [
+      "tech",
+      "projects"
+    ],
+    "date": "2025-09-24",
+    "content": "# Vue.js 开发教程\n\n本教程将介绍如何使用 Vue.js 构建现代化的 Web 应用程序。\n\n## 环境准备\n\n首先需要安装 Node.js 和 npm...\n\n## 创建项目\n\n使用 Vue CLI 创建新项目：\n\n```bash\nnpm create vue@latest my-project\n```\n\n这将创建一个包含现代工具链的 Vue 项目。",
+    "allowComments": true
+  }
+]

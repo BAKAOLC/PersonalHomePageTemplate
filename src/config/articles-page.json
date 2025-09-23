@@ -1,0 +1,28 @@
+{
+  "infoCards": [
+    {
+      "id": "github-stats",
+      "title": {
+        "zh": "GitHub 统计",
+        "en": "GitHub Stats",
+        "jp": "GitHub 統計"
+      },
+      "image": {
+        "light": "https://github-readme-stats.vercel.app/api?username=BAKAOLC&show_icons=true&theme=vue",
+        "dark": "https://github-readme-stats.vercel.app/api?username=BAKAOLC&show_icons=true&theme=react"
+      }
+    },
+    {
+      "id": "github-top-langs",
+      "title": {
+        "zh": "GitHub 语言统计",
+        "en": "GitHub Top Languages",
+        "jp": "GitHub トップ言語"
+      },
+      "image": {
+        "light": "https://github-readme-stats.vercel.app/api/top-langs/?username=BAKAOLC&layout=compact&theme=vue",
+        "dark": "https://github-readme-stats.vercel.app/api/top-langs/?username=BAKAOLC&layout=compact&theme=react"
+      }
+    }
+  ]
+}

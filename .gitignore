@@ -21,6 +21,10 @@ src/assets/thumbnail-map.json
 src/config/images.json
 src/config/images.json.backup
 
+# Articles config files (auto-generated from src/config/articles/)
+src/config/articles.json
+src/config/articles.json.backup
+
 # Local env files
 .env
 .env.local

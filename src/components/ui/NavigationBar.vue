@@ -98,6 +98,13 @@ const navItems: NavItem[] = [
     requiresFeature: 'gallery',
   },
   {
+    name: 'articles',
+    path: '/articles',
+    label: 'nav.articles',
+    icon: 'fas fa-newspaper',
+    requiresFeature: 'articles',
+  },
+  {
     name: 'links',
     path: '/links',
     label: 'nav.links',

@@ -1,6 +1,6 @@
 <template>
-  <div class="sort-selector">
-    <button @click="toggleSortMenu" class="sort-button" :aria-expanded="isOpen" aria-haspopup="true">
+  <div class="sort-selector" ref="menuRef">
+    <button @click="toggleSortMenu" class="sort-button" :aria-expanded="isOpen" aria-haspopup="true" ref="buttonRef">
       <i :class="getIconClass('sort')" class="sort-icon"></i>
       <span class="sort-text">{{ displaySort }}</span>
       <i :class="[getIconClass('chevron-down'), 'arrow-icon', { 'rotate-180': isOpen }]"></i>
@@ -152,10 +152,6 @@ onBeforeUnmount(() => {
   @apply hover:bg-gray-100 dark:hover:bg-gray-700;
   @apply transition-all duration-200;
   transform-origin: left center;
-}
-
-.sort-option:hover {
-  transform: translateX(4px);
 }
 
 .sort-option.active {

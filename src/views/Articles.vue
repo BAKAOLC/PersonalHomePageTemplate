@@ -1,0 +1,1790 @@
+<template>
+  <div class="articles-page">
+    <div class="container mx-auto px-4 py-4 flex-1 h-full overflow-hidden">
+      <div class="articles-header">
+        <div class="header-title-section">
+          <h1 class="articles-title">{{ $t('articles.title') }}</h1>
+          <p class="articles-subtitle">{{ $t('articles.subtitle') }}</p>
+        </div>
+        <!-- 统一搜索栏 -->
+        <div class="unified-search-bar">
+          <div class="search-input-container">
+            <input
+              type="text"
+              v-model="searchQuery"
+              :placeholder="$t('articles.searchPlaceholder')"
+              class="search-input"
+            />
+            <button v-if="searchQuery" @click="clearSearch" class="search-clear">
+              <i :class="getIconClass('times')" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <div class="control-buttons-group">
+            <!-- 排序按钮 -->
+            <button @click="toggleSortOrder" class="sort-order-button"
+              :title="$t(sortOrder === 'asc' ? 'articles.sortAsc' : 'articles.sortDesc')">
+              <i :class="getIconClass(sortOrder === 'asc' ? 'sort-alpha-down' : 'sort-alpha-up')"></i>
+              <span class="sort-order-text">{{
+                $t(sortOrder === 'asc' ? 'articles.sortAsc' : 'articles.sortDesc')
+              }}</span>
+            </button>
+
+            <!-- 排序方式按钮 -->
+            <button @click="toggleSortBy" class="sort-by-button"
+              :title="sortBy.includes('date') ? $t('articles.sortDate') : $t('articles.sortTitle')">
+              <i :class="getIconClass(sortBy.includes('date') ? 'calendar' : 'font')"></i>
+              <span class="button-text">{{
+                sortBy.includes('date') ? $t('articles.sortDate') : $t('articles.sortTitle')
+              }}</span>
+            </button>
+
+            <!-- 每页显示数量 -->
+            <div class="page-size-selector">
+              <button @click="togglePageSizeMenu" class="page-size-button"
+               :aria-expanded="isPageSizeMenuOpen" aria-haspopup="true">
+                <i :class="getIconClass('list-ol')" class="page-size-icon"></i>
+                <span class="page-size-text">{{ displayPageSize }}</span>
+                <i :class="[getIconClass('chevron-down'), 'arrow-icon', { 'rotate-180': isPageSizeMenuOpen }]"></i>
+              </button>
+
+              <div v-show="isPageSizeMenuOpen" class="page-size-menu" :class="{ 'menu-open': isPageSizeMenuOpen }">
+                <button v-for="option in pageSizeOptions" :key="option.value"
+                 @click="changePageSize(option.value)" class="page-size-option"
+                  :class="{ 'active': pageSize === option.value }">
+                  {{ option.label }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="articles-content">
+        <!-- 左侧边栏 -->
+        <aside class="articles-sidebar">
+          <!-- 个人信息框 - 始终显示 -->
+          <div class="personal-info-card">
+            <div class="avatar-container">
+              <img
+                :src="personalInfo.avatar"
+                :alt="getI18nText(personalInfo.name, currentLanguage)"
+                class="avatar"
+              />
+            </div>
+            <div class="social-links">
+              <a
+                v-for="link in personalInfo.links"
+                :key="link.url"
+                :href="link.url"
+                :title="getI18nText(link.name, currentLanguage)"
+                class="social-link"
+                :style="{ '--icon-color': link.color || '#333' }"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i :class="getIconClass(link.icon)"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- 桌面端分类筛选 - 可折叠样式 -->
+          <div class="category-selector hidden md:block">
+            <button
+              class="section-title-button"
+              @click="toggleCategoriesExpansion"
+            >
+              <h3 class="selector-title">{{ $t('articles.categories') }}</h3>
+              <i
+                class="fa expand-icon"
+                :class="getIconClass(isCategoriesExpanded ? 'chevron-up' : 'chevron-down')"
+              ></i>
+            </button>
+            <Transition name="category-list">
+              <div v-if="isCategoriesExpanded" class="categories-list">
+                <!-- All 选项 -->
+                <button
+                  class="category-button"
+                  :class="{ 'active': selectedCategory === '' }"
+                  @click="clearCategoryFilter"
+                >
+                  <div class="category-left">
+                    <i :class="getIconClass('th')" class="category-icon"></i>
+                    <span class="category-name">{{ $t('common.all') }}</span>
+                  </div>
+                  <span class="category-count">{{
+                    searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
+                  }}</span>
+                </button>
+
+                <!-- 分类选项 - 只显示可见的分类（过滤掉计数为0的） -->
+                <button
+                  v-for="(category, categoryId) in visibleCategories"
+                  :key="categoryId"
+                  class="category-button"
+                  :class="{ 'active': selectedCategory === String(categoryId) }"
+                  @click="selectCategory(String(categoryId))"
+                  :style="{
+                    '--category-color': category.color || '#8b5cf6',
+                    '--category-hover-color': category.color ? `${category.color}20` : '#8b5cf620'
+                  }"
+                >
+                  <div class="category-left">
+                    <span class="category-name">{{ getI18nText(category.name, currentLanguage) }}</span>
+                  </div>
+                  <span class="category-count">{{ categoryCounts[String(categoryId)] || 0 }}</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- 额外的信息卡片列表 - 在分类下面 -->
+          <div v-if="infoCards && infoCards.length > 0" class="info-cards-section">
+          <div
+            v-for="card in infoCards"
+            :key="card.id"
+            class="info-card"
+          >
+            <div class="info-card-image-container">
+              <img
+                :src="getCardImage(card.image)"
+                :alt="getI18nText(card.title, currentLanguage)"
+                class="info-card-image"
+              />
+            </div>
+          </div>
+          </div>
+
+          <!-- 移动端分类筛选切换按钮 - 在卡片下面 -->
+          <div class="sidebar-toggle md:hidden" @click="toggleMobileSidebar">
+            <i :class="getIconClass('filter')" class="icon"></i>
+            {{ $t('articles.categories') }}
+          </div>
+
+          <!-- 移动端可折叠的分类筛选内容 -->
+          <div class="mobile-category-filter md:hidden" :class="{ 'active': isSidebarOpen }">
+            <!-- 分类筛选框 -->
+            <div class="category-filter">
+              <h3 class="filter-title">{{ $t('articles.categories') }}</h3>
+              <div class="category-list">
+              <!-- All 选项 -->
+              <button
+                class="category-item"
+                :class="{ 'active': selectedCategory === '' }"
+                @click="clearCategoryFilter"
+              >
+                <span class="category-name">{{ $t('common.all') }}</span>
+                <span class="category-count">{{
+                  searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
+                }}</span>
+              </button>
+
+              <!-- 分类选项 - 只显示可见的分类（过滤掉计数为0的） -->
+              <button
+                v-for="(category, categoryId) in visibleCategories"
+                :key="categoryId"
+                class="category-item"
+                :class="{ 'active': selectedCategory === String(categoryId) }"
+                @click="selectCategory(String(categoryId))"
+              >
+                <span
+                  class="category-name"
+                  :style="{ color: category.color }"
+                >
+                  {{ getI18nText(category.name, currentLanguage) }}
+                </span>
+                <span class="category-count">{{ categoryCounts[String(categoryId)] || 0 }}</span>
+              </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <div class="articles-main">
+          <!-- 文章列表 -->
+          <div class="articles-list">
+            <div v-if="paginatedArticles.length === 0" class="no-articles">
+              <i :class="getIconClass('newspaper')" class="no-articles-icon"></i>
+              <p class="no-articles-text">
+                {{ searchQuery ? $t('articles.noSearchResults') : $t('articles.noArticles') }}
+              </p>
+            </div>
+
+            <article
+              v-for="article in paginatedArticles"
+              :key="article.id"
+              class="article-card"
+              @click="openArticle(article)"
+            >
+              <!-- 文章封面 -->
+              <div v-if="getArticleCover(article.cover, currentLanguage)" class="article-cover">
+                <img
+                  :src="getArticleCover(article.cover, currentLanguage)"
+                  :alt="getI18nText(article.title, currentLanguage)"
+                  class="cover-image"
+                />
+              </div>
+
+              <!-- 文章信息 -->
+              <div class="article-info">
+                <h2 class="article-title">{{ getI18nText(article.title, currentLanguage) }}</h2>
+
+                <div class="article-meta">
+                  <span class="article-date">
+                    <i :class="getIconClass('calendar')" class="meta-icon"></i>
+                    {{ formatDate(article.date) }}
+                  </span>
+
+                  <div class="article-categories">
+                    <span
+                      v-for="categoryId in article.categories"
+                      :key="categoryId"
+                      class="category-tag"
+                      :style="{
+                        backgroundColor: (articleCategories as any)[categoryId]?.color + '20',
+                        color: (articleCategories as any)[categoryId]?.color
+                      }"
+                    >
+                      {{
+                        getI18nText(
+                          (articleCategories as any)[categoryId]?.name || categoryId,
+                          currentLanguage
+                        )
+                      }}
+                    </span>
+                  </div>
+                </div>
+
+                <p class="article-summary">{{ generateArticleSummary(article.content, currentLanguage) }}</p>
+
+                <div class="article-actions">
+                  <button class="read-more-btn" @click.stop="openArticle(article)">
+                    {{ $t('articles.readMore') }}
+                    <i :class="getIconClass('arrow-right')" class="btn-icon"></i>
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <!-- 分页器 -->
+          <div v-if="pagination.totalPages > 1" class="pagination">
+            <button
+              class="pagination-btn"
+              :disabled="!pagination.hasPrev"
+              @click="goToPage(pagination.currentPage - 1)"
+            >
+              <i :class="getIconClass('chevron-left')"></i>
+              {{ $t('articles.prevArticle') }}
+            </button>
+
+            <div class="pagination-info">
+              <span>{{ $t('articles.page', { current: pagination.currentPage, total: pagination.totalPages }) }}</span>
+
+              <div class="page-jump">
+                <input
+                  type="number"
+                  v-model.number="jumpToPageNumber"
+                  :min="1"
+                  :max="pagination.totalPages"
+                  class="page-input"
+                />
+                <button @click="jumpToPage" class="jump-btn">
+                  {{ $t('articles.goToPage') }}
+                </button>
+              </div>
+            </div>
+
+            <button
+              class="pagination-btn"
+              :disabled="!pagination.hasNext"
+              @click="goToPage(pagination.currentPage + 1)"
+            >
+              {{ $t('articles.nextArticle') }}
+              <i :class="getIconClass('chevron-right')"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移动端全屏筛选弹窗 -->
+    <div v-if="isMobileSidebarOpen" class="mobile-filter-overlay" @click="closeMobileSidebar">
+      <div class="mobile-filter-content" @click.stop>
+        <div class="mobile-filter-header">
+          <h3>{{ $t('articles.categories') }}</h3>
+          <button @click="closeMobileSidebar" class="close-button">
+            <i :class="getIconClass('times')"></i>
+          </button>
+        </div>
+        <div class="mobile-filter-body">
+          <!-- 分类筛选 - 使用与桌面端完全相同的结构 -->
+          <div class="category-selector">
+            <button
+              class="section-title-button"
+              @click="toggleCategoriesExpansion"
+            >
+              <h3 class="selector-title">{{ $t('articles.categories') }}</h3>
+              <i
+                class="fa expand-icon"
+                :class="getIconClass(isCategoriesExpanded ? 'chevron-up' : 'chevron-down')"
+              ></i>
+            </button>
+            <Transition name="category-list">
+              <div v-if="isCategoriesExpanded" class="categories-list">
+                <!-- All 选项 -->
+                <button
+                  class="category-button"
+                  :class="{ 'active': selectedCategory === '' }"
+                  @click="clearCategoryFilter"
+                >
+                  <div class="category-left">
+                    <i :class="getIconClass('th')" class="category-icon"></i>
+                    <span class="category-name">{{ $t('common.all') }}</span>
+                  </div>
+                  <span class="category-count">{{
+                    searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
+                  }}</span>
+                </button>
+
+                <!-- 分类选项 - 只显示可见的分类（过滤掉计数为0的） -->
+                <button
+                  v-for="(category, categoryId) in visibleCategories"
+                  :key="categoryId"
+                  class="category-button"
+                  :class="{ 'active': selectedCategory === String(categoryId) }"
+                  @click="selectCategory(String(categoryId))"
+                  :style="{
+                    '--category-color': category.color || '#8b5cf6',
+                    '--category-hover-color': category.color ? `${category.color}20` : '#8b5cf620'
+                  }"
+                >
+                  <div class="category-left">
+                    <span class="category-name">{{ getI18nText(category.name, currentLanguage) }}</span>
+                  </div>
+                  <span class="category-count">{{ categoryCounts[String(categoryId)] || 0 }}</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文章详情悬浮窗 -->
+    <ArticleViewer
+      v-if="selectedArticle"
+      :article="selectedArticle"
+      :articles="filteredArticles"
+      @close="closeArticle"
+      @navigate="navigateToArticle"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+import type { Article, ArticleFilterState, ArticlePagination, ArticleCategoriesConfig } from '@/types';
+
+import ArticleViewer from '@/components/ArticleViewer.vue';
+import { useMobileDetection } from '@/composables/useScreenManager';
+import articleCategoriesConfig from '@/config/articles-categories.json';
+import articlesPageConfig from '@/config/articles-page.json';
+import articlesConfig from '@/config/articles.json';
+import { siteConfig } from '@/config/site';
+import { useAppStore } from '@/stores/app';
+import {
+  getArticleCover,
+  generateArticleSummary,
+  filterArticles,
+  calculatePagination,
+  paginateArticles,
+  formatDate,
+  countArticlesByCategory,
+} from '@/utils/articles';
+import { getI18nText } from '@/utils/i18nText';
+import { getIconClass } from '@/utils/icons';
+
+// 导入配置
+const { t: $t } = useI18n();
+const appStore = useAppStore();
+const { onScreenChange } = useMobileDetection();
+
+// 响应式数据
+const searchQuery = ref('');
+const selectedCategory = ref<string>('');
+const sortBy = ref<'date-desc' | 'date-asc' | 'title-asc' | 'title-desc'>('date-desc');
+const sortOrder = ref<'asc' | 'desc'>('desc');
+const pageSize = ref<number | 'all'>(10); // Set a fixed number of articles to display per page
+const currentPage = ref(1);
+const jumpToPageNumber = ref(1);
+const selectedArticle = ref<Article | null>(null);
+const isSidebarOpen = ref(false);
+const isMobileSidebarOpen = ref(false);
+const isPageSizeMenuOpen = ref(false);
+const isCategoriesExpanded = ref(true);
+
+const currentLanguage = computed(() => appStore.currentLanguage);
+
+// 获取卡片图片URL（支持亮色暗色）
+const getCardImage = (image: string | { light: string; dark: string }): string => {
+  if (typeof image === 'string') return image;
+  return appStore.isDarkMode ? image.dark : image.light;
+};
+
+// 配置数据
+const articles = ref<Article[]>(articlesConfig);
+const articleCategories = ref<ArticleCategoriesConfig>(articleCategoriesConfig);
+const personalInfo = computed(() => siteConfig.personal);
+const infoCards = ref(articlesPageConfig.infoCards);
+
+// 计算属性
+const filterState = computed<ArticleFilterState>(() => ({
+  selectedCategories: selectedCategory.value ? [selectedCategory.value] : [],
+  sortBy: sortBy.value,
+  searchQuery: searchQuery.value,
+  pageSize: pageSize.value,
+  currentPage: currentPage.value,
+}));
+
+const filteredArticles = computed(() => {
+  return filterArticles(articles.value, filterState.value, currentLanguage.value);
+});
+
+const pagination = computed<ArticlePagination>(() => {
+  return calculatePagination(
+    filteredArticles.value.length,
+    currentPage.value,
+    pageSize.value,
+  );
+});
+
+const paginatedArticles = computed(() => {
+  return paginateArticles(
+    filteredArticles.value,
+    currentPage.value,
+    pageSize.value,
+  );
+});
+
+// 基于所有文章的分类计数（用于显示总数）
+const allCategoryCounts = computed(() => {
+  return countArticlesByCategory(articles.value);
+});
+
+// 基于当前筛选结果的分类计数（用于显示搜索结果中的计数）
+const filteredCategoryCounts = computed(() => {
+  return countArticlesByCategory(filteredArticles.value);
+});
+
+// 根据当前是否在搜索来决定显示哪种计数
+const categoryCounts = computed(() => {
+  const isSearching = searchQuery.value.trim() !== '';
+  return isSearching ? filteredCategoryCounts.value : allCategoryCounts.value;
+});
+
+// 过滤掉计数为0的分类（任何情况下都不显示计数为0的分类）
+const visibleCategories = computed(() => {
+  const visibleCats: ArticleCategoriesConfig = {};
+  Object.entries(articleCategories.value).forEach(([categoryId, category]) => {
+    if (categoryCounts.value[categoryId] > 0) {
+      visibleCats[categoryId] = category;
+    }
+  });
+  return visibleCats;
+});
+
+const totalArticlesCount = computed(() => {
+  return articles.value.length;
+});
+
+// 方法
+const clearSearch = (): void => {
+  searchQuery.value = '';
+};
+
+const toggleSortOrder = (): void => {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  // 更新 sortBy 以反映新的排序顺序
+  if (sortBy.value.includes('date')) {
+    sortBy.value = sortOrder.value === 'asc' ? 'date-asc' : 'date-desc';
+  } else {
+    sortBy.value = sortOrder.value === 'asc' ? 'title-asc' : 'title-desc';
+  }
+};
+
+const toggleSortBy = (): void => {
+  if (sortBy.value.includes('date')) {
+    sortBy.value = sortOrder.value === 'asc' ? 'title-asc' : 'title-desc';
+  } else {
+    sortBy.value = sortOrder.value === 'asc' ? 'date-asc' : 'date-desc';
+  }
+};
+
+// 页数选择相关
+const pageSizeOptions = computed(() => [
+  { label: '10', value: 10 },
+  { label: '20', value: 20 },
+  { label: '50', value: 50 },
+  { label: '100', value: 100 },
+  { label: $t('articles.showAll'), value: 'all' as const },
+]);
+
+const displayPageSize = computed(() => {
+  if (pageSize.value === 'all') {
+    return $t('articles.showAll');
+  }
+  return pageSize.value.toString();
+});
+
+const togglePageSizeMenu = (): void => {
+  isPageSizeMenuOpen.value = !isPageSizeMenuOpen.value;
+};
+
+// 处理页数选择器外部点击
+const handlePageSizeClickOutside = (event: MouseEvent): void => {
+  const target = event.target as HTMLElement;
+  const pageSizeSelector = document.querySelector('.page-size-selector');
+
+  if (isPageSizeMenuOpen.value && pageSizeSelector && !pageSizeSelector.contains(target)) {
+    isPageSizeMenuOpen.value = false;
+  }
+};
+
+const changePageSize = (size: number | 'all'): void => {
+  pageSize.value = size;
+  currentPage.value = 1; // 重置到第一页
+  isPageSizeMenuOpen.value = false;
+};
+
+const toggleCategoriesExpansion = (): void => {
+  isCategoriesExpanded.value = !isCategoriesExpanded.value;
+};
+
+const toggleMobileSidebar = (): void => {
+  isMobileSidebarOpen.value = !isMobileSidebarOpen.value;
+  // 阻止背景滚动
+  if (isMobileSidebarOpen.value) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+};
+
+const closeMobileSidebar = (): void => {
+  isMobileSidebarOpen.value = false;
+  // 恢复背景滚动
+  document.body.style.overflow = '';
+};
+
+const selectCategory = (categoryId: string): void => {
+  selectedCategory.value = categoryId === selectedCategory.value ? '' : categoryId;
+  currentPage.value = 1; // 重置到第一页
+};
+
+const clearCategoryFilter = (): void => {
+  selectedCategory.value = '';
+  currentPage.value = 1;
+};
+
+const goToPage = (page: number): void => {
+  if (page >= 1 && page <= pagination.value.totalPages) {
+    currentPage.value = page;
+    jumpToPageNumber.value = page;
+  }
+};
+
+const jumpToPage = (): void => {
+  if (jumpToPageNumber.value >= 1 && jumpToPageNumber.value <= pagination.value.totalPages) {
+    currentPage.value = jumpToPageNumber.value;
+  }
+};
+
+const openArticle = (article: Article): void => {
+  selectedArticle.value = article;
+};
+
+const closeArticle = (): void => {
+  selectedArticle.value = null;
+};
+
+const navigateToArticle = (articleId: string): void => {
+  const article = articles.value.find(a => a.id === articleId);
+  if (article) {
+    selectedArticle.value = article;
+  }
+};
+
+// 处理屏幕变化
+const handleScreenChange = (currentIsMobile: boolean): void => {
+  if (!currentIsMobile) {
+    // 切换到桌面端时关闭移动端功能
+    isMobileSidebarOpen.value = false;
+    isSidebarOpen.value = false;
+    // 恢复背景滚动
+    document.body.style.overflow = '';
+  }
+};
+
+// 监听器
+watch([searchQuery, selectedCategory, sortBy], () => {
+  currentPage.value = 1; // 筛选条件变化时重置到第一页
+});
+
+watch(pagination, (newPagination) => {
+  jumpToPageNumber.value = newPagination.currentPage;
+});
+
+// 屏幕变化监听器取消函数
+let unsubscribeScreenChange: (() => void) | null = null;
+
+onMounted(() => {
+  jumpToPageNumber.value = currentPage.value;
+
+  // 注册屏幕变化监听器
+  unsubscribeScreenChange = onScreenChange(handleScreenChange);
+
+  // 添加页数选择器外部点击监听器
+  document.addEventListener('click', handlePageSizeClickOutside);
+});
+
+onBeforeUnmount(() => {
+  // 取消屏幕变化监听器
+  if (unsubscribeScreenChange) {
+    unsubscribeScreenChange();
+    unsubscribeScreenChange = null;
+  }
+
+  // 移除页数选择器外部点击监听器
+  document.removeEventListener('click', handlePageSizeClickOutside);
+
+  // 清理body样式
+  document.body.style.overflow = '';
+});
+</script>
+
+<style scoped>
+.articles-page {
+  @apply h-screen flex flex-col;
+  @apply bg-gray-50 dark:bg-gray-900;
+}
+
+.articles-header {
+  @apply flex flex-wrap items-center justify-between mb-4;
+  @apply border-b border-gray-200 dark:border-gray-700 pb-3;
+  transition: transform 0.3s ease, opacity 0.3s ease, margin-bottom 0.3s ease;
+}
+
+.header-title-section {
+  @apply flex flex-col;
+}
+
+.articles-title {
+  @apply text-2xl font-bold;
+  @apply text-gray-900 dark:text-white;
+  transition: font-size 0.3s ease, margin-bottom 0.3s ease;
+}
+
+.articles-subtitle {
+  @apply text-gray-600 dark:text-gray-400;
+  @apply text-sm;
+}
+
+/* 统一搜索栏样式 */
+.unified-search-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: rgb(249, 250, 251);
+  border: 1px solid rgb(229, 231, 235);
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .unified-search-bar {
+  background-color: rgb(31, 41, 55);
+  border-color: rgb(75, 85, 99);
+}
+
+.unified-search-bar .search-input-container {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.unified-search-bar .control-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.unified-search-bar .search-input {
+  width: 100%;
+  padding: 0.5rem;
+  padding-right: 2.5rem;
+  border: 1px solid rgb(209, 213, 219);
+  border-radius: 0.375rem;
+  background-color: rgb(255, 255, 255);
+  color: rgb(17, 24, 39);
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.dark .unified-search-bar .search-input {
+  background-color: rgb(55, 65, 81);
+  border-color: rgb(75, 85, 99);
+  color: rgb(243, 244, 246);
+}
+
+.unified-search-bar .search-input:focus {
+  outline: none;
+  border-color: rgb(59, 130, 246);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.dark .unified-search-bar .search-input:focus {
+  border-color: rgb(96, 165, 250);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.unified-search-bar .search-clear {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgb(156, 163, 175);
+  padding: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unified-search-bar .search-clear:hover {
+  color: rgb(107, 114, 128);
+  background-color: rgb(243, 244, 246);
+}
+
+.dark .unified-search-bar .search-clear:hover {
+  color: rgb(209, 213, 219);
+  background-color: rgb(55, 65, 81);
+}
+
+.unified-search-bar .sort-select,
+.unified-search-bar .page-size-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgb(209, 213, 219);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background-color: white;
+  color: rgb(17, 24, 39);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  height: 2.25rem;
+  box-sizing: border-box;
+}
+
+.dark .unified-search-bar .sort-select,
+.dark .unified-search-bar .page-size-select {
+  background-color: rgb(55, 65, 81);
+  border-color: rgb(75, 85, 99);
+  color: rgb(243, 244, 246);
+}
+
+.unified-search-bar .sort-select:focus,
+.unified-search-bar .page-size-select:focus {
+  outline: none;
+  border-color: rgb(59, 130, 246);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.dark .unified-search-bar .sort-select:focus,
+.dark .unified-search-bar .page-size-select:focus {
+  border-color: rgb(96, 165, 250);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.unified-search-bar .sort-order-button,
+.unified-search-bar .sort-by-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgb(209, 213, 219);
+  border-radius: 0.375rem;
+  background-color: white;
+  color: rgb(107, 114, 128);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  height: 2.25rem;
+  box-sizing: border-box;
+}
+
+.dark .unified-search-bar .sort-order-button,
+.dark .unified-search-bar .sort-by-button {
+  background-color: rgb(55, 65, 81);
+  border-color: rgb(75, 85, 99);
+  color: rgb(156, 163, 175);
+}
+
+.unified-search-bar .sort-order-button:hover,
+.unified-search-bar .sort-by-button:hover {
+  background-color: rgb(243, 244, 246);
+  color: rgb(55, 65, 81);
+}
+
+.dark .unified-search-bar .sort-order-button:hover,
+.dark .unified-search-bar .sort-by-button:hover {
+  background-color: rgb(75, 85, 99);
+  color: rgb(209, 213, 219);
+}
+
+.articles-content {
+  @apply flex gap-6;
+  flex-direction: row;
+  height: calc(
+    100vh - var(--app-header-height, 60px) - var(--app-footer-height, 60px) -
+    var(--articles-header-height, 120px) - 3rem
+  );
+  overflow-y: auto;
+}
+
+.articles-sidebar {
+  width: 360px;
+  flex-shrink: 0;
+  transition: width 0.3s ease, position 0.3s ease, top 0.3s ease;
+}
+
+.sidebar-toggle {
+  @apply flex items-center justify-between gap-2 py-3 px-4 mb-3 rounded-lg;
+  @apply bg-white dark:bg-gray-800;
+  @apply border border-gray-200 dark:border-gray-700;
+  @apply text-gray-700 dark:text-gray-300;
+  @apply font-medium;
+  @apply shadow-sm;
+  @apply cursor-pointer;
+}
+
+.articles-sidebar {
+  @apply flex flex-col gap-3;
+  padding: 1rem;
+}
+
+.desktop-category-filter {
+  @apply block;
+}
+
+.mobile-category-filter {
+  @apply flex flex-col gap-3;
+  @apply overflow-hidden max-h-0 transition-all duration-300;
+  @apply bg-white dark:bg-gray-800 rounded-lg p-0;
+  @apply border border-transparent;
+}
+
+.mobile-category-filter.active {
+  @apply max-h-[500px] p-4 mb-4;
+  @apply border-gray-200 dark:border-gray-700;
+  @apply overflow-y-auto;
+  scrollbar-gutter: stable;
+}
+
+@media (min-width: 768px) {
+  .articles-sidebar {
+    width: 360px;
+  }
+
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .category-selector {
+    @apply bg-white dark:bg-gray-800 rounded-lg;
+    @apply border border-gray-200 dark:border-gray-700;
+    @apply shadow-sm;
+    padding: 1rem;
+  }
+
+  .unified-search-bar .sort-order-text,
+  .unified-search-bar .button-text {
+    display: inline;
+  }
+}
+
+/* 移动端滚动条样式 */
+.mobile-category-filter.active::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mobile-category-filter.active::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mobile-category-filter.active::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.mobile-category-filter.active::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.dark .mobile-category-filter.active::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+.dark .mobile-category-filter.active::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.7);
+}
+
+.personal-info-card {
+  @apply bg-white dark:bg-gray-800;
+  @apply border border-gray-200 dark:border-gray-700;
+  @apply rounded-lg p-4;
+  @apply text-center;
+}
+
+.avatar-container {
+  @apply mb-3;
+}
+
+.avatar {
+  @apply w-16 h-16 rounded-full mx-auto;
+  @apply border-2 border-gray-200 dark:border-gray-700;
+}
+
+.social-links {
+  @apply flex justify-center gap-3;
+}
+
+.social-link {
+  @apply flex items-center justify-center;
+  @apply w-10 h-10 rounded-lg;
+  @apply text-sm font-medium;
+  @apply transition-all duration-300;
+  @apply transform hover:-translate-y-1;
+  @apply text-white;
+  @apply shadow-md hover:shadow-lg;
+  /* 使用与PersonalSection相同的渐变背景和边框样式 */
+  background: linear-gradient(135deg, var(--icon-color, #333),
+    color-mix(in srgb, var(--icon-color, #333) 85%, black 15%));
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  animation-fill-mode: both;
+  transform-origin: center;
+  position: relative;
+}
+
+.social-link:hover {
+  transform: scale(1.05) translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 25px -5px rgba(0, 0, 0, 0.2),
+    0 4px 6px -2px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.social-link i {
+  @apply w-4 h-4;
+}
+
+.social-link:nth-child(1) { animation-delay: 0.1s; }
+.social-link:nth-child(2) { animation-delay: 0.2s; }
+.social-link:nth-child(3) { animation-delay: 0.3s; }
+.social-link:nth-child(4) { animation-delay: 0.4s; }
+.social-link:nth-child(5) { animation-delay: 0.5s; }
+.social-link:nth-child(6) { animation-delay: 0.6s; }
+
+.category-filter {
+  @apply bg-white dark:bg-gray-800;
+  @apply border border-gray-200 dark:border-gray-700;
+  @apply rounded-lg p-4;
+}
+
+.filter-title {
+  @apply text-lg font-semibold text-gray-900 dark:text-white mb-3;
+}
+
+.category-list {
+  @apply space-y-2;
+}
+
+.category-item {
+  @apply w-full flex items-center justify-between;
+  @apply px-3 py-2 rounded-lg;
+  @apply text-left;
+  @apply text-gray-700 dark:text-gray-300;
+  @apply hover:bg-gray-100 dark:hover:bg-gray-700;
+  @apply transition-all duration-200;
+}
+
+.category-item.active {
+  @apply bg-primary-100 dark:bg-primary-900/20;
+  @apply text-primary-700 dark:text-primary-300;
+}
+
+.category-name {
+  @apply font-medium;
+}
+
+.category-count {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+  @apply bg-gray-100 dark:bg-gray-700;
+  @apply px-2 py-1 rounded-full;
+}
+
+.articles-main {
+  flex: 1;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  transition: padding-left 0.3s ease, padding-right 0.3s ease;
+}
+
+.articles-list {
+  @apply space-y-6 mb-8;
+}
+
+.no-articles {
+  @apply text-center py-12;
+}
+
+.no-articles-icon {
+  @apply text-4xl text-gray-400 dark:text-gray-600 mb-4;
+}
+
+.no-articles-text {
+  @apply text-gray-600 dark:text-gray-400;
+}
+
+.article-card {
+  @apply bg-white dark:bg-gray-800;
+  @apply border border-gray-200 dark:border-gray-700;
+  @apply rounded-lg overflow-hidden;
+  @apply hover:shadow-lg dark:hover:shadow-gray-900/20;
+  @apply transition-all duration-200;
+  @apply cursor-pointer;
+  @apply flex flex-col lg:flex-row;
+}
+
+.article-cover {
+  @apply w-full lg:w-48 h-48 lg:h-auto flex-shrink-0;
+  @apply bg-gray-100 dark:bg-gray-700;
+  @apply overflow-hidden;
+  @apply flex items-center justify-center;
+}
+
+.cover-image {
+  @apply w-full h-full object-contain;
+}
+
+.article-info {
+  @apply p-6 flex-1;
+}
+
+.article-title {
+  @apply text-xl font-bold text-gray-900 dark:text-white mb-3;
+  @apply hover:text-primary-600 dark:hover:text-primary-400;
+  @apply transition-colors duration-200;
+}
+
+.article-meta {
+  @apply flex flex-wrap items-center gap-4 mb-3;
+}
+
+.article-date {
+  @apply flex items-center gap-1;
+  @apply text-sm text-gray-600 dark:text-gray-400;
+}
+
+.meta-icon {
+  @apply text-xs;
+}
+
+.article-categories {
+  @apply flex flex-wrap gap-2;
+}
+
+.category-tag {
+  @apply px-2 py-1 rounded-full;
+  @apply text-xs font-medium;
+  border: 1px solid currentColor;
+}
+
+.article-summary {
+  @apply text-gray-700 dark:text-gray-300 mb-4;
+  @apply line-clamp-3;
+}
+
+.article-actions {
+  @apply flex justify-end;
+}
+
+.read-more-btn {
+  @apply flex items-center gap-2;
+  @apply px-4 py-2;
+  @apply bg-primary-600 hover:bg-primary-700;
+  @apply text-white;
+  @apply rounded-lg;
+  @apply transition-all duration-200;
+  @apply font-medium;
+}
+
+.btn-icon {
+  @apply text-sm;
+}
+
+.pagination {
+  @apply flex items-center justify-between;
+  @apply bg-white dark:bg-gray-800;
+  @apply border border-gray-200 dark:border-gray-700;
+  @apply rounded-lg p-4;
+}
+
+.pagination-btn {
+  @apply flex items-center gap-2;
+  @apply px-4 py-2;
+  @apply bg-gray-100 dark:bg-gray-700;
+  @apply text-gray-700 dark:text-gray-300;
+  @apply rounded-lg;
+  @apply hover:bg-gray-200 dark:hover:bg-gray-600;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply transition-all duration-200;
+}
+
+.pagination-info {
+  @apply flex items-center gap-4;
+}
+
+.page-jump {
+  @apply flex items-center gap-2;
+}
+
+.page-input {
+  @apply w-16 px-2 py-1;
+  @apply border border-gray-300 dark:border-gray-600;
+  @apply rounded;
+  @apply bg-white dark:bg-gray-800;
+  @apply text-gray-900 dark:text-white;
+  @apply text-center;
+}
+
+.jump-btn {
+  @apply px-3 py-1;
+  @apply bg-primary-600 hover:bg-primary-700;
+  @apply text-white;
+  @apply rounded;
+  @apply text-sm;
+  @apply transition-all duration-200;
+}
+
+.info-cards-section {
+  @apply flex flex-col gap-3;
+}
+
+.info-card {
+  @apply pointer-events-none; /* 禁止点击 */
+}
+
+.info-card-image-container {
+  @apply w-full;
+}
+
+.info-card-image {
+  @apply w-full h-auto;
+  @apply object-cover; /* 保持图片比例 */
+}
+
+/* 移动端全屏筛选弹窗 */
+.mobile-filter-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  touch-action: none;
+}
+
+.mobile-filter-content {
+  width: 100%;
+  max-height: 80vh;
+  background: white;
+  border-radius: 1rem 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dark .mobile-filter-content {
+  background: rgb(31, 41, 55);
+}
+
+.mobile-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgb(229, 231, 235);
+}
+
+.dark .mobile-filter-header {
+  border-bottom-color: rgb(75, 85, 99);
+}
+
+.mobile-filter-header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: rgb(17, 24, 39);
+}
+
+.dark .mobile-filter-header h3 {
+  color: rgb(243, 244, 246);
+}
+
+.close-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: rgb(243, 244, 246);
+  color: rgb(75, 85, 99);
+  transition: background-color 0.2s;
+}
+
+.dark .close-button {
+  background: rgb(55, 65, 81);
+  color: rgb(209, 213, 219);
+}
+
+.close-button:hover {
+  background: rgb(229, 231, 235);
+}
+
+.dark .close-button:hover {
+  background: rgb(75, 85, 99);
+}
+
+.mobile-filter-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  @apply flex flex-col gap-3;
+}
+
+/* 桌面端分类选择器样式 - 完全复制自Gallery组件 */
+.category-selector {
+  margin-bottom: 0;
+}
+
+.section-title-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  padding: 0.75rem;
+  margin: 0;
+  border-radius: 0.5rem;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-title-button:hover {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.dark .section-title-button {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-color: #475569;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .section-title-button:hover {
+  background: linear-gradient(135deg, #334155 0%, #475569 100%);
+  border-color: #64748b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.selector-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  color: #1e293b;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dark .selector-title {
+  color: #f1f5f9;
+}
+
+.expand-icon {
+  font-size: 0.75rem;
+  color: #64748b;
+  transition: all 200ms ease-out;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  background: rgba(100, 116, 139, 0.1);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+}
+
+.dark .expand-icon {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.section-title-button:hover .expand-icon {
+  color: #475569;
+  background: rgba(100, 116, 139, 0.15);
+  border-color: rgba(100, 116, 139, 0.3);
+  transform: translateY(-1px);
+}
+
+.dark .section-title-button:hover .expand-icon {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .categories-list {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+  }
+}
+
+.category-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid transparent;
+  transition: all 200ms;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  width: 100%;
+  text-align: left;
+}
+
+@media (max-width: 767px) {
+  .category-button {
+    min-width: 11rem;
+    width: auto;
+    padding: 0.5rem 1rem;
+  }
+}
+
+.dark .category-button {
+  background-color: #374151;
+  color: #d1d5db;
+}
+
+.category-button:hover {
+  background-color: var(--category-hover-color, #e5e7eb);
+  border-color: var(--category-color, #8b5cf6);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark .category-button:hover {
+  background-color: #4b5563;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.category-button.active {
+  background-color: var(--category-hover-color, #8b5cf620);
+  border-color: var(--category-color, #8b5cf6);
+  color: var(--category-color, #8b5cf6);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark .category-button.active {
+  background-color: var(--category-hover-color, #8b5cf630);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.category-button .category-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.category-button .category-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.category-button .category-name {
+  font-weight: inherit;
+}
+
+.category-button .category-count {
+  background-color: #e5e7eb;
+  color: #6b7280;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.dark .category-button .category-count {
+  background-color: #4b5563;
+  color: #9ca3af;
+}
+
+.category-button.active .category-count {
+  background-color: var(--category-color, #8b5cf6);
+  color: white;
+}
+
+/* 过渡动画 */
+.category-list-enter-active,
+.category-list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.category-list-enter-from,
+.category-list-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* 移动端分类选择器样式 */
+.mobile-category-selector {
+  width: 100%;
+}
+
+.mobile-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.mobile-category-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid transparent;
+  transition: all 200ms;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  width: 100%;
+  text-align: left;
+}
+
+.dark .mobile-category-button {
+  background-color: #374151;
+  color: #d1d5db;
+}
+
+.mobile-category-button:hover {
+  background-color: var(--category-hover-color, #e5e7eb);
+  border-color: var(--category-color, #8b5cf6);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark .mobile-category-button:hover {
+  background-color: #4b5563;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-category-button.active {
+  background-color: var(--category-hover-color, #8b5cf620);
+  border-color: var(--category-color, #8b5cf6);
+  color: var(--category-color, #8b5cf6);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark .mobile-category-button.active {
+  background-color: var(--category-hover-color, #8b5cf630);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.category-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.category-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.category-name {
+  font-weight: inherit;
+}
+
+.category-count {
+  background-color: #e5e7eb;
+  color: #6b7280;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.dark .category-count {
+  background-color: #4b5563;
+  color: #9ca3af;
+}
+
+.mobile-category-button.active .category-count {
+  background-color: var(--category-color, #8b5cf6);
+  color: white;
+}
+
+@media (max-width: 767px) {
+  .articles-header {
+    @apply flex-col items-center text-center gap-2 mb-3;
+    padding-bottom: 0.75rem;
+  }
+
+  .articles-title {
+    @apply text-xl;
+    margin-bottom: 0.5rem;
+  }
+
+  .unified-search-bar {
+    gap: 0.375rem;
+    padding: 0.375rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .unified-search-bar .control-buttons-group {
+    gap: 0.375rem;
+  }
+
+  .unified-search-bar .sort-order-button .sort-order-text,
+  .unified-search-bar .sort-by-button .button-text {
+    display: none;
+  }
+
+  .unified-search-bar .sort-order-button,
+  .unified-search-bar .sort-by-button,
+  .unified-search-bar .page-size-button {
+    min-width: 44px;
+    padding: 0.375rem;
+    height: 2rem;
+  }
+
+  .unified-search-bar .search-input {
+    height: 2rem;
+    padding: 0.375rem;
+    padding-right: 2rem;
+  }
+
+  .articles-content {
+    flex-direction: column;
+    height: calc(
+      100vh - var(--app-header-height, 60px) - var(--app-footer-height, 60px) -
+      var(--articles-header-height, 120px) - 3rem
+    );
+  }
+
+  .articles-sidebar {
+    width: 360px;
+    max-width: 100%;
+    flex-shrink: 0;
+    margin: 0 auto;
+  }
+
+  .articles-main {
+    flex: 1;
+    padding-top: 0;
+  }
+
+  .article-card {
+    @apply flex-col;
+  }
+
+  .article-cover {
+    @apply w-full h-48;
+  }
+
+  .pagination {
+    @apply flex-col gap-4;
+  }
+
+  .pagination-info {
+    @apply flex-col gap-2;
+  }
+}
+
+/* 页数选择器样式 */
+.page-size-selector {
+  @apply relative;
+}
+
+.page-size-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgb(209, 213, 219);
+  border-radius: 0.375rem;
+  background-color: white;
+  color: rgb(107, 114, 128);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  height: 2.25rem;
+  box-sizing: border-box;
+  transform-origin: center;
+  min-width: 80px;
+}
+
+.dark .page-size-button {
+  background-color: rgb(55, 65, 81);
+  border-color: rgb(75, 85, 99);
+  color: rgb(156, 163, 175);
+}
+
+.page-size-button:hover {
+  background-color: rgb(243, 244, 246);
+  color: rgb(55, 65, 81);
+}
+
+.dark .page-size-button:hover {
+  background-color: rgb(75, 85, 99);
+  color: rgb(209, 213, 219);
+}
+
+.page-size-icon {
+  @apply w-4 h-4;
+  flex-shrink: 0;
+}
+
+.page-size-menu {
+  @apply absolute right-0 mt-2 py-1;
+  @apply bg-white dark:bg-gray-800;
+  @apply border border-gray-200 dark:border-gray-700;
+  @apply rounded-lg shadow-lg;
+  @apply w-32 z-10;
+  @apply opacity-0 scale-95 origin-top-right;
+  @apply transition-all duration-300;
+  transform: translateY(-10px) scale(0.95);
+}
+
+.menu-open {
+  @apply opacity-100 scale-100;
+  transform: translateY(0) scale(1);
+}
+
+.page-size-option {
+  @apply flex items-center w-full px-4 py-2;
+  @apply text-left text-sm text-gray-700 dark:text-gray-300;
+  @apply hover:bg-gray-100 dark:hover:bg-gray-700;
+  @apply transition-all duration-200;
+  transform-origin: left center;
+}
+
+.page-size-option.active {
+  @apply bg-primary-50 dark:bg-primary-900/20;
+  @apply text-primary-700 dark:text-primary-400;
+  @apply font-medium;
+}
+
+.page-size-text {
+  transition: all 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.arrow-icon {
+  @apply w-4 h-4 ml-1 transition-all duration-300 ease-in-out;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.arrow-icon.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.info-card-image-container.no-border {
+  border: none;
+}
+
+/* 动画关键帧 */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+</style>

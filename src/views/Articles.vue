@@ -60,7 +60,7 @@
         </div>
       </div>
 
-      <div class="articles-content">
+      <div class="articles-content" ref="articlesMain" @scroll="handleScroll">
         <!-- 左侧边栏 -->
         <aside class="articles-sidebar">
           <!-- 个人信息框 - 始终显示 -->
@@ -368,9 +368,17 @@
               </div>
             </Transition>
           </div>
+
         </div>
       </div>
+
     </div>
+
+    <!-- 返回顶部按钮 -->
+    <button v-if="showScrollToTop" @click="scrollToTop" class="scroll-to-top-button"
+      :style="{ bottom: scrollToTopBottom + 'px' }">
+      <i :class="getIconClass('chevron-up')"></i>
+    </button>
 
     <!-- 文章详情悬浮窗 -->
     <ArticleViewer
@@ -426,6 +434,9 @@ const isSidebarOpen = ref(false);
 const isMobileSidebarOpen = ref(false);
 const isPageSizeMenuOpen = ref(false);
 const isCategoriesExpanded = ref(true);
+const articlesMain = ref<HTMLElement | null>(null);
+const showScrollToTop = ref(false);
+const scrollToTopBottom = ref(80); // 默认距离底部80px
 
 const currentLanguage = computed(() => appStore.currentLanguage);
 
@@ -615,6 +626,47 @@ const navigateToArticle = (articleId: string): void => {
   const article = articles.value.find(a => a.id === articleId);
   if (article) {
     selectedArticle.value = article;
+  }
+};
+
+// 处理文章列表滚动事件
+const handleScroll = (): void => {
+  if (!articlesMain.value) return;
+
+  const { scrollTop } = articlesMain.value;
+
+  // 显示/隐藏返回顶部按钮
+  showScrollToTop.value = scrollTop > 200;
+
+  // 更新返回顶部按钮位置
+  updateScrollToTopPosition();
+};
+
+// 更新返回顶部按钮位置
+const updateScrollToTopPosition = (): void => {
+  const footer = document.querySelector('.footer') as HTMLElement;
+  if (footer) {
+    const footerRect = footer.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+
+    if (footerRect.top < viewportHeight) {
+      // Footer在视口内，按钮应该在footer上方
+      const distanceFromBottom = viewportHeight - footerRect.top + 20;
+      scrollToTopBottom.value = Math.max(distanceFromBottom, 80);
+    } else {
+      // Footer不在视口内，使用默认位置
+      scrollToTopBottom.value = 80;
+    }
+  }
+};
+
+// 滚动到文章列表顶部
+const scrollToTop = (): void => {
+  if (articlesMain.value) {
+    articlesMain.value.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   }
 };
 
@@ -860,6 +912,7 @@ onBeforeUnmount(() => {
 .articles-content {
   @apply flex gap-6;
   flex-direction: row;
+  position: relative;
   height: calc(
     100vh - var(--app-header-height, 60px) - var(--app-footer-height, 60px) -
     var(--articles-header-height, 120px) - 3rem
@@ -1774,6 +1827,40 @@ onBeforeUnmount(() => {
 
 .info-card-image-container.no-border {
   border: none;
+}
+
+/* 返回顶部按钮 */
+.scroll-to-top-button {
+  position: fixed;
+  right: 1.5rem;
+  width: 3rem;
+  height: 3rem;
+  background: rgb(59, 130, 246);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 40;
+  cursor: pointer;
+}
+
+.scroll-to-top-button:hover {
+  background: rgb(37, 99, 235);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 767px) {
+  .scroll-to-top-button {
+    right: 1rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 0.875rem;
+  }
 }
 
 /* 动画关键帧 */

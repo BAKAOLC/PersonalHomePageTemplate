@@ -439,6 +439,7 @@ import { imageCache, LoadPriority } from '@/services/imageCache';
 import { useAppStore } from '@/stores/app';
 import { AnimationDurations } from '@/utils/animations';
 import { getIconClass } from '@/utils/icons';
+import { getI18nText } from '@/utils/language';
 
 const props = defineProps<{
   imageId?: string;
@@ -2738,8 +2739,8 @@ const getChildImageTags = (image: any): string[] => {
 const t = (text: I18nText | string | undefined, lang?: string): string => {
   if (!text) return '';
   if (typeof text === 'string') return text;
-  if (!lang) return text.zh || text.en || '';
-  return text[lang as keyof I18nText] || text.en || '';
+  const currentLang = lang || appStore.currentLanguage;
+  return getI18nText(text, currentLang);
 };
 </script>
 

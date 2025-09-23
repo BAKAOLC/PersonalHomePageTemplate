@@ -34,7 +34,7 @@
             </div>
             <div class="restricted-tag-content">
               <i v-if="tag.icon" :class="getIconClass(tag.icon)" class="tag-icon"></i>
-              <span class="tag-name">{{ tag.name[currentLanguage] || tag.name.en || tag.id }}</span>
+              <span class="tag-name">{{ getI18nText(tag.name, currentLanguage) || tag.id }}</span>
             </div>
           </div>
           <span
@@ -57,6 +57,7 @@ import { useI18n } from 'vue-i18n';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
 import { getIconClass } from '@/utils/icons';
+import { getI18nText } from '@/utils/language';
 
 const { t: $t } = useI18n();
 const appStore = useAppStore();

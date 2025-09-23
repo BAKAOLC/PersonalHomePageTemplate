@@ -1,8 +1,22 @@
-export interface I18nText {
-  en: string;
-  zh: string;
-  jp: string;
+// 语言配置接口
+export interface LanguageConfig {
+  code: string;
+  name: string;
+  enabled: boolean;
+  giscus?: string; // Giscus 评论系统的语言代码映射
 }
+
+export interface LanguagesConfig {
+  fallback: string;
+  default: string;
+  languages: Record<string, LanguageConfig>;
+}
+
+// 动态语言类型 - 基于配置文件
+export type Language = string;
+
+// 动态多语言文本接口 - 支持任意语言键
+export type I18nText = Record<string, string>;
 
 // 作者链接配置
 export interface AuthorLink {
@@ -10,9 +24,6 @@ export interface AuthorLink {
   favicon?: string; // 目标网站的favicon url，如果没提供就尝试从 url 获取
   name?: I18nText; // i18n的目标名称，如果没提供就尝试从 url 获取
 }
-
-// 语言类型
-export type Language = 'en' | 'zh' | 'jp';
 
 // 路由元数据类型
 export interface RouteMeta {
@@ -286,7 +297,8 @@ export interface LinksConfig {
 }
 
 // 网站配置类型
-export interface SiteInfo extends I18nText {
+export interface SiteInfo {
+  [key: string]: string | undefined; // 支持多语言文本和可选属性
   iconUrl?: string; // 可选的网站图标URL
 }
 

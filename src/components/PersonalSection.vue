@@ -7,7 +7,7 @@
         <div class="avatar-container">
           <ProgressiveImage
             :src="personal.avatar"
-            :alt="t(personal.name, currentLanguage)"
+            :alt="getI18nText(personal.name, currentLanguage)"
             class="avatar"
             image-class="avatar-img"
             object-fit="cover"
@@ -16,12 +16,12 @@
         </div>
 
         <h1 class="name">
-          {{ t(personal.name, currentLanguage) }}
+          {{ getI18nText(personal.name, currentLanguage) }}
         </h1>
 
         <div class="description">
           <p v-for="(line, index) in personal.description" :key="index" class="description-line">
-            {{ t(line, currentLanguage) }}
+            {{ getI18nText(line, currentLanguage) }}
           </p>
         </div>
 
@@ -33,9 +33,9 @@
               rel="noopener noreferrer"
               class="social-link"
               :style="{ '--link-color': link.color || '#333' }"
-              :title="t(link.name, currentLanguage)">
+              :title="getI18nText(link.name, currentLanguage)">
               <i :class="getIconClass(link.icon || 'link')" class="icon"></i>
-              <span class="link-name">{{ t(link.name, currentLanguage) }}</span>
+              <span class="link-name">{{ getI18nText(link.name, currentLanguage) }}</span>
             </a>
           </template>
         </div>
@@ -58,11 +58,10 @@ import { useI18n } from 'vue-i18n';
 
 import ProgressiveImage from './ProgressiveImage.vue';
 
-import type { I18nText } from '@/types';
-
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
 import { getIconClass } from '@/utils/icons';
+import { getI18nText } from '@/utils/language';
 
 const { t: translate } = useI18n();
 const appStore = useAppStore();
@@ -103,10 +102,6 @@ onMounted(() => {
   selectRandomBackground();
 });
 
-// 本地化辅助函数
-const t = (text: I18nText, lang: string): string => {
-  return text[lang as keyof I18nText] || text.en || '';
-};
 </script>
 
 <style scoped>

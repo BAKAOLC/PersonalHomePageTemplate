@@ -11,6 +11,7 @@ type RouteInfo = {
 };
 
 import { siteConfig } from '@/config/site';
+import { getDefaultLanguage, isValidLanguage } from '@/utils/language';
 
 export const useAppStore = defineStore('app', () => {
   // 加载状态
@@ -93,12 +94,18 @@ export const useAppStore = defineStore('app', () => {
   };
 
   // 语言相关
-  const currentLanguage = ref<Language>(localStorage.getItem('locale') as Language || 'zh');
+  const storedLanguage = localStorage.getItem('locale');
+  const defaultLanguage = getDefaultLanguage();
+  const currentLanguage = ref<Language>(
+    (storedLanguage && isValidLanguage(storedLanguage)) ? storedLanguage : defaultLanguage,
+  );
 
   // 设置语言
   const setLanguage = (lang: Language): void => {
-    currentLanguage.value = lang;
-    localStorage.setItem('locale', lang);
+    if (isValidLanguage(lang)) {
+      currentLanguage.value = lang;
+      localStorage.setItem('locale', lang);
+    }
   };
 
   // 当前选择的角色

@@ -6,7 +6,7 @@
       <header class="header">
         <div class="header-content">
           <router-link to="/" class="logo-link">
-            <img src="/assets/avatar.png" alt="Logo" class="logo" />
+            <img :src="siteConfig.personal.avatar" alt="Logo" class="logo" />
             <h1 class="site-title">{{ t('app.title') }}</h1>
           </router-link>
 
@@ -67,7 +67,9 @@ const preloadImages = async (): Promise<void> => {
   const imageUrls = new Set<string>();
 
   // 添加基本图像（如头像）
-  imageUrls.add('/assets/avatar.png');
+  if (siteConfig.personal.avatar) {
+    imageUrls.add(siteConfig.personal.avatar);
+  }
 
   // 添加角色头像
   siteConfig.characters.forEach(character => {

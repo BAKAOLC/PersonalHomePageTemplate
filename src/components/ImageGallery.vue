@@ -82,6 +82,7 @@ import { useEventManager } from '@/composables/useEventManager';
 import { useTags } from '@/composables/useTags';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import { getI18nText } from '@/utils/language';
 
 const props = defineProps<{
   images: CharacterImage[];
@@ -199,7 +200,7 @@ const isImageGroup = (image: CharacterImage): boolean => {
 const t = (text: I18nText | string, lang?: string): string => {
   if (typeof text === 'string') return text;
   const currentLang = lang || currentLanguage.value;
-  return text[currentLang as keyof I18nText] || text.zh || text.en || '';
+  return getI18nText(text, currentLang);
 };
 
 const viewImage = (image: CharacterImage): void => {

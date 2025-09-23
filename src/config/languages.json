@@ -1,0 +1,24 @@
+{
+  "fallback": "en",
+  "default": "zh",
+  "languages": {
+    "zh": {
+      "enabled": true,
+      "code": "zh",
+      "name": "简体中文",
+      "giscus": "zh-CN"
+    },
+    "en": {
+      "enabled": true,
+      "code": "en",
+      "name": "English",
+      "giscus": "en"
+    },
+    "jp": {
+      "enabled": true,
+      "code": "jp",
+      "name": "日本語",
+      "giscus": "ja"
+    }
+  }
+}

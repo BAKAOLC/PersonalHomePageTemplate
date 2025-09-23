@@ -192,6 +192,8 @@ import linksConfigData from '@/config/links.json';
 import personalConfig from '@/config/personal.json';
 import { useAppStore } from '@/stores/app';
 import { getIconClass } from '@/utils/icons';
+import { getI18nText } from '@/utils/language';
+import { toAbsoluteUrl } from '@/utils/url';
 
 // 导入友链配置
 
@@ -218,14 +220,14 @@ const currentLanguage = computed(() => appStore.currentLanguage);
 
 // 本地化辅助函数
 const t = (text: I18nText, lang: string): string => {
-  return text[lang as keyof I18nText] || text.en || '';
+  return getI18nText(text, lang);
 };
 
 // 标签本地化辅助函数
 const getTagText = (tagId: string, lang: string): string => {
   const tagConfig = linksConfig.tags?.[tagId];
   if (tagConfig) {
-    return tagConfig[lang as keyof I18nText] || tagConfig.en || tagId;
+    return getI18nText(tagConfig, lang);
   }
   return tagId;
 };
@@ -370,7 +372,7 @@ const generateFriendLinkInfo = (): void => {
   const currentUrl = window.location.origin;
   const name = personalConfig.name[currentLanguage.value as keyof typeof personalConfig.name] || personalConfig.name.zh;
   const blogName = htmlConfig.title;
-  const avatarUrl = `${currentUrl}${personalConfig.avatar}`;
+  const avatarUrl = toAbsoluteUrl(personalConfig.avatar);
 
   const friendLinkInfo = {
     name: name,

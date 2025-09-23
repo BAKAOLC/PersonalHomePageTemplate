@@ -24,6 +24,7 @@ import { computed } from 'vue';
 
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import { getGiscusLanguage } from '@/utils/language';
 
 const appStore = useAppStore();
 
@@ -56,17 +57,7 @@ const term = computed(() => `image-viewer-${props.uniqueId}`);
 
 // Dynamic theme and language
 const theme = computed(() => appStore.isDarkMode ? 'dark' : 'light');
-const lang = computed(() => {
-  switch (appStore.currentLanguage) {
-    case 'en':
-      return 'en';
-    case 'jp':
-      return 'ja';
-    case 'zh':
-    default:
-      return 'zh-CN';
-  }
-});
+const lang = computed(() => getGiscusLanguage(appStore.currentLanguage));
 </script>
 
 <style scoped>

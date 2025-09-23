@@ -27,10 +27,11 @@ import { ExternalLinkIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { AuthorLink, I18nText, SitesConfig } from '@/types';
+import type { AuthorLink, SitesConfig } from '@/types';
 
 import siteNames from '@/config/sites.json';
 import { useAppStore } from '@/stores/app';
+import { getI18nText } from '@/utils/language';
 
 const props = defineProps<{
   authorLinks?: AuthorLink[]; // 当前图像的作者链接
@@ -130,8 +131,7 @@ const effectiveAuthorLinks = computed(() => {
 // 获取链接名称
 const getLinkName = (link: AuthorLink): string => {
   if (link.name) {
-    const lang = currentLanguage.value as keyof I18nText;
-    return link.name[lang] || link.name.en || '';
+    return getI18nText(link.name, currentLanguage.value);
   }
 
   // 尝试从 URL 提取域名作为名称
@@ -145,7 +145,11 @@ const getLinkName = (link: AuthorLink): string => {
     // 智能匹配域名，支持子域名和多种变体
     for (const [configDomain, siteInfo] of Object.entries(siteConfig)) {
       if (isMatchingDomain(hostname, configDomain)) {
-        return siteInfo[currentLanguage.value] || siteInfo.en;
+        // 过滤掉 undefined 值和特殊属性，创建有效的 I18nText 对象
+        const validSiteInfo = Object.fromEntries(
+          Object.entries(siteInfo).filter(([key, value]) => value !== undefined && key !== 'iconUrl'),
+        ) as Record<string, string>;
+        return getI18nText(validSiteInfo, currentLanguage.value);
       }
     }
 

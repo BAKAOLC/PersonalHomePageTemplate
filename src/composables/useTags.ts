@@ -1,8 +1,7 @@
 import { computed } from 'vue';
 
-import type { I18nText } from '@/types';
-
 import { siteConfig } from '@/config/site';
+import { getI18nText } from '@/utils/language';
 
 /**
  * Composable for tag operations with optimized sorting performance
@@ -65,13 +64,9 @@ export function useTags(): {
     const tag = siteConfig.tags.find(t => t.id === tagId);
     if (!tag) return tagId;
 
-    if (!language) return tag.name.zh || tag.name.en || tagId;
+    if (!language) return getI18nText(tag.name, 'zh');
 
-    const t = (text: I18nText): string => {
-      return text[language as keyof I18nText] || text.en || '';
-    };
-
-    return t(tag.name);
+    return getI18nText(tag.name, language);
   };
 
   return {

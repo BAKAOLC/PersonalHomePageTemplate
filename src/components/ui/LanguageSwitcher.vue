@@ -25,6 +25,7 @@ import type { Language } from '@/types';
 
 import { useTimers } from '@/composables/useTimers';
 import { useAppStore } from '@/stores/app';
+import { getEnabledLanguages, getLanguageNativeName } from '@/utils/language';
 
 const { locale } = useI18n();
 const appStore = useAppStore();
@@ -34,17 +35,20 @@ const isOpen = ref(false);
 const menuRef = ref<HTMLDivElement | null>(null);
 const buttonRef = ref<HTMLButtonElement | null>(null);
 
-const languages = [
-  { label: '简体中文', value: 'zh' as Language },
-  { label: 'English', value: 'en' as Language },
-  { label: '日本語', value: 'jp' as Language },
-];
+// 从配置文件获取语言列表
+const enabledLanguages = getEnabledLanguages();
+
+const languages = computed(() => {
+  return enabledLanguages.map(langCode => ({
+    value: langCode as Language,
+    label: getLanguageNativeName(langCode),
+  }));
+});
 
 const currentLanguage = computed(() => appStore.currentLanguage);
 
 const displayLanguage = computed(() => {
-  const lang = languages.find(l => l.value === currentLanguage.value);
-  return lang ? lang.label : '简体中文';
+  return getLanguageNativeName(currentLanguage.value);
 });
 
 const toggleLanguageMenu = (): void => {

@@ -12,14 +12,23 @@
     </button>
     <Transition name="character-list">
       <div v-if="isCharactersExpanded" class="characters-list">
-      <button v-for="character in characters" :key="character.id" @click="selectCharacter(character.id)"
-        class="character-button" :class="{ 'active': selectedCharacterId === character.id }" :style="{
-          '--character-color': character.color || '#667eea',
-          '--character-hover-color': character.color ? `${character.color}80` : '#667eea80'
-        }">
-        {{ character.name[currentLanguage] || character.name.en || character.id }}
-        <span v-if="isSearching" class="character-count">{{ appStore.getCharacterMatchCount(character.id) }}</span>
-      </button>
+        <!-- 全部选项 - 仅在搜索时显示 -->
+        <button v-if="isSearching" @click="selectCharacter('all')"
+          class="character-button" :class="{ 'active': selectedCharacterId === 'all' }"
+          style="--character-color: #667eea; --character-hover-color: #667eea80;">
+          {{ $t('common.all') }}
+          <span class="character-count">{{ appStore.getCharacterMatchCount('all') }}</span>
+        </button>
+
+        <!-- 其他角色 -->
+        <button v-for="character in filteredCharacters" :key="character.id" @click="selectCharacter(character.id)"
+          class="character-button" :class="{ 'active': selectedCharacterId === character.id }" :style="{
+            '--character-color': character.color || '#667eea',
+            '--character-hover-color': character.color ? `${character.color}80` : '#667eea80'
+          }">
+          {{ getI18nText(character.name, currentLanguage) || character.id }}
+          <span v-if="isSearching" class="character-count">{{ appStore.getCharacterMatchCount(character.id) }}</span>
+        </button>
       </div>
     </Transition>
   </div>
@@ -32,6 +41,7 @@ import { useI18n } from 'vue-i18n';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
 import { getIconClass } from '@/utils/icons';
+import { getI18nText } from '@/utils/language';
 
 const { t: $t } = useI18n();
 const appStore = useAppStore();
@@ -39,31 +49,15 @@ const appStore = useAppStore();
 // 判断是否在搜索
 const isSearching = computed(() => appStore.isSearching);
 
-// 全部角色选项
-const allOption = {
-  id: 'all',
-  name: { en: 'All', zh: '全部', jp: 'すべて' },
-  color: '#667eea',
-};
-
-// 所有可选角色
-const allCharacters = computed(() => {
-  // 如果在搜索，则添加"全部"选项
-  if (isSearching.value) {
-    return [allOption, ...siteConfig.characters];
-  }
-  return siteConfig.characters;
-});
-
 // 根据搜索过滤要显示的角色
-const characters = computed(() => {
-  if (!isSearching.value) return allCharacters.value;
+const filteredCharacters = computed(() => {
+  if (!isSearching.value) {
+    // 不在搜索时，显示所有角色
+    return siteConfig.characters;
+  }
 
   // 如果正在搜索，只显示有匹配图像的角色
-  return allCharacters.value.filter(char => {
-    if (char.id === 'all') return true; // "全部"始终显示
-
-    // 检查该角色是否有匹配的图像
+  return siteConfig.characters.filter(char => {
     const count = appStore.getCharacterMatchCount(char.id);
     return count > 0;
   });

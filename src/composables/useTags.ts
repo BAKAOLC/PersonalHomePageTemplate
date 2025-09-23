@@ -1,7 +1,8 @@
 import { computed } from 'vue';
 
 import { siteConfig } from '@/config/site';
-import { getI18nText, getDefaultLanguage } from '@/utils/language';
+import { getI18nText } from '@/utils/i18nText';
+import { getDefaultLanguage } from '@/utils/language';
 
 /**
  * Composable for tag operations with optimized sorting performance

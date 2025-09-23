@@ -69,8 +69,8 @@ import ProgressiveImage from './ProgressiveImage.vue';
 
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
-import { getI18nText } from '@/utils/language';
 
 const appStore = useAppStore();
 

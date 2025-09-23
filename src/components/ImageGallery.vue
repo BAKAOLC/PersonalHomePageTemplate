@@ -82,7 +82,7 @@ import { useEventManager } from '@/composables/useEventManager';
 import { useTags } from '@/composables/useTags';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
-import { getI18nText } from '@/utils/language';
+import { getI18nText } from '@/utils/i18nText';
 
 const props = defineProps<{
   images: CharacterImage[];

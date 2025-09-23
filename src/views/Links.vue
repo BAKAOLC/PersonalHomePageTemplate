@@ -191,8 +191,8 @@ import htmlConfig from '@/config/html.json';
 import linksConfigData from '@/config/links.json';
 import personalConfig from '@/config/personal.json';
 import { useAppStore } from '@/stores/app';
+import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
-import { getI18nText } from '@/utils/language';
 import { toAbsoluteUrl } from '@/utils/url';
 
 // 导入友链配置

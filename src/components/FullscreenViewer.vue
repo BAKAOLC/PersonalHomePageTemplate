@@ -438,8 +438,8 @@ import { siteConfig } from '@/config/site';
 import { imageCache, LoadPriority } from '@/services/imageCache';
 import { useAppStore } from '@/stores/app';
 import { AnimationDurations } from '@/utils/animations';
+import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
-import { getI18nText } from '@/utils/language';
 
 const props = defineProps<{
   imageId?: string;

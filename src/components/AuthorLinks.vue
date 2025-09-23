@@ -31,7 +31,7 @@ import type { AuthorLink, SitesConfig } from '@/types';
 
 import siteNames from '@/config/sites.json';
 import { useAppStore } from '@/stores/app';
-import { getI18nText } from '@/utils/language';
+import { getI18nText } from '@/utils/i18nText';
 
 const props = defineProps<{
   authorLinks?: AuthorLink[]; // 当前图像的作者链接

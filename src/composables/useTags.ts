@@ -1,7 +1,7 @@
 import { computed } from 'vue';
 
 import { siteConfig } from '@/config/site';
-import { getI18nText } from '@/utils/language';
+import { getI18nText, getDefaultLanguage } from '@/utils/language';
 
 /**
  * Composable for tag operations with optimized sorting performance
@@ -64,7 +64,7 @@ export function useTags(): {
     const tag = siteConfig.tags.find(t => t.id === tagId);
     if (!tag) return tagId;
 
-    if (!language) return getI18nText(tag.name, 'zh');
+    if (!language) return getI18nText(tag.name, getDefaultLanguage());
 
     return getI18nText(tag.name, language);
   };

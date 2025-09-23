@@ -58,27 +58,9 @@ const router = createRouter({
         externalImage: route.query.url
           ? {
             url: route.query.url as string,
-            name: route.query.name
-              ? {
-                en: route.query.name,
-                zh: route.query.name,
-                jp: route.query.name,
-              }
-              : undefined,
-            description: route.query.description
-              ? {
-                en: route.query.description,
-                zh: route.query.description,
-                jp: route.query.description,
-              }
-              : undefined,
-            artist: route.query.artist
-              ? {
-                en: route.query.artist,
-                zh: route.query.artist,
-                jp: route.query.artist,
-              }
-              : undefined,
+            name: route.query.name ? route.query.name as string : undefined,
+            description: route.query.description ? route.query.description as string : undefined,
+            artist: route.query.artist ? route.query.artist as string : undefined,
             date: route.query.date as string,
             tags: route.query.tags
               ? (route.query.tags as string).split(',')
@@ -103,17 +85,19 @@ const router = createRouter({
 
 // 路由前置守卫：处理图像组重定向和功能禁用重定向
 router.beforeEach((to: any, _from: any, next: any) => {
+  const { t } = i18n.global as any;
+
   // 检查功能是否被禁用，如果禁用则自动重定向到首页
   if (to.name === 'gallery') {
     if (!siteConfig.features.gallery) {
-      console.log('Gallery feature is disabled, redirecting to home');
+      console.log(t('debug.featureDisabled', { feature: t('nav.gallery') }));
       return next({ name: 'home', replace: true });
     }
   }
 
   if (to.name === 'links') {
     if (!siteConfig.features.links) {
-      console.log('Links feature is disabled, redirecting to home');
+      console.log(t('debug.featureDisabled', { feature: t('nav.links') }));
       return next({ name: 'home', replace: true });
     }
   }
@@ -137,10 +121,10 @@ router.beforeEach((to: any, _from: any, next: any) => {
         }
       } catch (error) {
         // 如果store不可用，使用默认的第一个子图像
-        console.warn(i18n.global.t('debug.cannotGetFilteredImages'), error);
+        console.warn(t('debug.cannotGetFilteredImages'), error);
       }
 
-      console.log(i18n.global.t('debug.redirectImageGroup').replace('{imageId}', imageId).replace('{childId}', firstChildId));
+      console.log(t('debug.redirectImageGroup', { imageId, childId: firstChildId }));
 
       return next({
         name: 'image-viewer-child',

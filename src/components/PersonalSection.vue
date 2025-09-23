@@ -40,11 +40,21 @@
           </template>
         </div>
 
-        <div class="action-buttons">
-          <router-link to="/gallery" class="gallery-button">
-            <i :class="getIconClass('fa fa-picture-o')" class="button-icon"></i>
-            {{ translate('personal.viewGallery') }}
-          </router-link>
+        <div v-if="enabledActionButtons.length > 0" class="action-buttons">
+          <component
+            v-for="button in enabledActionButtons"
+            :key="button.id"
+            :is="button.type === 'internal' ? 'router-link' : 'a'"
+            :to="button.type === 'internal' ? button.target : undefined"
+            :href="button.type === 'external' ? button.target : undefined"
+            :target="button.type === 'external' ? '_blank' : undefined"
+            :rel="button.type === 'external' ? 'noopener noreferrer' : undefined"
+            class="action-button"
+            :style="{ '--button-color': button.color || '#667eea' }"
+          >
+            <i v-if="button.icon" :class="getIconClass(button.icon)" class="button-icon"></i>
+            {{ getI18nText(button.text, currentLanguage) }}
+          </component>
         </div>
         </div>
       </div>
@@ -54,7 +64,6 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 import ProgressiveImage from './ProgressiveImage.vue';
 
@@ -63,11 +72,16 @@ import { useAppStore } from '@/stores/app';
 import { getIconClass } from '@/utils/icons';
 import { getI18nText } from '@/utils/language';
 
-const { t: translate } = useI18n();
 const appStore = useAppStore();
 
 const { personal } = siteConfig;
 const currentLanguage = computed(() => appStore.currentLanguage);
+
+// 启用的操作按钮
+const enabledActionButtons = computed(() => {
+  if (!personal.actionButtons) return [];
+  return personal.actionButtons.filter(button => button.enabled !== false);
+});
 
 // 随机背景图像
 const currentBackgroundImage = ref<string | null>(null);
@@ -271,38 +285,50 @@ onMounted(() => {
 }
 
 .action-buttons {
-  @apply flex justify-center space-x-4;
+  @apply flex justify-center flex-wrap gap-3;
 }
 
-.gallery-button {
+.action-button {
   @apply inline-flex items-center gap-2 px-5 py-2.5;
-  @apply bg-blue-600 hover:bg-blue-700 text-white;
+  @apply text-white no-underline;
   @apply rounded-lg shadow-md hover:shadow-lg;
   @apply transition-all duration-300;
   @apply font-medium;
+  background-color: var(--button-color, #667eea);
   animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: both;
   animation-delay: 0.7s;
 }
 
-.glass-effect .gallery-button {
+.action-button:hover {
+  transform: translateY(-1px);
+  text-decoration: none;
+  background-color: color-mix(in srgb, var(--button-color, #667eea) 85%, black 15%);
+}
+
+.button-icon {
+  @apply w-4 h-4 flex-shrink-0;
+}
+
+.glass-effect .action-button {
   backdrop-filter: blur(8px);
   background: linear-gradient(
     135deg,
-    rgba(59, 130, 246, 0.95) 0%,
-    rgba(37, 99, 235, 0.95) 100%
+    color-mix(in srgb, var(--button-color, #667eea) 90%, transparent 10%) 0%,
+    color-mix(in srgb, var(--button-color, #667eea) 80%, black 20%) 100%
   ) !important;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--button-color, #667eea) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--button-color, #667eea) 30%, transparent);
 }
 
-.glass-effect .gallery-button:hover {
+.glass-effect .action-button:hover {
   background: linear-gradient(
     135deg,
-    rgba(37, 99, 235, 1) 0%,
-    rgba(29, 78, 216, 1) 100%
+    color-mix(in srgb, var(--button-color, #667eea) 95%, white 5%) 0%,
+    color-mix(in srgb, var(--button-color, #667eea) 75%, black 25%) 100%
   ) !important;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--button-color, #667eea) 60%, transparent);
+  transform: translateY(-2px);
 }
 
 .glass-effect .social-link {

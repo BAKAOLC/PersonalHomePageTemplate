@@ -54,5 +54,33 @@
       "color": "#ea4335"
     }
   ],
-  "backgroundImages": []
+  "backgroundImages": [],
+  "actionButtons": [
+    {
+      "id": "gallery",
+      "text": {
+        "en": "View Gallery",
+        "zh": "查看画廊",
+        "jp": "ギャラリーを見る"
+      },
+      "icon": "fa fa-picture-o",
+      "color": "#667eea",
+      "type": "internal",
+      "target": "/gallery",
+      "enabled": true
+    },
+    {
+      "id": "links",
+      "text": {
+        "en": "Friend Links",
+        "zh": "友情链接",
+        "jp": "友達リンク"
+      },
+      "icon": "fa fa-link",
+      "color": "#48bb78",
+      "type": "internal",
+      "target": "/links",
+      "enabled": true
+    }
+  ]
 }

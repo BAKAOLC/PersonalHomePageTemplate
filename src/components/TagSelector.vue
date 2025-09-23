@@ -61,8 +61,8 @@ const sortedNormalTags = computed(() => {
 
   // 按当前语言的名称排序
   tags.sort((a, b) => {
-    const aName = a.name[appStore.currentLanguage] || a.name.en || a.id;
-    const bName = b.name[appStore.currentLanguage] || b.name.en || b.id;
+    const aName = getI18nText(a.name, appStore.currentLanguage) || a.id;
+    const bName = getI18nText(b.name, appStore.currentLanguage) || b.id;
     return aName.localeCompare(bName);
   });
 

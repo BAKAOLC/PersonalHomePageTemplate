@@ -6,19 +6,31 @@
       "enabled": true,
       "code": "zh",
       "name": "简体中文",
-      "giscus": "zh-CN"
+      "giscus": "zh-CN",
+      "aliases": [
+        "zh-cn",
+        "zh-hans"
+      ]
     },
     "en": {
       "enabled": true,
       "code": "en",
       "name": "English",
-      "giscus": "en"
+      "giscus": "en",
+      "aliases": [
+        "en-us",
+        "en-gb"
+      ]
     },
     "jp": {
       "enabled": true,
       "code": "jp",
       "name": "日本語",
-      "giscus": "ja"
+      "giscus": "ja",
+      "aliases": [
+        "ja",
+        "ja-jp"
+      ]
     }
   }
 }

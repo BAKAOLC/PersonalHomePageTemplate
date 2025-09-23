@@ -370,7 +370,7 @@ const visitLink = (url: string): void => {
 // 生成友链信息
 const generateFriendLinkInfo = (): void => {
   const currentUrl = window.location.origin;
-  const name = personalConfig.name[currentLanguage.value as keyof typeof personalConfig.name] || personalConfig.name.zh;
+  const name = getI18nText(personalConfig.name, currentLanguage.value);
   const blogName = htmlConfig.title;
   const avatarUrl = toAbsoluteUrl(personalConfig.avatar);
 

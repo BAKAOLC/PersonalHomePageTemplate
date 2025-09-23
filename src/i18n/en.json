@@ -31,7 +31,8 @@
     "search": "Search",
     "filter": "Filter",
     "sort": "Sort",
-    "all": "All"
+    "all": "All",
+    "externalImage": "External Image"
   },
   "nav": {
     "home": "Home",
@@ -148,6 +149,7 @@
     "thumbnailLoadFailed": "Thumbnail loading failed",
     "progressLoadFailed": "Progress loading failed, fallback to normal loading",
     "cannotGetFilteredImages": "Cannot get filtered child images, using default first",
-    "redirectImageGroup": "Redirect image group to child image"
+    "redirectImageGroup": "Redirect image group to child image",
+    "featureDisabled": "{feature} feature is disabled, redirecting to home"
   }
 }

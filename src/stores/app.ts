@@ -424,8 +424,8 @@ export const useAppStore = defineStore('app', () => {
       if (fallbackProperty && childImage[fallbackProperty]) return childImage[fallbackProperty] as I18nText;
       if (parentImage[property]) return parentImage[property] as I18nText;
       if (fallbackProperty && parentImage[fallbackProperty]) return parentImage[fallbackProperty] as I18nText;
-      if (fallbackValue) return { en: fallbackValue, zh: fallbackValue, jp: fallbackValue };
-      return { en: '', zh: '', jp: '' };
+      if (fallbackValue) return fallbackValue;
+      return '';
     };
 
     return {
@@ -590,8 +590,8 @@ export const useAppStore = defineStore('app', () => {
       return {
         id: parentImage.id, // 使用父图像ID用于组图标识
         name: parentImage.name, // 优先显示父图像名称
-        description: parentImage.description || childImage.description || { en: '', zh: '', jp: '' },
-        artist: parentImage.artist || childImage.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' },
+        description: parentImage.description || childImage.description || '',
+        artist: parentImage.artist || childImage.artist || 'N/A',
         src: childImage.src, // 显示子图像的实际图片
         tags: parentImage.tags, // 优先显示父图像标签
         characters: parentImage.characters, // 优先显示父图像角色
@@ -603,8 +603,8 @@ export const useAppStore = defineStore('app', () => {
       return {
         id: childImage.id, // 使用子图像ID
         name: childImage.name, // 优先显示子图像名称
-        description: childImage.description || parentImage.description || { en: '', zh: '', jp: '' },
-        artist: childImage.artist || parentImage.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' },
+        description: childImage.description || parentImage.description || '',
+        artist: childImage.artist || parentImage.artist || 'N/A',
         src: childImage.src, // 显示子图像的实际图片
         tags: childImage.tags, // 优先显示子图像标签
         characters: childImage.characters, // 优先显示子图像角色

@@ -46,12 +46,18 @@ export const getLanguageNativeName = (langCode: string): string => {
 };
 
 /**
- * 获取多语言文本，支持fallback
- * @param text - 多语言文本对象
+ * 获取多语言文本，支持fallback，也支持直接传入字符串
+ * @param text - 多语言文本对象或字符串
  * @param currentLang - 当前语言
  * @returns 对应语言的文本
  */
-export const getI18nText = (text: I18nText, currentLang: string): string => {
+export const getI18nText = (text: I18nText | undefined, currentLang: string): string => {
+  // 如果是字符串，直接返回
+  if (typeof text === 'string') {
+    return text;
+  }
+
+  // 如果是 undefined 或 null，返回空字符串
   if (!text || typeof text !== 'object') {
     return '';
   }
@@ -102,8 +108,8 @@ export const getGiscusLanguage = (langCode: string): string => {
     return fallbackLangConfig.giscus;
   }
 
-  // 最后默认返回英文
-  return 'en';
+  // 最后默认返回 fallback 语言
+  return getFallbackLanguage();
 };
 
 /**

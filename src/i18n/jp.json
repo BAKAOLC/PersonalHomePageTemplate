@@ -31,7 +31,8 @@
     "search": "検索",
     "filter": "フィルター",
     "sort": "並べ替え",
-    "all": "すべて"
+    "all": "すべて",
+    "externalImage": "外部画像"
   },
   "nav": {
     "home": "ホーム",
@@ -148,6 +149,7 @@
     "thumbnailLoadFailed": "サムネイル読み込み失敗",
     "progressLoadFailed": "プログレス読み込み失敗、通常読み込みにフォールバック",
     "cannotGetFilteredImages": "フィルタされた子画像を取得できません、デフォルトの最初を使用",
-    "redirectImageGroup": "画像グループを子画像にリダイレクト"
+    "redirectImageGroup": "画像グループを子画像にリダイレクト",
+    "featureDisabled": "{feature}機能が無効です、ホームにリダイレクト"
   }
 }

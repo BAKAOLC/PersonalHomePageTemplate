@@ -4,6 +4,7 @@ export interface LanguageConfig {
   name: string;
   enabled: boolean;
   giscus?: string; // Giscus 评论系统的语言代码映射
+  aliases?: string[]; // 语言别名，用于浏览器语言检测
 }
 
 export interface LanguagesConfig {
@@ -15,8 +16,8 @@ export interface LanguagesConfig {
 // 动态语言类型 - 基于配置文件
 export type Language = string;
 
-// 动态多语言文本接口 - 支持任意语言键
-export type I18nText = Record<string, string>;
+// 动态多语言文本接口 - 支持任意语言键，也可以是简单字符串
+export type I18nText = Record<string, string> | string;
 
 // 作者链接配置
 export interface AuthorLink {
@@ -30,12 +31,24 @@ export interface RouteMeta {
   titleKey?: string | null; // 页面标题的国际化键
 }
 
+// 操作按钮配置类型
+export interface ActionButton {
+  id: string;
+  text: I18nText;
+  icon?: string;
+  color?: string;
+  type: 'internal' | 'external'; // 内部路由或外部链接
+  target: string; // 路由路径或外部URL
+  enabled?: boolean; // 是否启用，默认true
+}
+
 export interface PersonalInfo {
   avatar: string;
   name: I18nText;
   description: I18nText[];
   links: SocialLink[];
   backgroundImages?: string[]; // 可选的随机背景图像列表
+  actionButtons?: ActionButton[]; // 可选的操作按钮配置
 }
 
 // FontAwesome 图标包类型

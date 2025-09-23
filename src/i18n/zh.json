@@ -31,7 +31,8 @@
     "search": "搜索",
     "filter": "筛选",
     "sort": "排序",
-    "all": "全部"
+    "all": "全部",
+    "externalImage": "外部图像"
   },
   "nav": {
     "home": "首页",
@@ -148,6 +149,7 @@
     "thumbnailLoadFailed": "缩略图加载失败",
     "progressLoadFailed": "进度加载失败，回退到普通加载",
     "cannotGetFilteredImages": "无法获取过滤后的子图像，使用默认第一个",
-    "redirectImageGroup": "重定向图像组到子图像"
+    "redirectImageGroup": "重定向图像组到子图像",
+    "featureDisabled": "{feature}功能已禁用，重定向到首页"
   }
 }

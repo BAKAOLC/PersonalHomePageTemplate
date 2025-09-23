@@ -633,9 +633,9 @@ const currentImage = computed(() => {
     const info = props.externalImage;
     return {
       id: 'external-image',
-      name: info.name || { en: 'External Image', zh: '外部图像', jp: '外部画像' },
-      description: info.description || { en: '', zh: '', jp: '' },
-      artist: info.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' },
+      name: info.name || $t('common.externalImage'),
+      description: info.description || '',
+      artist: info.artist || 'N/A',
       src: info.url,
       tags: info.tags || [],
       characters: [],
@@ -732,7 +732,7 @@ const hasNextImage = computed(() => currentIndex.value < imagesList.value.length
 
 // 获取作者列表
 const getArtistListWithFallback = computed(() => {
-  if (!currentImage.value) return [{ en: 'N/A', zh: 'N/A', jp: 'N/A' }];
+  if (!currentImage.value) return ['N/A'];
 
   // 优先级：子图像 -> 父图像 -> fallback
   const currentGroup = currentImageGroup.value;
@@ -742,12 +742,12 @@ const getArtistListWithFallback = computed(() => {
     const { parentImage } = currentGroup;
 
     // 子图像有artist则用子图像的，否则用父图像的，最后fallback
-    const artist = childImage.artist || parentImage.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' };
+    const artist = childImage.artist || parentImage.artist || 'N/A';
     return Array.isArray(artist) ? artist : [artist];
   }
 
   // 当前是父图像或普通图像
-  const artist = currentImage.value.artist || { en: 'N/A', zh: 'N/A', jp: 'N/A' };
+  const artist = currentImage.value.artist || 'N/A';
   return Array.isArray(artist) ? artist : [artist];
 });
 
@@ -777,7 +777,7 @@ const getAuthorLinksWithFallback = computed(() => {
 
 // 获取描述
 const getDescriptionWithFallback = computed(() => {
-  if (!currentImage.value) return { en: '', zh: '', jp: '' };
+  if (!currentImage.value) return '';
 
   // 优先级：子图像 -> 父图像 -> fallback
   const currentGroup = currentImageGroup.value;
@@ -787,11 +787,11 @@ const getDescriptionWithFallback = computed(() => {
     const { parentImage } = currentGroup;
 
     // 子图像有description则用子图像的，否则用父图像的，最后fallback
-    return childImage.description || parentImage.description || { en: '', zh: '', jp: '' };
+    return childImage.description || parentImage.description || '';
   }
 
   // 当前是父图像或普通图像
-  return currentImage.value.description || { en: '', zh: '', jp: '' };
+  return currentImage.value.description || '';
 });
 
 // 检查图像是否有有效的子图像（用于显示组图标识）
@@ -2736,7 +2736,7 @@ const getChildImageTags = (image: any): string[] => {
 };
 
 // 本地化辅助函数
-const t = (text: I18nText | string | undefined, lang?: string): string => {
+const t = (text: I18nText | undefined, lang?: string): string => {
   if (!text) return '';
   if (typeof text === 'string') return text;
   const currentLang = lang || appStore.currentLanguage;

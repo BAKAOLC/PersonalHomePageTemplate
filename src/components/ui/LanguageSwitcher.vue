@@ -125,6 +125,7 @@ onBeforeUnmount(() => {
   @apply w-40 z-10;
   @apply opacity-0 scale-95 origin-top-right;
   @apply transition-all duration-300;
+  @apply overflow-hidden;
   transform: translateY(-10px) scale(0.95);
 }
 
@@ -137,12 +138,7 @@ onBeforeUnmount(() => {
   @apply flex items-center w-full px-4 py-2;
   @apply text-left text-sm text-gray-700 dark:text-gray-300;
   @apply hover:bg-gray-100 dark:hover:bg-gray-700;
-  @apply transition-all duration-200;
-  transform-origin: left center;
-}
-
-.language-option:hover {
-  transform: translateX(4px);
+  @apply transition-colors duration-200;
 }
 
 .language-option.active {

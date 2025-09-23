@@ -140,6 +140,16 @@ function imagesConfigPlugin() {
 
   return {
     name: 'images-config',
+    buildStart() {
+      // 检查是否跳过构建时处理（CI模式下已经预处理过）
+      if (process.env.VITE_SKIP_PREBUILD === 'true') {
+        console.log('⏭️  [images-config] CI模式：跳过构建时处理');
+        return;
+      }
+      // 在构建开始时执行合并
+      console.log('🔧 [images-config] 构建时合并图片配置...');
+      mergeImagesConfig();
+    },
     configureServer(server) {
       // 在开发模式下监听文件变化
       const { watcher } = server;

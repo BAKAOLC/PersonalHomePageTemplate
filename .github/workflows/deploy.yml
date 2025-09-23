@@ -99,8 +99,9 @@ jobs:
                   echo "   缓存文件哈希(前): ${CACHE_BEFORE:-'无'}"
                   echo "   缩略图哈希(前): ${THUMBS_BEFORE:-'无'}"
 
-                  # 生成缩略图
-                  npm run generate-thumbnails
+                  # 执行预构建步骤（生成配置文件和缩略图）
+                  echo "🔧 执行预构建步骤..."
+                  npm run prebuild
 
                   # 检查生成后的状态
                   CACHE_AFTER=""
@@ -139,8 +140,11 @@ jobs:
                     echo "⏭️  缩略图无需保存（完全匹配且无变化）"
                   fi
 
+            - name: TypeScript type checking
+              run: npm run typecheck
+
             - name: Build
-              run: npm run build
+              run: npm run ci-build
 
             - name: Save thumbnail cache file
               uses: actions/cache/save@v4

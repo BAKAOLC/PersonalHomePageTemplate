@@ -12,6 +12,19 @@ function thumbnailPlugin() {
 
   return {
     name: 'thumbnail-generator',
+    buildStart() {
+      // 检查是否跳过构建时处理（CI模式下已经预处理过）
+      if (process.env.VITE_SKIP_PREBUILD === 'true') {
+        console.log('⏭️  [thumbnail-generator] CI模式：跳过构建时处理');
+        return;
+      }
+      // 在构建开始时执行缩略图生成
+      console.log('🔧 [thumbnail-generator] 构建时生成缩略图...');
+      return generateThumbnails().catch(error => {
+        console.error('❌ 构建时缩略图生成失败:', error);
+        // 不阻止构建继续
+      });
+    },
     configureServer(server) {
       // 在开发模式下监听图片文件变化
       const { watcher } = server;

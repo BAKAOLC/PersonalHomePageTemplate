@@ -28,6 +28,7 @@
     "create": "Create",
     "update": "Update",
     "view": "View",
+    "viewWithName": "View {name}",
     "search": "Search",
     "filter": "Filter",
     "sort": "Sort",

@@ -28,6 +28,7 @@
     "create": "作成",
     "update": "更新",
     "view": "表示",
+    "viewWithName": "表示{name}",
     "search": "検索",
     "filter": "フィルター",
     "sort": "並べ替え",

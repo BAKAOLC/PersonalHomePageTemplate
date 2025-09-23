@@ -28,6 +28,7 @@
     "create": "创建",
     "update": "更新",
     "view": "查看",
+    "viewWithName": "查看{name}",
     "search": "搜索",
     "filter": "筛选",
     "sort": "排序",

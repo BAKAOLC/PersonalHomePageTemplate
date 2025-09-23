@@ -58,11 +58,7 @@
   "actionButtons": [
     {
       "id": "gallery",
-      "text": {
-        "en": "View Gallery",
-        "zh": "查看画廊",
-        "jp": "ギャラリーを見る"
-      },
+      "text": "$t:common.viewWithName{\"name\":\"$t:nav.gallery\"}",
       "icon": "fa fa-picture-o",
       "color": "#667eea",
       "type": "internal",
@@ -71,11 +67,7 @@
     },
     {
       "id": "links",
-      "text": {
-        "en": "Friend Links",
-        "zh": "友情链接",
-        "jp": "友達リンク"
-      },
+      "text": "$t:common.viewWithName{\"name\":\"$t:nav.links\"}",
       "icon": "fa fa-link",
       "color": "#48bb78",
       "type": "internal",

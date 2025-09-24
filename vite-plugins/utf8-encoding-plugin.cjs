@@ -41,6 +41,36 @@ function utf8EncodingPlugin(options = {}) {
         plugin.checkProjectEncoding();
         hasChecked = true;
       }
+
+      // 监听文件变化
+      const { watcher } = server;
+
+      // 监听所有需要检查的文件类型
+      const watchPatterns = config.extensions.map(ext => `**/*${ext}`);
+      watchPatterns.forEach(pattern => {
+        watcher.add(pattern);
+      });
+
+      // 监听文件变化事件
+      watcher.on('change', (filePath) => {
+        if (plugin.shouldCheckFile(filePath)) {
+          console.log(`🔄 [utf8-encoding] 检测到文件变化: ${path.relative(process.cwd(), filePath)}`);
+          plugin.checkSingleFile(filePath);
+        }
+      });
+
+      watcher.on('add', (filePath) => {
+        if (plugin.shouldCheckFile(filePath)) {
+          console.log(`➕ [utf8-encoding] 检测到新文件: ${path.relative(process.cwd(), filePath)}`);
+          plugin.checkSingleFile(filePath);
+        }
+      });
+
+      watcher.on('unlink', (filePath) => {
+        if (plugin.shouldCheckFile(filePath)) {
+          console.log(`🗑️  [utf8-encoding] 文件已删除: ${path.relative(process.cwd(), filePath)}`);
+        }
+      });
     },
 
     checkProjectEncoding() {
@@ -163,6 +193,85 @@ function utf8EncodingPlugin(options = {}) {
         if (config.verbose) {
           console.warn(`⚠️  检查文件失败 ${path.relative(process.cwd(), filePath)}:`, error.message);
         }
+      }
+    },
+
+    /**
+     * 检查单个文件的编码
+     */
+    checkSingleFile(filePath) {
+      try {
+        const buffer = fs.readFileSync(filePath);
+
+        // 跳过空文件
+        if (buffer.length === 0) return;
+
+        // 跳过二进制文件（简单检测）
+        if (plugin.isBinaryFile(buffer)) return;
+
+        // 检测编码
+        const detected = jschardet.detect(buffer);
+
+        if (!detected || !detected.encoding) {
+          if (config.verbose) {
+            console.warn(`⚠️  [utf8-encoding] 无法检测编码: ${path.relative(process.cwd(), filePath)}`);
+          }
+          return;
+        }
+
+        const encoding = detected.encoding.toLowerCase();
+        const confidence = detected.confidence || 0;
+
+        // 如果置信度太低，跳过
+        if (confidence < config.minConfidence) {
+          return;
+        }
+
+        // 检查是否为UTF-8编码
+        if (!plugin.isUtf8Encoding(encoding)) {
+          if (config.autoConvert) {
+            try {
+              plugin.convertFileToUtf8(filePath, detected.encoding);
+              console.log(`✅ [utf8-encoding] 已转换: ${path.relative(process.cwd(), filePath)} (${detected.encoding} → UTF-8)`);
+            } catch (error) {
+              console.error(`❌ [utf8-encoding] 转换失败: ${path.relative(process.cwd(), filePath)}`, error.message);
+            }
+          } else {
+            console.warn(`⚠️  [utf8-encoding] 编码警告: ${path.relative(process.cwd(), filePath)} - 检测到 ${detected.encoding} 编码 (置信度: ${Math.round(confidence * 100)}%)`);
+          }
+        } else if (config.verbose) {
+          console.log(`✅ [utf8-encoding] 文件编码正常: ${path.relative(process.cwd(), filePath)}`);
+        }
+      } catch (error) {
+        if (config.verbose) {
+          console.warn(`⚠️  [utf8-encoding] 检查文件失败 ${path.relative(process.cwd(), filePath)}:`, error.message);
+        }
+      }
+    },
+
+    /**
+     * 判断文件是否需要检查
+     */
+    shouldCheckFile(filePath) {
+      try {
+        // 检查文件是否存在
+        if (!fs.existsSync(filePath)) return false;
+
+        // 检查文件扩展名
+        const ext = path.extname(filePath).toLowerCase();
+        if (!config.extensions.includes(ext)) return false;
+
+        // 检查是否在排除目录中
+        const relativePath = path.relative(process.cwd(), filePath);
+        const shouldExclude = config.excludeDirs.some(excludeDir => {
+          return relativePath.startsWith(excludeDir)
+                 || relativePath.includes(`${path.sep}${excludeDir}${path.sep}`)
+                 || relativePath.endsWith(`${path.sep}${excludeDir}`);
+        });
+
+        return !shouldExclude;
+      } catch {
+        return false;
       }
     },
 

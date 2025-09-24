@@ -50,6 +50,16 @@ npm install
 
 #### 配置网站信息和国际化
 
+> **🌍 多语言支持说明**：
+>
+> 项目支持多语言配置，采用灵活的文本类型：
+>
+> - **字符串**：直接使用该文本，适用于所有语言
+> - **对象**：包含语言代码键值对，如 `{"zh": "中文", "en": "English", "jp": "日本語"}`
+> - **i18n引用**：使用 `$t:key` 格式引用翻译文件中的内容
+>
+> 系统会自动检测配置中包含的语言并启用相应的语言选项。默认支持中文（zh）、英文（en）、日文（jp），您也可以添加其他语言。
+
 1. **配置应用基础信息**：
    编辑 `src/config/app.json`：
 
@@ -71,7 +81,6 @@ npm install
    > **💡 重要说明**：
    >
    > - **应用标题和版权**：这些信息从多语言文件中独立出来，避免意外修改
-   > - **多语言支持**：支持中文、英文、日文三种语言
    > - **动态切换**：会根据用户选择的语言自动更新
    > - **浏览器标题**：页面标题会根据语言自动更新
    >
@@ -107,7 +116,7 @@ npm install
 
    请访问 [FontAwesome](https://fontawesome.com/) 获取您自己的 Kit
 4. **配置应用内多语言内容 (i18n)**：
-   项目支持中文、英文、日文三种语言。多语言文件现在主要包含界面文字：
+   项目默认支持中文、英文、日文三种语言。多语言文件主要包含界面文字：
 
    **编辑 `src/i18n/zh.json`（中文）**：
 
@@ -126,6 +135,9 @@ npm install
      }
    }
    ```
+
+   **添加其他语言**：
+   如需添加其他语言（如韩文），只需在 `src/i18n/` 目录下创建对应的语言文件（如 `ko.json`），并在所有多语言配置中添加 `"ko": "韩文内容"` 即可。
 
    > **💡 配置分离**：
    >
@@ -352,8 +364,7 @@ npm install
 1. **替换示例内容**：删除所有示例友链，添加您真实的朋友链接
 2. **准备头像图片**：将友链头像放置在 `public/assets/` 目录下
 3. **自定义标签**：根据需要添加或修改标签类型
-4. **多语言支持**：为每个友链提供多语言描述
-5. **分类组织**：可以创建多个分类来组织不同类型的友链
+4. **分类组织**：可以创建多个分类来组织不同类型的友链
 
 #### 配置文章系统
 
@@ -473,6 +484,17 @@ npm run generate-thumbnails
 npm run dev
 ```
 
+> **💡 开发模式特性**：
+>
+> 开发服务器启动后，Vite插件会自动处理以下操作：
+>
+> - 监听配置文件变化并自动合并
+> - 自动生成图片缩略图
+> - 实时应用HTML配置更改
+> - 热重载支持，修改代码后自动刷新页面
+>
+> 因此，在开发过程中您只需要专注于内容编辑，大部分配置处理都是自动的。
+
 ### 6. 构建生产版本
 
 ```bash
@@ -588,28 +610,98 @@ npm run build
 
 ## 开发脚本
 
-### 基础命令
+### 🚀 基础开发命令
 
-- `npm run dev` - 启动开发服务器
-- `npm run build` - 构建生产版本
-- `npm run preview` - 预览构建结果
-- `npm run lint` - 运行代码检查
-- `npm run lint:fix` - 自动修复代码问题
+| 命令                | 说明                 | 使用场景       |
+| ------------------- | -------------------- | -------------- |
+| `npm run dev`       | 启动开发服务器       | 日常开发调试   |
+| `npm run build`     | 构建生产版本         | 部署前构建     |
+| `npm run ci-build`  | CI构建（跳过预构建） | 持续集成环境   |
+| `npm run preview`   | 预览构建结果         | 构建后本地测试 |
+| `npm run typecheck` | TypeScript类型检查   | 代码质量检查   |
 
-### 内容管理
+### 🔧 代码质量
 
-- `npm run generate-thumbnails` - 生成缩略图
-- `npm run images-config:build` - 构建图片配置
-- `npm run images-config:split` - 拆分图片配置
-- `npm run images-config:merge` - 合并图片配置
-- `npm run articles-config:build` - 构建文章配置
-- `npm run articles-config:split` - 拆分文章配置
-- `npm run articles-config:merge` - 合并文章配置
+| 命令               | 说明               | 使用场景             |
+| ------------------ | ------------------ | -------------------- |
+| `npm run lint`     | 运行ESLint代码检查 | 检查代码规范         |
+| `npm run lint:fix` | 自动修复代码问题   | 修复可自动解决的问题 |
 
-### 维护工具
+### 📝 内容管理
 
-- `npm run cleanup-backups` - 清理配置备份文件
-- `npm run prebuild` - 预构建（自动运行配置构建和缩略图生成）
+#### 图片管理
+
+| 命令                            | 说明           | 使用场景           |
+| ------------------------------- | -------------- | ------------------ |
+| `npm run generate-thumbnails`   | 生成图片缩略图 | 添加新图片后       |
+| `npm run images-config:build`   | 构建图片配置   | 修改图片配置后     |
+| `npm run images-config:split`   | 拆分图片配置   | 将大配置文件拆分   |
+| `npm run images-config:merge`   | 合并图片配置   | 将多个配置文件合并 |
+| `npm run images-config:cleanup` | 清理图片配置   | 清理无效配置       |
+
+#### 文章管理
+
+| 命令                              | 说明         | 使用场景           |
+| --------------------------------- | ------------ | ------------------ |
+| `npm run articles-config:build`   | 构建文章配置 | 修改文章配置后     |
+| `npm run articles-config:split`   | 拆分文章配置 | 将大配置文件拆分   |
+| `npm run articles-config:merge`   | 合并文章配置 | 将多个配置文件合并 |
+| `npm run articles-config:cleanup` | 清理文章配置 | 清理无效配置       |
+
+### 🛠️ 维护工具
+
+| 命令                      | 说明                                   | 使用场景         |
+| ------------------------- | -------------------------------------- | ---------------- |
+| `npm run prebuild`        | 预构建（自动运行配置构建和缩略图生成） | 构建前自动执行   |
+| `npm run cleanup-backups` | 清理配置备份文件                       | 定期清理临时文件 |
+
+### 💡 常用工作流
+
+**日常开发：**
+
+```bash
+npm run dev
+```
+
+> **🚀 开发模式自动处理**：
+>
+> 在开发模式下（`npm run dev`），Vite插件会自动处理大部分配置合并和构建步骤：
+>
+> - **图片配置**：修改 `src/config/images/` 下的配置文件后会自动合并到 `images.json`
+> - **文章配置**：修改 `src/config/articles/` 下的配置文件后会自动合并到 `articles.json`
+> - **HTML配置**：修改 `src/config/html.json` 后会自动应用到 `index.html` 和 `404.html`
+> - **缩略图生成**：添加新图片后会自动生成缩略图
+>
+> 因此，在开发过程中通常只需要运行 `npm run dev` 即可，无需手动执行配置构建命令。
+
+**添加新内容后：**
+
+```bash
+# 开发模式下会自动处理，无需手动执行
+# 但生产构建前建议手动执行以确保配置正确
+
+# 添加图片后（可选，开发模式已自动处理）
+npm run generate-thumbnails
+npm run images-config:build
+
+# 添加文章后（可选，开发模式已自动处理）
+npm run articles-config:build
+```
+
+**部署前：**
+
+```bash
+npm run lint:fix
+npm run typecheck
+npm run build
+npm run preview
+```
+
+**清理维护：**
+
+```bash
+npm run cleanup-backups
+```
 
 ## 故障排除
 
@@ -671,6 +763,8 @@ npm run build
 - **语言切换后页面内容混乱**：确保所有语言文件的 JSON 结构保持一致
 - **控制台报错**：检查 JSON 文件格式是否正确，是否有语法错误
 - **SEO 问题**：搜索引擎只能看到 `index.html` 中的静态 meta 标签，动态内容对 SEO 无效
+- **新语言不显示**：确保在 `src/i18n/` 目录下创建了对应的语言文件（如 `ko.json`）
+- **多语言配置不生效**：检查配置文件中是否包含正确的语言键值对，系统会自动检测配置中包含的语言
 
 ## 技术栈
 
@@ -684,6 +778,18 @@ npm run build
 - **评论系统**: Giscus
 - **图标**: FontAwesome
 - **图片处理**: Sharp (缩略图生成)
+
+### 🔌 Vite插件
+
+项目包含多个自定义Vite插件，提供开发时的自动处理功能：
+
+- **articles-config-plugin**: 自动合并文章配置文件
+- **images-config-plugin**: 自动合并图片配置文件
+- **html-config-plugin**: 自动应用HTML配置到模板文件
+- **thumbnail-plugin**: 自动生成图片缩略图
+- **utf8-encoding-plugin**: 确保文件编码正确
+
+这些插件在开发模式下会自动监听配置文件变化并实时处理，简化开发流程。
 
 ## 版权声明
 

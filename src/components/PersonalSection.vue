@@ -294,6 +294,7 @@ onMounted(() => {
   @apply rounded-lg shadow-md hover:shadow-lg;
   @apply transition-all duration-300;
   @apply font-medium;
+  @apply cursor-pointer;
   background-color: var(--button-color, #667eea);
   animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: both;

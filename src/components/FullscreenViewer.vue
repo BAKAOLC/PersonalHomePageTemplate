@@ -95,11 +95,11 @@
           :class="{ 'resizing': isDraggingGroupResize }"
           :style="{ width: groupSelectorWidth ? `${groupSelectorWidth}px` : '200px' }">
           <div class="group-selector-header">
-            <h4 class="group-title">{{ $t('viewer.imageGroupWithCount', { count: groupImagesList.length }) }}</h4>
+            <h4 class="group-title">{{ $t('viewer.imageGroupWithCount', { count: groupimageList.length }) }}</h4>
           </div>
-          <div class="group-images-list">
+          <div class="group-images-list" ref="groupImagesList">
             <button
-              v-for="image in groupImagesList"
+              v-for="image in groupimageList"
               :key="image.id"
               @click="goToGroupImage(image.id)"
               class="group-image-button"
@@ -154,12 +154,12 @@
       <!-- 移动端图像组悬浮按钮 -->
       <transition name="mobile-group-button-fade">
         <button
-          v-if="effectiveViewerConfig.imageGroupList && showGroupSelector && isMobile && groupImagesList.length > 1"
+          v-if="effectiveViewerConfig.imageGroupList && showGroupSelector && isMobile && groupimageList.length > 1"
           @click="toggleMobileGroupSelector"
           class="mobile-group-selector-toggle"
           :class="{ 'active': isMobileGroupSelectorOpen }">
           <i :class="getIconClass('th')"></i>
-          <span class="toggle-text">{{ $t('viewer.imageGroupWithCount', { count: groupImagesList.length }) }}</span>
+          <span class="toggle-text">{{ $t('viewer.imageGroupWithCount', { count: groupimageList.length }) }}</span>
         </button>
       </transition>
 
@@ -178,9 +178,9 @@
                 </button>
               </div>
               <div class="mobile-group-selector-body">
-                <div class="mobile-group-images-grid">
+                <div class="mobile-group-images-grid" ref="mobileGroupImagesGrid">
                   <div
-                    v-for="image in groupImagesList"
+                    v-for="image in groupimageList"
                     :key="image.id"
                     class="mobile-group-image-item"
                     :class="{ 'active': image.id === currentDisplayImageId }"
@@ -243,7 +243,7 @@
         <div class="image-thumbnails" :style="{
           transform: `translateX(${thumbnailsOffset}px)`
         }">
-          <button v-for="(image, index) in imagesList" :key="image.id" @click="handleThumbnailClick(index, $event)"
+          <button v-for="(image, index) in imageList" :key="image.id" @click="handleThumbnailClick(index, $event)"
             @mousedown="handleThumbnailButtonMouseDown" @touchstart="handleThumbnailButtonTouchStart"
             class="thumbnail-button" :class="{ 'active': currentIndex === index }">
             <div class="thumbnail-container">
@@ -420,7 +420,6 @@
 import { ChevronLeftIcon, ChevronRightIcon, InfoIcon, LayersIcon, MessageCircleIcon, RotateCcwIcon, XIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 
 import AuthorLinks from './AuthorLinks.vue';
 import GiscusComments from './GiscusComments.vue';
@@ -443,7 +442,7 @@ const props = defineProps<{
   imageId?: string;
   childImageId?: string;
   externalImage?: ExternalImageInfo; // 外部图像信息（包含URL和其他信息）
-  imagesList?: CharacterImage[]; // 提供的图像列表
+  imageList?: CharacterImage[]; // 提供的图像列表
   viewerUIConfig?: ViewerUIConfig; // 结构化配置参数
 }>();
 
@@ -452,7 +451,6 @@ const emit = defineEmits<{
 }>();
 
 const { t: $t } = useI18n();
-const router = useRouter();
 const appStore = useAppStore();
 const { setTimeout, clearTimeout } = useTimers();
 const eventManager = useEventManager();
@@ -492,6 +490,12 @@ const hasInfoContent = computed((): boolean => {
 // 缩略图容器引用
 const thumbnailsContainer = ref<HTMLElement>();
 
+// 图像组选择器容器引用
+const groupImagesList = ref<HTMLElement | null>(null);
+
+// 移动端图像组选择器容器引用
+const mobileGroupImagesGrid = ref<HTMLElement | null>(null);
+
 // 图像容器和图像元素引用
 const imageContainer = ref<HTMLElement>();
 const imageElement = ref<any>(); // Vue组件实例
@@ -524,80 +528,9 @@ const isResponsiveTransitioning = ref(false);
 // 图像加载状态
 const isOriginalImageLoaded = ref(false);
 
-// 检测是否是直接访问（通过URL直接打开图像查看器）
-const isDirectAccess = computed(() => {
-  // 如果没有提供imagesList，认为是直接访问
-  return !props.imagesList || props.imagesList.length === 0;
-});
-
-// 当前图片索引和图片列表（支持图像组）
-const imagesList = computed(() => {
-  // 优先使用提供的imagesList
-  if (props.imagesList && props.imagesList.length > 0) {
-    return props.imagesList;
-  }
-
-  if (isDirectAccess.value) {
-    // 直接访问时的逻辑
-    if (props.childImageId) {
-      // 访问子图像：/:imageId/:childImageId
-      // 显示完整的图集，但会索引到目标childImage
-      const parentImage = props.imageId ? appStore.getImageById(props.imageId) : null;
-      if (parentImage && parentImage.childImages && parentImage.childImages.length > 0) {
-        const validImages = appStore.getValidImagesInGroup(parentImage);
-        if (validImages.length > 0) {
-          const displayImage = appStore.getDisplayImageForGroup(parentImage);
-          const isGroup = parentImage.childImages && validImages.length > 1;
-          const imageForDisplay = {
-            ...displayImage,
-            childImages: isGroup ? parentImage.childImages : displayImage.childImages,
-          };
-          return [imageForDisplay];
-        }
-      }
-      return [];
-    } else {
-      // 访问图像：/:imageId
-      const image = props.imageId ? appStore.getImageById(props.imageId) : null;
-      if (image) {
-        // 检查这个imageId是否是一个childImage
-        const groupInfo = props.imageId ? appStore.getImageGroupByChildId(props.imageId) : null;
-        if (groupInfo) {
-          // 如果imageId是childImage，只显示这一张子图像（不允许切换）
-          return [image];
-        } else {
-          // 如果是父图像或普通图像
-          if (image.childImages && image.childImages.length > 0) {
-            // 如果是组图的主图像，使用与画廊相同的逻辑
-            const validImages = appStore.getValidImagesInGroup(image);
-            if (validImages.length > 0) {
-              const displayImage = appStore.getDisplayImageForGroup(image);
-              const firstValidChildId = appStore.getFirstValidChildId(image);
-              if (firstValidChildId && !currentChildImageId.value) {
-                // 自动设置第一个有效子图像为当前子图像
-                nextTick(() => {
-                  currentChildImageId.value = firstValidChildId;
-                });
-              }
-              // 保持图像组结构
-              const isGroup = image.childImages && validImages.length > 1;
-              const imageForDisplay = {
-                ...displayImage,
-                childImages: isGroup ? image.childImages : displayImage.childImages,
-              };
-              return [imageForDisplay];
-            }
-          } else {
-            // 普通图像，只显示该图像
-            return [image];
-          }
-        }
-      }
-      return [];
-    }
-  }
-  // 从画廊访问时，使用当前筛选的图像列表
-  return appStore.characterImages;
+// 当前图片索引和图片列表
+const imageList = computed(() => {
+  return props.imageList || [];
 });
 
 // 当前选中的子图像ID（独立状态）
@@ -612,7 +545,7 @@ const currentIndex = computed(() => {
   if (!currentDisplayImageId.value) return 0;
 
   // 首先尝试直接匹配ID
-  let index = imagesList.value.findIndex(img => img.id === currentDisplayImageId.value);
+  let index = imageList.value.findIndex(img => img.id === currentDisplayImageId.value);
 
   // 如果没找到，可能是因为当前显示的是子图像，而列表中是父图像
   if (index === -1) {
@@ -620,11 +553,13 @@ const currentIndex = computed(() => {
     const groupInfo = appStore.getImageGroupByChildId(currentDisplayImageId.value);
     if (groupInfo) {
       // 如果是子图像，查找父图像在列表中的位置
-      index = imagesList.value.findIndex(img => {
+      index = imageList.value.findIndex(img => {
         // 检查是否是同一个图像组
         return img.id === groupInfo.parentImage.id
                || (img.childImages && img.childImages.some(child => child.id === currentDisplayImageId.value));
       });
+    } else {
+      index = imageList.value.findIndex(img => img.id === currentDisplayImageId.value);
     }
   }
 
@@ -650,47 +585,52 @@ const currentImage = computed(() => {
 
   // 如果有子图像ID，优先获取子图像的具体信息
   if (currentChildImageId.value) {
-    const childImage = appStore.getImageById(currentChildImageId.value);
-    if (childImage) {
-      return childImage;
+    // 首先尝试在列表中直接查找子图像
+    const childimage = imageList.value.find(img => img.id === currentChildImageId.value);
+    if (childimage) {
+      return childimage;
+    }
+
+    // 如果没找到，可能是子图像在父图像的childImages中
+    for (const parentImage of imageList.value) {
+      if (parentImage.childImages) {
+        const childImage = parentImage.childImages.find(child => child.id === currentChildImageId.value);
+        if (childImage) {
+          return childImage;
+        }
+      }
     }
   }
 
-  // 否则使用列表中的图像（保持画廊显示逻辑）
-  if (currentIndex.value >= 0 && currentIndex.value < imagesList.value.length) {
-    return imagesList.value[currentIndex.value];
-  }
-
-  // 最后的备用方案
-  if (props.imageId) {
-    const directImage = appStore.getImageById(props.imageId);
-    if (directImage) {
-      return directImage;
-    }
+  // 使用列表中的图像
+  if (currentIndex.value >= 0 && currentIndex.value < imageList.value.length) {
+    return imageList.value[currentIndex.value];
   }
 
   return null;
 });
 
-// 当前图像组信息（如果是图像组）
+// 当前图像组信息（基于当前图像的子图像）
 const currentImageGroup = computed(() => {
   if (!currentImage.value) return null;
 
-  // 如果当前图像有子图像，说明它是父图像
-  if (currentImage.value.childImages && currentImage.value.childImages.length > 0) {
+  // 如果当前图像有子图像，这是一个图像组
+  if (currentImage.value && 'childImages' in currentImage.value
+   && currentImage.value.childImages && currentImage.value.childImages.length > 0) {
     return {
       parentImage: currentImage.value,
-      validImages: appStore.getValidImagesInGroup(currentImage.value),
+      validImages: currentImage.value.childImages,
       isParent: true,
     };
   }
 
-  // 检查是否是某个组的子图像
+  // 如果当前图像是子图像，需要找到父图像
   const groupInfo = appStore.getImageGroupByChildId(currentImage.value.id);
-  if (groupInfo) {
+  const parentImage = imageList.value.find(img => img.id === groupInfo?.parentImage.id);
+  if (parentImage) {
     return {
-      parentImage: groupInfo.parentImage,
-      validImages: appStore.getValidImagesInGroup(groupInfo.parentImage),
+      parentImage: parentImage,
+      validImages: parentImage.childImages,
       isParent: false,
     };
   }
@@ -699,25 +639,32 @@ const currentImageGroup = computed(() => {
 });
 
 // 图像组内的图像列表（用于选择器）
-const groupImagesList = computed(() => {
-  return currentImageGroup.value?.validImages || [];
+const groupimageList = computed(() => {
+  // 先判断是不是 CharacterImage
+  if (currentImage.value && 'childImages' in currentImage.value
+    && currentImage.value.childImages && currentImage.value.childImages.length > 0) {
+    return currentImage.value.childImages;
+  }
+
+  // 如果当前图像是子图像，需要找到父图像的childImages
+  if (currentImage.value) {
+    const groupInfo = appStore.getImageGroupByChildId(currentImage.value.id);
+    if (groupInfo) {
+      const parentImage = imageList.value.find(img => img.id === groupInfo.parentImage.id);
+      if (parentImage && parentImage.childImages) {
+        return parentImage.childImages;
+      }
+    }
+  }
+
+  // 否则返回空数组
+  return [];
 });
 
 // 是否显示图像组选择器
 const showGroupSelector = computed(() => {
-  // 如果是直接访问单个子图像 (/:childImageId)，不显示组选择器
-  if (isDirectAccess.value && !props.childImageId) {
-    // 检查是否是直接访问子图像
-    const groupInfo = props.imageId ? appStore.getImageGroupByChildId(props.imageId) : null;
-    if (groupInfo) {
-      // 直接访问子图像，不显示组选择器
-      return false;
-    }
-  }
-
-  // 其他情况：如果有多个图像则显示选择器
-  // 当图集被过滤导致只有一张图时，隐藏图集标识
-  return groupImagesList.value.length > 1;
+  // 如果有多个图像则显示选择器
+  return groupimageList.value.length > 1;
 });
 
 // 主图像区域的动态样式
@@ -732,7 +679,7 @@ const mainImageAreaStyle = computed(() => {
 
 // 导航控制
 const hasPrevImage = computed(() => currentIndex.value > 0);
-const hasNextImage = computed(() => currentIndex.value < imagesList.value.length - 1);
+const hasNextImage = computed(() => currentIndex.value < imageList.value.length - 1);
 
 // 获取作者列表
 const getArtistListWithFallback = computed(() => {
@@ -799,24 +746,8 @@ const getDescriptionWithFallback = computed(() => {
 });
 
 // 检查图像是否有有效的子图像（用于显示组图标识）
-const hasValidChildImages = (image: any): boolean => {
-  // 获取原始图像信息
-  let originalImage = image;
-  if (image && image.id) {
-    const originalFromStore = appStore.getImageById(image.id);
-    if (originalFromStore) {
-      originalImage = originalFromStore;
-    }
-  }
-
-  // 检查是否有子图像
-  if (!originalImage || !originalImage.childImages || originalImage.childImages.length === 0) {
-    return false;
-  }
-
-  // 当图集被过滤导致只有一张图时，隐藏图集标识
-  const validChildren = appStore.getValidImagesInGroup(originalImage);
-  return validChildren.length > 1;
+const hasValidChildImages = (image: CharacterImage): boolean => {
+  return !!(image.childImages && image.childImages.length > 0);
 };
 
 const prevImage = (): void => {
@@ -833,8 +764,8 @@ const nextImage = (): void => {
 
 // 导航到指定索引的图像
 const goToImage = (index: number): void => {
-  if (index >= 0 && index < imagesList.value.length) {
-    const targetImage = imagesList.value[index];
+  if (index >= 0 && index < imageList.value.length) {
+    const targetImage = imageList.value[index];
     if (!targetImage?.id) {
       console.warn('Image ID is empty, cannot navigate');
       return;
@@ -871,11 +802,11 @@ const goToGroupImage = (imageId: string): void => {
   if (!currentImageGroup.value) return;
 
   const parentImageId = currentImageGroup.value.parentImage.id;
-  const targetImage = groupImagesList.value.find(img => img.id === imageId);
+  const targetImage = groupimageList.value.find(img => img.id === imageId);
 
   if (!targetImage) return;
 
-  // 直接更新子图像ID状态，而不需要路由导航
+  // 直接更新子图像ID状态
   if (targetImage.id === parentImageId) {
     // 切换到父图像
     currentChildImageId.value = undefined;
@@ -884,24 +815,52 @@ const goToGroupImage = (imageId: string): void => {
     currentChildImageId.value = targetImage.id;
   }
 
-  // 同步更新URL（但不触发页面重新加载）
-  const routeName = currentChildImageId.value ? 'image-viewer-child' : 'image-viewer';
-  const params = currentChildImageId.value
-    ? { imageId: parentImageId, childImageId: currentChildImageId.value }
-    : { imageId: parentImageId };
+  // 通知父组件处理路由更新
+  const childImageId = currentChildImageId.value;
+  eventManager.dispatchEvent('viewerNavigate', {
+    imageId: parentImageId,
+    childImageId: childImageId,
+  });
 
-  router.replace({ name: routeName, params });
+  // 滚动到当前选中的图像组项
+  scrollToActiveGroupImage();
+};
+
+// 滚动图像组选择器到当前选中的项
+const scrollToActiveGroupImage = (): void => {
+  if (!currentDisplayImageId.value) return;
+
+  // 桌面端图像组选择器滚动
+  if (groupImagesList.value) {
+    scrollToActiveItemInContainer(groupImagesList.value, '.group-image-button.active');
+  }
+
+  // 移动端图像组选择器滚动
+  if (mobileGroupImagesGrid.value) {
+    scrollToActiveItemInContainer(mobileGroupImagesGrid.value, '.mobile-group-image-item.active');
+  }
+};
+
+// 通用的滚动到活跃项的函数
+const scrollToActiveItemInContainer = (container: HTMLElement, activeSelector: string): void => {
+  // 查找当前选中的项
+  const activeItem = container.querySelector(activeSelector) as HTMLElement;
+  if (!activeItem) {
+    console.log('[FullscreenViewer] Active item not found:', activeSelector);
+    return;
+  }
+
+  // 使用 scrollIntoView 方法，将选中的项滚动到中间位置
+  activeItem.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center', // 将项滚动到容器的中间位置
+    inline: 'nearest',
+  });
 };
 
 // 通用导航函数
 const navigateToImage = (imageId: string, childImageId?: string): void => {
-  const routeName = childImageId ? 'image-viewer-child' : 'image-viewer';
-  const params = childImageId ? { imageId, childImageId } : { imageId };
-
-  // 使用 Vue Router 导航
-  router.push({ name: routeName, params });
-
-  // 触发自定义事件通知父组件
+  // 触发自定义事件通知父组件处理路由
   eventManager.dispatchEvent('viewerNavigate', { imageId, childImageId });
 
   // 强制重置用户滚动状态，确保自动定位生效
@@ -1366,6 +1325,10 @@ const toggleMobileGroupSelector = (): void => {
   // 阻止背景滚动
   if (isMobileGroupSelectorOpen.value) {
     document.body.style.overflow = 'hidden';
+    // 打开时滚动到当前选中的项
+    nextTick(() => {
+      scrollToActiveGroupImage();
+    });
   } else {
     document.body.style.overflow = '';
   }
@@ -1561,7 +1524,7 @@ const updateThumbnailsOffset = (): void => {
   if (isUserScrolling.value) return;
 
   const containerWidth = getThumbnailContainerWidth();
-  const totalWidth = getThumbnailsListWidth(imagesList.value.length);
+  const totalWidth = getThumbnailsListWidth(imageList.value.length);
   const containerCenter = containerWidth / 2;
 
   // 不使用占位符，直接基于实际内容计算
@@ -1585,7 +1548,7 @@ const updateThumbnailsOffset = (): void => {
   const maxOffset = containerCenter - firstImageCenter;
 
   // 右边界：最后一张图片居中时的偏移量（最后一张图片中心对齐容器中心）
-  const lastImageCenter = getThumbnailCenterPosition(imagesList.value.length - 1);
+  const lastImageCenter = getThumbnailCenterPosition(imageList.value.length - 1);
   const minOffset = containerCenter - lastImageCenter;
 
   // 应用边界限制
@@ -1601,7 +1564,7 @@ const isUserScrolling = ref(false); // 标记用户是否在手动滚动
 // 手动设置缩略图偏移量（用户拖拽时）
 const setManualThumbnailOffset = (offset: number): void => {
   const containerWidth = getThumbnailContainerWidth();
-  const totalWidth = getThumbnailsListWidth(imagesList.value.length);
+  const totalWidth = getThumbnailsListWidth(imageList.value.length);
   const containerCenter = containerWidth / 2;
 
   if (totalWidth <= containerWidth) {
@@ -1614,7 +1577,7 @@ const setManualThumbnailOffset = (offset: number): void => {
   const maxOffset = containerCenter - firstImageCenter;
 
   // 右边界：最后一张图片居中时的偏移量
-  const lastImageCenter = getThumbnailCenterPosition(imagesList.value.length - 1);
+  const lastImageCenter = getThumbnailCenterPosition(imageList.value.length - 1);
   const minOffset = containerCenter - lastImageCenter;
 
   thumbnailsOffset.value = Math.max(minOffset, Math.min(maxOffset, offset));
@@ -1754,13 +1717,13 @@ const handleThumbnailClick = (index: number, event: MouseEvent): void => {
 
   // 修正：确保使用图像组的位置索引
   // 如果点击的是图像组的子图像，应该导航到该图像组在列表中的位置
-  const targetImage = imagesList.value[index];
+  const targetImage = imageList.value[index];
   if (targetImage) {
     // 检查目标图像是否是子图像
     const groupInfo = appStore.getImageGroupByChildId(targetImage.id);
     if (groupInfo) {
       // 如果是子图像，找到父图像在当前列表中的索引
-      const parentIndex = imagesList.value.findIndex(img => {
+      const parentIndex = imageList.value.findIndex(img => {
         // 检查是否是同一个图像组的显示图像
         return img.id === groupInfo.parentImage.id
                || (img.childImages && img.childImages.some(child => child.id === targetImage.id));
@@ -2372,11 +2335,11 @@ const preloadAdjacentImages = (): void => {
   const imagesToPreload: string[] = [];
 
   // 预加载前一张和后一张图片（普通优先级）
-  if (currentIdx > 0 && imagesList.value[currentIdx - 1].src) {
-    imagesToPreload.push(imagesList.value[currentIdx - 1].src ?? '');
+  if (currentIdx > 0 && imageList.value[currentIdx - 1].src) {
+    imagesToPreload.push(imageList.value[currentIdx - 1].src ?? '');
   }
-  if (currentIdx < imagesList.value.length - 1 && imagesList.value[currentIdx + 1].src) {
-    imagesToPreload.push(imagesList.value[currentIdx + 1].src ?? '');
+  if (currentIdx < imageList.value.length - 1 && imageList.value[currentIdx + 1].src) {
+    imagesToPreload.push(imageList.value[currentIdx + 1].src ?? '');
   }
 
   // 异步预加载相邻图片
@@ -2388,11 +2351,11 @@ const preloadAdjacentImages = (): void => {
 
   // 预加载前两张和后两张图片（低优先级）
   const lowPriorityImages: string[] = [];
-  if (currentIdx > 1 && imagesList.value[currentIdx - 2].src) {
-    lowPriorityImages.push(imagesList.value[currentIdx - 2].src ?? '');
+  if (currentIdx > 1 && imageList.value[currentIdx - 2].src) {
+    lowPriorityImages.push(imageList.value[currentIdx - 2].src ?? '');
   }
-  if (currentIdx < imagesList.value.length - 2 && imagesList.value[currentIdx + 2].src) {
-    lowPriorityImages.push(imagesList.value[currentIdx + 2].src ?? '');
+  if (currentIdx < imageList.value.length - 2 && imageList.value[currentIdx + 2].src) {
+    lowPriorityImages.push(imageList.value[currentIdx + 2].src ?? '');
   }
 
   // 低优先级预加载 - 延迟执行以确保当前图片优先
@@ -2410,15 +2373,25 @@ watch(() => props.childImageId, (newChildImageId) => {
   currentChildImageId.value = newChildImageId;
 }, { immediate: true });
 
-// 监听图像列表变化，处理直接访问图集的URL更新
-watch(imagesList, () => {
-  if (isDirectAccess.value && !props.childImageId && currentChildImageId.value) {
-    // 直接访问图集时，如果设置了默认子图像，更新URL
-    const routeName = 'image-viewer-child';
-    const params = { imageId: props.imageId, childImageId: currentChildImageId.value };
-    router.replace({ name: routeName, params });
+// 监听当前显示图像ID变化，自动滚动到对应的图像组项
+watch(currentDisplayImageId, () => {
+  // 延迟执行，确保DOM已更新
+  nextTick(() => {
+    scrollToActiveGroupImage();
+  });
+});
+
+// 监听图像组选择器显示状态，确保显示时能正确定位
+watch(showGroupSelector, (isVisible) => {
+  if (isVisible) {
+    // 延迟执行，确保DOM已渲染
+    nextTick(() => {
+      setTimeout(() => {
+        scrollToActiveGroupImage();
+      }, 50);
+    });
   }
-}, { immediate: true });
+});
 
 // 监听图片变化
 watch(currentImage, (newImage) => {
@@ -2643,6 +2616,11 @@ onMounted(() => {
     }
 
     updateThumbnailsOffset();
+
+    // 初始化时滚动到当前选中的图像组项
+    setTimeout(() => {
+      scrollToActiveGroupImage();
+    }, 100); // 延迟一点时间确保DOM完全渲染
   });
 });
 

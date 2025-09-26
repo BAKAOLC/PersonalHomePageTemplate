@@ -4,7 +4,7 @@
       :image-id="imageId"
       :child-image-id="childImageId"
       :external-image="externalImage"
-      :images-list="imagesList"
+      :image-list="imageList"
       :viewer-u-i-config="effectiveConfig"
       @close="handleClose"
       @navigate="handleNavigate"
@@ -25,7 +25,7 @@ interface Props {
   imageId?: string;
   childImageId?: string;
   externalImage?: ExternalImageInfo;
-  imagesList?: any[];
+  imageList?: any[];
   viewerUIConfig?: ViewerUIConfig;
   onNavigate?: (imageId: string, childImageId?: string) => void;
   onClose?: () => void;
@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<Props>(), {
   imageId: undefined,
   childImageId: undefined,
   externalImage: undefined,
-  imagesList: () => [],
+  imageList: () => [],
   viewerUIConfig: undefined,
   onNavigate: undefined,
   onClose: undefined,

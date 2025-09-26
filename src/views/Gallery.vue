@@ -311,6 +311,9 @@ const openViewer = (event: CustomEvent): void => {
       });
     }
 
+    // 设置模态框来源为画廊
+    isModalFromGallery.value = true;
+
     // 使用模态管理器打开图像查看器
     imageViewerModalId.value = modalManager.open({
       id: `image-viewer-${Date.now()}`,
@@ -318,8 +321,8 @@ const openViewer = (event: CustomEvent): void => {
       props: {
         imageId: imageId,
         childImageId: childImageId,
-        imagesList: characterImages.value,
-        viewerUIConfig: siteConfig.features.viewerUI, // 传递画廊的查看器配置
+        imageList: createGalleryimageList(), // 画廊过滤后的图像列表
+        viewerUIConfig: siteConfig.features.viewerUI,
         onNavigate: handleViewerNavigate,
       },
       options: {
@@ -336,6 +339,35 @@ const openViewer = (event: CustomEvent): void => {
   }
 };
 
+// 打开URL直接访问的查看器
+const openUrlViewer = (): void => {
+  const urlData = getUrlImageData();
+
+  // 设置模态框来源为URL直接访问
+  isModalFromGallery.value = false;
+
+  // 使用模态管理器打开图像查看器
+  imageViewerModalId.value = modalManager.open({
+    id: `url-image-viewer-${Date.now()}`,
+    component: ImageViewerModal,
+    props: {
+      imageId: props.imageId,
+      childImageId: props.childImageId,
+      imageList: urlData.imageList,
+      viewerUIConfig: urlData.viewerUIConfig,
+      onNavigate: handleViewerNavigate,
+    },
+    options: {
+      fullscreen: true,
+      closable: true,
+      maskClosable: true,
+      escClosable: true,
+      destroyOnClose: true,
+    },
+    onClose: closeViewer,
+  });
+};
+
 // 打开外部图像查看器
 const openExternalImageViewer = (externalImage: any): void => {
   // 使用模态管理器打开外部图像查看器
@@ -344,7 +376,7 @@ const openExternalImageViewer = (externalImage: any): void => {
     component: ImageViewerModal,
     props: {
       externalImage: externalImage,
-      imagesList: [],
+      imageList: [],
       viewerUIConfig: {
         imageList: false,
         imageGroupList: false,
@@ -371,6 +403,26 @@ const openExternalImageViewer = (externalImage: any): void => {
   });
 };
 
+// 创建画廊过滤后的图像列表（用于画廊正常打开）
+const createGalleryimageList = (): any[] => {
+  // 为每个主图像创建包含过滤后子图像的版本
+  const result = characterImages.value.map(image => {
+    if (image.childImages && image.childImages.length > 0) {
+      // 过滤子图像，只保留通过过滤的子图像
+      const validChildImages = appStore.getValidImagesInGroup(image);
+
+      return {
+        ...image,
+        childImages: validChildImages,
+      };
+    }
+
+    // 普通图像直接返回
+    return image;
+  });
+  return result;
+};
+
 // 处理查看器导航事件
 const handleViewerNavigate = (imageId: string, childImageId?: string): void => {
   // 更新路由
@@ -384,6 +436,18 @@ const handleViewerNavigate = (imageId: string, childImageId?: string): void => {
       name: 'image-viewer',
       params: { imageId },
     });
+  }
+
+  // 更新模态框的props
+  if (imageViewerModalId.value) {
+    const modal = modalManager.getModal(imageViewerModalId.value);
+    if (modal) {
+      modal.props = {
+        ...modal.props,
+        imageId: imageId,
+        childImageId: childImageId,
+      };
+    }
   }
 };
 
@@ -401,18 +465,109 @@ const closeViewer = (): void => {
 // 屏幕变化监听器取消函数
 let unsubscribeScreenChange: (() => void) | null = null;
 
+// 处理URL直接访问的图像数据
+const getUrlImageData = (): { imageList: any[]; viewerUIConfig: any } => {
+  // URL直接访问的配置：隐藏图像列表，显示子图像列表
+  const urlViewerConfig = {
+    ...siteConfig.features.viewerUI,
+    imageList: false,
+    imageGroupList: true,
+  };
+
+  // 情况1: /:imageId/:childImageId - 给出 [ imageId ] 图像数组，包含不被过滤的 childImages，并跳转到对应的 childImage
+  if (props.imageId && props.childImageId) {
+    const image = appStore.getImageById(props.imageId);
+    if (!image) {
+      return { imageList: [], viewerUIConfig: urlViewerConfig };
+    }
+
+    // 创建包含所有子图像的图像对象（不被过滤）
+    const imageWithAllChildren = {
+      ...image,
+      childImages: image.childImages || [],
+    };
+
+    const result = {
+      imageList: [imageWithAllChildren],
+      viewerUIConfig: urlViewerConfig,
+    };
+    return result;
+  }
+
+  // 情况2: /:imageId - 给出 [ imageId ] 图像数组，包含不被过滤的 childImages，如果有 childImages，跳转到第一张
+  if (props.imageId && !props.childImageId) {
+    const image = appStore.getImageById(props.imageId);
+    if (!image) {
+      return { imageList: [], viewerUIConfig: urlViewerConfig };
+    }
+
+    // 创建包含所有子图像的图像对象（不被过滤）
+    const imageWithAllChildren = {
+      ...image,
+      childImages: image.childImages || [],
+    };
+
+    return {
+      imageList: [imageWithAllChildren],
+      viewerUIConfig: urlViewerConfig,
+    };
+  }
+
+  // 情况3: /:childImageId - 给出 [ childImageId ] 图像数组，因为是子图像，所以它只显示这一张图
+  if (!props.imageId && props.childImageId) {
+    // 检查childImageId是否是子图像ID
+    const groupInfo = appStore.getImageGroupByChildId(props.childImageId);
+    if (groupInfo) {
+      const childImage = appStore.getChildImageWithDefaults(groupInfo.parentImage, groupInfo.childImage);
+      return {
+        imageList: [childImage],
+        viewerUIConfig: urlViewerConfig,
+      };
+    } else {
+      // 如果不是子图像，尝试作为普通图像处理
+      const image = appStore.getImageById(props.childImageId);
+      if (image) {
+        return {
+          imageList: [image],
+          viewerUIConfig: urlViewerConfig,
+        };
+      }
+    }
+  }
+
+  return { imageList: [], viewerUIConfig: urlViewerConfig };
+};
+
+// 跟踪当前模态框的来源
+const isModalFromGallery = ref(false);
+
 // 监听props变化，更新模态框的props
 watch([() => props.imageId, () => props.childImageId, characterImages], () => {
   // 如果模态框已打开，更新其props
   if (imageViewerModalId.value) {
     const modal = modalManager.getModal(imageViewerModalId.value);
     if (modal) {
-      modal.props = {
-        imageId: props.imageId,
-        childImageId: props.childImageId,
-        imagesList: characterImages.value,
-        onNavigate: handleViewerNavigate,
-      };
+      // 根据来源判断使用哪种逻辑
+      if (isModalFromGallery.value) {
+        // 画廊正常打开，使用画廊过滤后的图像列表
+        modal.props = {
+          imageId: props.imageId,
+          childImageId: props.childImageId,
+          imageList: createGalleryimageList(),
+          viewerUIConfig: siteConfig.features.viewerUI,
+          onNavigate: handleViewerNavigate,
+        };
+      } else {
+        // URL直接访问，使用URL处理逻辑
+        const urlData = getUrlImageData();
+        modal.props = {
+          imageId: props.imageId,
+          childImageId: props.childImageId,
+          imageList: urlData.imageList,
+          viewerUIConfig: urlData.viewerUIConfig,
+          onNavigate: handleViewerNavigate,
+        };
+      }
     }
   }
 });
@@ -436,11 +591,8 @@ onMounted(() => {
     // 打开外部图像查看器
     openExternalImageViewer(props.externalImage);
   } else if (props.imageId) {
-    // 模拟viewImage事件来打开查看器
-    const event = new CustomEvent('viewImage', {
-      detail: { imageId: props.imageId, childImageId: props.childImageId },
-    });
-    openViewer(event);
+    // 直接URL访问，使用URL处理逻辑
+    openUrlViewer();
   }
 });
 

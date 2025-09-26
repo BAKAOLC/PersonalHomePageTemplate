@@ -383,13 +383,18 @@ const generateFriendLinkInfo = (): void => {
 
   const jsonString = JSON.stringify(friendLinkInfo, null, 2);
   // 复制到剪贴板
-  navigator.clipboard.writeText(jsonString).then(() => {
-    // 显示成功提示
-    showNotification($t('links.copied'));
-  }).catch(() => {
-    // 如果剪贴板API不可用，则显示弹窗
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(jsonString).then(() => {
+      // 显示成功提示
+      showNotification($t('links.copied'));
+    }).catch(() => {
+      // 如果剪贴板API不可用，则显示弹窗
+      showJsonModal(jsonString);
+    });
+  } else {
+    // 如果剪贴板API不存在，则直接显示弹窗
     showJsonModal(jsonString);
-  });
+  }
 };
 
 // 显示通知

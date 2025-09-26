@@ -41,12 +41,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+import { useTimers } from '@/composables/useTimers';
 import { useAppStore } from '@/stores/app';
 import { useNotificationStore } from '@/stores/notification';
 import { getI18nText } from '@/utils/i18nText';
 
 const notificationStore = useNotificationStore();
 const appStore = useAppStore();
+const { requestAnimationFrame } = useTimers();
 
 // 获取可见通知，新的在前（反转数组顺序）
 const sortedNotifications = computed(() => {

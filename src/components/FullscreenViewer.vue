@@ -1,6 +1,5 @@
 <template>
-  <div class="fullscreen-viewer" :class="{
-    'active': isActive,
+  <div class="fullscreen-viewer active" :class="{
     'transition-active': transitionActive,
     'closing': isClosing
   }" @keydown.esc="close" tabindex="0">
@@ -435,7 +434,7 @@ import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
 import { getImageCache, LoadPriority } from '@/services/imageCache';
 import { useAppStore } from '@/stores/app';
-import type { ExternalImageInfo, I18nText, ViewerUIConfig } from '@/types';
+import type { CharacterImage, ExternalImageInfo, I18nText, ViewerUIConfig } from '@/types';
 import { AnimationDurations } from '@/utils/animations';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
@@ -444,7 +443,7 @@ const props = defineProps<{
   imageId?: string;
   childImageId?: string;
   externalImage?: ExternalImageInfo; // 外部图像信息（包含URL和其他信息）
-  isActive: boolean;
+  imagesList?: CharacterImage[]; // 提供的图像列表
   viewerUIConfig?: ViewerUIConfig; // 结构化配置参数
 }>();
 
@@ -527,12 +526,17 @@ const isOriginalImageLoaded = ref(false);
 
 // 检测是否是直接访问（通过URL直接打开图像查看器）
 const isDirectAccess = computed(() => {
-  // 使用应用状态中的标记来判断是否从画廊进入
-  return !appStore.isFromGallery;
+  // 如果没有提供imagesList，认为是直接访问
+  return !props.imagesList || props.imagesList.length === 0;
 });
 
 // 当前图片索引和图片列表（支持图像组）
 const imagesList = computed(() => {
+  // 优先使用提供的imagesList
+  if (props.imagesList && props.imagesList.length > 0) {
+    return props.imagesList;
+  }
+
   if (isDirectAccess.value) {
     // 直接访问时的逻辑
     if (props.childImageId) {
@@ -2308,8 +2312,6 @@ const close = (): void => {
 
 // 键盘事件
 const handleKeyDown = (event: KeyboardEvent): void => {
-  if (!props.isActive) return;
-
   switch (event.key) {
     case 'Escape':
       close();
@@ -2454,22 +2456,12 @@ const getThumbnailUrl = (originalSrc: string, size: 'tiny' | 'small' | 'medium')
 };
 
 // 监听激活状态
-watch(() => props.isActive, (newValue) => {
-  if (newValue) {
-    // 重置关闭状态
-    isClosing.value = false;
-
-    // 组件激活时，先添加可见样式，然后再添加过渡动画样式
-    nextTick(() => {
-      setTimeout(() => {
-        transitionActive.value = true;
-      }, 50);
-    });
-  } else {
-    // 组件隐藏时的处理已移至close函数
-    // 这里不需要额外处理，因为close函数会设置transitionActive.value = false
-  }
-}, { immediate: true });
+// 组件激活时，先添加可见样式，然后再添加过渡动画样式
+nextTick(() => {
+  setTimeout(() => {
+    transitionActive.value = true;
+  }, 50);
+});
 
 // 检查图像宽度和高度是否能分别完全显示在当前容器中
 const getImageFitStatus = (): { canFitWidth: boolean; canFitHeight: boolean } => {
@@ -2541,7 +2533,9 @@ const handleImageContainerResize = (): void => {
 };
 
 // 处理屏幕变化（移动端状态切换等）
-const handleScreenChange = (wasMobile: boolean, currentIsMobile: boolean): void => {
+const handleScreenChange = (info: any): void => {
+  const wasMobile = info.wasMobile || false;
+  const currentIsMobile = info.isMobile;
   // 标记正在进行响应式切换
   isResponsiveTransitioning.value = true;
 
@@ -2625,9 +2619,9 @@ onMounted(() => {
 
   // 注册屏幕变化监听器
   let previousMobile = isMobile.value;
-  unsubscribeScreenChange = onScreenChange((currentIsMobile) => {
-    handleScreenChange(previousMobile, currentIsMobile);
-    previousMobile = currentIsMobile;
+  unsubscribeScreenChange = onScreenChange((info) => {
+    handleScreenChange({ wasMobile: previousMobile, ...info });
+    previousMobile = info.isMobile;
   });
 
   addEventListener('keydown', handleKeyDown);

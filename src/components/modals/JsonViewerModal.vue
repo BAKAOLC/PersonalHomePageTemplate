@@ -114,19 +114,19 @@ const adjustEditorHeight = (): void => {
     let minHeight: number;
     let maxHeight: number;
 
-    if (screenInfo.width <= 480) {
+    if (screenInfo.isTinyMobile) {
       // 小屏手机：最小200px，最大屏幕高度的70%
       minHeight = 200;
       maxHeight = screenInfo.height * 0.70;
-    } else if (screenInfo.width <= 768) {
+    } else if (screenInfo.isMobile) {
       // 移动端：最小200px，最大屏幕高度的65%
       minHeight = 200;
       maxHeight = screenInfo.height * 0.65;
-    } else if (screenInfo.width <= 1024) {
+    } else if (screenInfo.isTablet) {
       // 平板：最小250px，最大屏幕高度的60%
       minHeight = 250;
       maxHeight = screenInfo.height * 0.60;
-    } else if (screenInfo.width <= 1280) {
+    } else if (!screenInfo.isLargeDesktop) {
       // 中等屏幕：最小300px，最大屏幕高度的55%
       minHeight = 300;
       maxHeight = screenInfo.height * 0.55;
@@ -296,7 +296,7 @@ onBeforeUnmount(() => {
 }
 
 /* 中等屏幕适配 */
-@media (max-width: 1280px) {
+@media (max-width: 1279px) {
   .json-viewer-modal {
     @apply w-[calc(100vw-2rem)] max-w-5xl;
     @apply max-h-[85vh];
@@ -312,7 +312,7 @@ onBeforeUnmount(() => {
 }
 
 /* 移动端适配 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .json-viewer-modal {
     @apply w-[calc(100vw-1rem)] max-w-none;
     @apply max-h-[85vh];

@@ -186,7 +186,7 @@ import ProgressiveImage from '@/components/ProgressiveImage.vue';
 import JsonViewerModal from '@/components/modals/JsonViewerModal.vue';
 import { useModalManager } from '@/composables/useModalManager';
 import { useNotificationManager } from '@/composables/useNotificationManager';
-import { useMobileDetection } from '@/composables/useScreenManager';
+import { useMobileDetection, type ScreenInfo } from '@/composables/useScreenManager';
 import { useTimers } from '@/composables/useTimers';
 import htmlConfig from '@/config/html.json';
 import linksConfigData from '@/config/links.json';
@@ -451,8 +451,8 @@ const scrollToTop = (): void => {
 };
 
 // 屏幕变化处理
-const handleScreenChange = (currentIsMobile: boolean): void => {
-  if (!currentIsMobile) {
+const handleScreenChange = ({ isMobile }: ScreenInfo): void => {
+  if (!isMobile) {
     isMobileSidebarOpen.value = false;
     isSidebarOpen.value = false;
     document.body.style.overflow = '';

@@ -29,6 +29,8 @@
         <component
           :is="modal.component"
           v-bind="modal.props"
+          :on-close="() => closeModal(modal.id)"
+          :on-navigate="modal.onNavigate"
           @close="() => closeModal(modal.id)"
           @modal-close="() => closeModal(modal.id)"
         />
@@ -38,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 
 import { useEventManager } from '@/composables/useEventManager';
 import { useModalStore, type ModalInstance } from '@/stores/modal';

@@ -380,39 +380,33 @@
       <i :class="getIconClass('chevron-up')"></i>
     </button>
 
-    <!-- 文章详情悬浮窗 -->
-    <ArticleViewer
-      v-if="selectedArticle"
-      :article="selectedArticle"
-      :articles="filteredArticles"
-      @close="closeArticle"
-      @navigate="navigateToArticle"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
-import ArticleViewer from '@/components/ArticleViewer.vue';
+import ArticleViewerModal from '@/components/modals/ArticleViewerModal.vue';
 import { useEventManager } from '@/composables/useEventManager';
-import { useMobileDetection } from '@/composables/useScreenManager';
+import { useModalManager } from '@/composables/useModalManager';
+import { useMobileDetection, type ScreenInfo } from '@/composables/useScreenManager';
 import articleCategoriesConfig from '@/config/articles-categories.json';
 import articlesPageConfig from '@/config/articles-page.json';
 import articlesConfig from '@/config/articles.json';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
-import type { Article, ArticleFilterState, ArticlePagination, ArticleCategoriesConfig } from '@/types';
+import type { ModalConfig } from '@/stores/modal';
+import type { Article, ArticleCategoriesConfig, ArticleFilterState, ArticlePagination } from '@/types';
 import {
-  getArticleCover,
-  generateArticleSummary,
-  filterArticles,
   calculatePagination,
-  paginateArticles,
-  formatDate,
   countArticlesByCategory,
+  filterArticles,
+  formatDate,
+  generateArticleSummary,
+  getArticleCover,
+  paginateArticles,
 } from '@/utils/articles';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
@@ -433,6 +427,7 @@ const { addEventListener, removeEventListener } = useEventManager();
 const { onScreenChange } = useMobileDetection();
 const route = useRoute();
 const router = useRouter();
+const modalManager = useModalManager();
 
 // 响应式数据
 const searchQuery = ref('');
@@ -450,6 +445,9 @@ const isCategoriesExpanded = ref(true);
 const articlesMain = ref<HTMLElement | null>(null);
 const showScrollToTop = ref(false);
 const scrollToTopBottom = ref(80); // 默认距离底部80px
+
+// 模态框ID
+const articleViewerModalId = ref<string | null>(null);
 
 const currentLanguage = computed(() => appStore.currentLanguage);
 
@@ -627,14 +625,52 @@ const jumpToPage = (): void => {
   }
 };
 
+// 创建文章查看器模态框的辅助函数
+const createArticleViewerModal = (article: Article): ModalConfig => {
+  // 生成文章链接
+  const articleLink = `${window.location.origin}${window.location.pathname}#/articles/${article.id}`;
+  return {
+    id: `article-viewer-${Date.now()}`,
+    component: ArticleViewerModal,
+    props: {
+      article: article,
+      articles: filteredArticles.value,
+      customLink: articleLink, // 传递生成的文章链接
+    },
+    options: {
+      fullscreen: true,
+      closable: true,
+      maskClosable: true,
+      escClosable: true,
+    },
+    onClose: () => {
+      closeArticle();
+    },
+    onNavigate: (articleId: string) => {
+      navigateToArticle(articleId);
+    },
+  };
+};
+
 const openArticle = (article: Article): void => {
   selectedArticle.value = article;
+
+  // 使用模态管理器打开文章查看器
+  articleViewerModalId.value = modalManager.open(createArticleViewerModal(article));
+
   // 更新URL但不刷新页面
   router.push({ name: 'article-detail', params: { articleId: article.id } });
 };
 
 const closeArticle = (): void => {
   selectedArticle.value = null;
+
+  // 关闭模态框
+  if (articleViewerModalId.value) {
+    modalManager.close(articleViewerModalId.value);
+    articleViewerModalId.value = null;
+  }
+
   // 返回到文章列表页面
   router.push({ name: 'articles' });
 };
@@ -643,6 +679,15 @@ const navigateToArticle = (articleId: string): void => {
   const article = articles.value.find(a => a.id === articleId);
   if (article) {
     selectedArticle.value = article;
+
+    // 关闭当前模态框
+    if (articleViewerModalId.value) {
+      modalManager.close(articleViewerModalId.value);
+    }
+
+    // 打开新文章模态框
+    articleViewerModalId.value = modalManager.open(createArticleViewerModal(article));
+
     // 更新URL
     router.push({ name: 'article-detail', params: { articleId: article.id } });
   }
@@ -655,6 +700,9 @@ const openArticleFromRoute = (): void => {
     const article = articles.value.find(a => a.id === articleId);
     if (article) {
       selectedArticle.value = article;
+
+      // 使用模态管理器打开文章查看器
+      articleViewerModalId.value = modalManager.open(createArticleViewerModal(article));
     } else {
       // 如果文章不存在，重定向到文章列表
       router.replace({ name: 'articles' });
@@ -704,8 +752,8 @@ const scrollToTop = (): void => {
 };
 
 // 处理屏幕变化
-const handleScreenChange = (currentIsMobile: boolean): void => {
-  if (!currentIsMobile) {
+const handleScreenChange = ({ isMobile }: ScreenInfo): void => {
+  if (!isMobile) {
     // 切换到桌面端时关闭移动端功能
     isMobileSidebarOpen.value = false;
     isSidebarOpen.value = false;

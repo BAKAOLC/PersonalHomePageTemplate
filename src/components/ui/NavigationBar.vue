@@ -10,7 +10,7 @@
             :to="item.path"
             class="nav-item"
             :class="{ 'nav-item-active': isActiveRoute(item.path) }"
-            :style="{ 'animation-delay': `${index * 50}ms` }"
+            :style="{ 'animation-delay': `${index * 20}ms` }"
             @click="handleNavClick(item)"
           >
             <i v-if="item.icon" :class="item.icon" class="nav-icon"></i>
@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
@@ -230,18 +230,27 @@ onBeforeUnmount(() => {
   @apply relative z-40;
   @apply flex justify-center;
   @apply justify-self-center;
+  @apply w-full;
+  @apply transition-all duration-100;
+  @apply flex-shrink;
 }
 
 .nav-container {
   @apply relative;
   min-height: 48px;
   @apply flex items-center justify-center;
+  @apply w-full;
+  @apply transition-all duration-100;
 }
 
 /* 通用导航项样式 */
 .nav-items {
   @apply flex items-center justify-center;
   @apply gap-1;
+  @apply transition-all duration-100;
+  @apply overflow-hidden;
+  @apply flex-shrink;
+  @apply min-w-0;
 }
 
 .nav-item {
@@ -250,10 +259,12 @@ onBeforeUnmount(() => {
   @apply text-gray-600 dark:text-gray-300;
   @apply hover:text-primary-600 dark:hover:text-primary-400;
   @apply hover:bg-gray-100 dark:hover:bg-gray-700;
-  @apply transition-all duration-200;
+  @apply transition-all duration-100;
   @apply no-underline;
   @apply font-medium;
-  animation: navItemFadeIn 0.3s ease-out;
+  @apply whitespace-nowrap;
+  @apply flex-shrink-0;
+  animation: navItemFadeIn 0.15s ease-out;
 }
 
 .nav-item-active {
@@ -280,7 +291,7 @@ onBeforeUnmount(() => {
   @apply px-4 py-2 rounded-lg;
   @apply text-gray-700 dark:text-gray-200;
   @apply hover:bg-gray-100 dark:hover:bg-gray-700;
-  @apply transition-all duration-200;
+  @apply transition-all duration-100;
   @apply font-medium;
   @apply border-none bg-transparent;
   @apply cursor-pointer;
@@ -323,7 +334,7 @@ onBeforeUnmount(() => {
   @apply px-4 py-3;
   @apply text-gray-700 dark:text-gray-200;
   @apply hover:bg-gray-50 dark:hover:bg-gray-700;
-  @apply transition-all duration-200;
+  @apply transition-all duration-100;
   @apply no-underline;
   @apply font-medium;
   @apply border-b border-gray-100 dark:border-gray-700 last:border-b-0;
@@ -362,17 +373,134 @@ onBeforeUnmount(() => {
 }
 
 .nav-horizontal-enter-from {
-  @apply transform translate-y-2 opacity-0;
+  @apply transform scale-95 opacity-0;
 }
 
 .nav-horizontal-leave-to {
-  @apply transform -translate-y-2 opacity-0;
+  @apply transform scale-95 opacity-0;
+}
+
+/* 桌面端导航项聚拢动画 */
+.nav-horizontal-leave-active .nav-item {
+  @apply transition-all duration-300 ease-in-out;
+  animation: navItemConverge 0.3s ease-in-out forwards;
+}
+
+/* 为每个导航项添加不同的延迟，创造聚拢效果 */
+.nav-horizontal-leave-active .nav-item:nth-child(1) {
+  animation-delay: 0ms;
+  animation-name: navItemConvergeLeft;
+}
+
+.nav-horizontal-leave-active .nav-item:nth-child(2) {
+  animation-delay: 50ms;
+  animation-name: navItemConvergeLeft;
+}
+
+.nav-horizontal-leave-active .nav-item:nth-child(3) {
+  animation-delay: 100ms;
+  animation-name: navItemConvergeCenter;
+}
+
+.nav-horizontal-leave-active .nav-item:nth-child(4) {
+  animation-delay: 150ms;
+  animation-name: navItemConvergeRight;
+}
+
+.nav-horizontal-leave-active .nav-item:nth-child(5) {
+  animation-delay: 200ms;
+  animation-name: navItemConvergeRight;
+}
+
+/* 左侧导航项向中心聚拢 */
+@keyframes navItemConvergeLeft {
+  0% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: translateX(20px) scale(0.9);
+    opacity: 0.8;
+  }
+  60% {
+    transform: translateX(40px) scale(0.7);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(60px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* 中心导航项直接缩小 */
+@keyframes navItemConvergeCenter {
+  0% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: translateX(0) scale(0.9);
+    opacity: 0.8;
+  }
+  60% {
+    transform: translateX(0) scale(0.7);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(0) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* 右侧导航项向中心聚拢 */
+@keyframes navItemConvergeRight {
+  0% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: translateX(-20px) scale(0.9);
+    opacity: 0.8;
+  }
+  60% {
+    transform: translateX(-40px) scale(0.7);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(-60px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* 移动端导航项展开动画 */
+.nav-horizontal-enter-active .mobile-nav {
+  @apply transition-all duration-300 ease-in-out;
+  animation: mobileNavExpand 0.3s ease-in-out;
+}
+
+@keyframes mobileNavExpand {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(0.7);
+    opacity: 0.5;
+  }
+  60% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* 下拉菜单动画 */
 .mobile-dropdown-enter-active,
 .mobile-dropdown-leave-active {
-  @apply transition-all duration-200;
+  @apply transition-all duration-100;
 }
 
 .mobile-dropdown-enter-from,
@@ -388,6 +516,21 @@ onBeforeUnmount(() => {
 
   .nav-item {
     @apply px-3 py-2;
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 767px) {
+  .navigation-bar {
+    @apply px-4;
+  }
+
+  .nav-items {
+    @apply gap-1;
+  }
+
+  .nav-item {
+    @apply px-2 py-1 text-sm;
   }
 }
 </style>

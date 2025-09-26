@@ -51,25 +51,25 @@ const router = createRouter({
     {
       path: '/viewer/:imageId',
       name: 'image-viewer',
-      component: () => import('@/views/ImageViewer.vue'),
+      component: () => import('@/views/Gallery.vue'),
       props: true,
       meta: {
-        titleKey: 'viewer.title',
+        titleKey: 'gallery.title',
       },
     },
     {
       path: '/viewer/:imageId/:childImageId',
       name: 'image-viewer-child',
-      component: () => import('@/views/ImageViewer.vue'),
+      component: () => import('@/views/Gallery.vue'),
       props: true,
       meta: {
-        titleKey: 'viewer.title',
+        titleKey: 'gallery.title',
       },
     },
     {
       path: '/viewer-url',
       name: 'external-image-viewer',
-      component: () => import('@/views/ImageViewer.vue'),
+      component: () => import('@/views/Gallery.vue'),
       props: (route: RouteLocationNormalized) => ({
         externalImage: route.query.url
           ? {
@@ -85,7 +85,7 @@ const router = createRouter({
           : undefined,
       }),
       meta: {
-        titleKey: 'viewer.title',
+        titleKey: 'gallery.title',
       },
     },
     {

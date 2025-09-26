@@ -17,8 +17,8 @@
 </template>
 
 <script setup lang="ts">
-import { GlobeIcon, ChevronDownIcon } from 'lucide-vue-next';
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ChevronDownIcon, GlobeIcon } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useEventManager } from '@/composables/useEventManager';

@@ -24,6 +24,12 @@ export interface ScreenInfo {
   isTablet: boolean;
   /** 是否为桌面端 */
   isDesktop: boolean;
+  /** 是否为大屏幕桌面端 */
+  isLargeDesktop: boolean;
+  /** 是否为小屏手机 */
+  isSmallMobile: boolean;
+  /** 是否为极小屏幕 */
+  isTinyMobile: boolean;
   /** 设备像素比 */
   devicePixelRatio: number;
   /** 屏幕方向 */
@@ -42,6 +48,12 @@ export interface ScreenManager {
   getIsTablet: () => boolean;
   /** 是否为桌面端 */
   getIsDesktop: () => boolean;
+  /** 是否为大屏幕桌面端 */
+  getIsLargeDesktop: () => boolean;
+  /** 是否为小屏手机 */
+  getIsSmallMobile: () => boolean;
+  /** 是否为极小屏幕 */
+  getIsTinyMobile: () => boolean;
   /** 注册屏幕变化回调 */
   onScreenChange: (callback: ScreenChangeCallback) => () => void;
   /** 手动触发屏幕信息更新 */
@@ -63,9 +75,12 @@ class ScreenManagerService implements ScreenManager {
   private timerService = getTimerService();
   private eventService = getEventManagerService();
 
-  // 移动端断点配置
-  private readonly MOBILE_BREAKPOINT = 768;
-  private readonly TABLET_BREAKPOINT = 1024;
+  // 断点配置
+  private readonly MOBILE_BREAKPOINT = 768; // 移动端断点
+  private readonly TABLET_BREAKPOINT = 1024; // 平板端断点
+  private readonly DESKTOP_BREAKPOINT = 1280; // 桌面端断点
+  private readonly SMALL_MOBILE_BREAKPOINT = 640; // 小屏手机断点
+  private readonly TINY_MOBILE_BREAKPOINT = 480; // 极小屏幕断点
 
   constructor() {
     // 页面卸载时清理
@@ -145,6 +160,9 @@ class ScreenManagerService implements ScreenManager {
     const isMobile = width < this.MOBILE_BREAKPOINT;
     const isTablet = width >= this.MOBILE_BREAKPOINT && width < this.TABLET_BREAKPOINT;
     const isDesktop = width >= this.TABLET_BREAKPOINT;
+    const isLargeDesktop = width >= this.DESKTOP_BREAKPOINT;
+    const isSmallMobile = width < this.SMALL_MOBILE_BREAKPOINT;
+    const isTinyMobile = width < this.TINY_MOBILE_BREAKPOINT;
     const orientation = width > height ? 'landscape' : 'portrait';
 
     return {
@@ -153,6 +171,9 @@ class ScreenManagerService implements ScreenManager {
       isMobile,
       isTablet,
       isDesktop,
+      isLargeDesktop,
+      isSmallMobile,
+      isTinyMobile,
       devicePixelRatio: this.devicePixelRatio,
       orientation,
     };
@@ -239,6 +260,24 @@ class ScreenManagerService implements ScreenManager {
     this.checkDestroyed();
     this.checkInitialized();
     return this.screenWidth >= this.TABLET_BREAKPOINT;
+  }
+
+  getIsLargeDesktop(): boolean {
+    this.checkDestroyed();
+    this.checkInitialized();
+    return this.screenWidth >= this.DESKTOP_BREAKPOINT;
+  }
+
+  getIsSmallMobile(): boolean {
+    this.checkDestroyed();
+    this.checkInitialized();
+    return this.screenWidth < this.SMALL_MOBILE_BREAKPOINT;
+  }
+
+  getIsTinyMobile(): boolean {
+    this.checkDestroyed();
+    this.checkInitialized();
+    return this.screenWidth < this.TINY_MOBILE_BREAKPOINT;
   }
 
   onScreenChange(callback: ScreenChangeCallback): (() => void) {

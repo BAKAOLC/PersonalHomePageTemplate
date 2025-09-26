@@ -14,6 +14,12 @@ export interface ScreenManager {
   isTablet: ComputedRef<boolean>;
   /** 是否为桌面端 */
   isDesktop: ComputedRef<boolean>;
+  /** 是否为大屏幕桌面端 */
+  isLargeDesktop: ComputedRef<boolean>;
+  /** 是否为小屏手机 */
+  isSmallMobile: ComputedRef<boolean>;
+  /** 是否为极小屏幕 */
+  isTinyMobile: ComputedRef<boolean>;
   /** 注册屏幕变化回调 */
   onScreenChange: (callback: ScreenChangeCallback) => () => void;
   /** 手动触发屏幕信息更新 */
@@ -41,11 +47,16 @@ export function useScreenManager(): ScreenManager {
   const componentCallbacks = ref<Set<ScreenChangeCallback>>(new Set());
   const unregisterFunctions = ref<Set<() => void>>(new Set());
 
+  // 响应式屏幕信息
+  const screenInfo = ref<ScreenInfo>(screenManagerService.getScreenInfo());
+
   // 计算属性
-  const screenInfo = computed(() => screenManagerService.getScreenInfo());
-  const isMobile = computed(() => screenManagerService.getIsMobile());
-  const isTablet = computed(() => screenManagerService.getIsTablet());
-  const isDesktop = computed(() => screenManagerService.getIsDesktop());
+  const isMobile = computed(() => screenInfo.value.isMobile);
+  const isTablet = computed(() => screenInfo.value.isTablet);
+  const isDesktop = computed(() => screenInfo.value.isDesktop);
+  const isLargeDesktop = computed(() => screenInfo.value.isLargeDesktop);
+  const isSmallMobile = computed(() => screenInfo.value.isSmallMobile);
+  const isTinyMobile = computed(() => screenInfo.value.isTinyMobile);
 
   /**
    * 注册屏幕变化回调
@@ -54,8 +65,14 @@ export function useScreenManager(): ScreenManager {
     // 添加到组件级别的回调集合
     componentCallbacks.value.add(callback);
 
+    // 创建包装的回调函数，同时更新响应式数据
+    const wrappedCallback = (info: ScreenInfo): void => {
+      screenInfo.value = info;
+      callback(info);
+    };
+
     // 注册到服务
-    const unregister = screenManagerService.registerCallback(callback);
+    const unregister = screenManagerService.registerCallback(wrappedCallback);
     unregisterFunctions.value.add(unregister);
 
     // 返回取消注册函数
@@ -83,10 +100,13 @@ export function useScreenManager(): ScreenManager {
   });
 
   return {
-    screenInfo,
+    screenInfo: computed(() => screenInfo.value),
     isMobile,
     isTablet,
     isDesktop,
+    isLargeDesktop,
+    isSmallMobile,
+    isTinyMobile,
     onScreenChange,
     updateScreenInfo: screenManagerService.updateScreenInfo.bind(screenManagerService),
     getActiveListenersCount,
@@ -101,18 +121,32 @@ export function useMobileDetection(): {
   isMobile: Ref<boolean>;
   isTablet: Ref<boolean>;
   isDesktop: Ref<boolean>;
-  onScreenChange: (callback: (isMobile: boolean, isTablet: boolean, isDesktop: boolean) => void) => () => void;
+  isLargeDesktop: Ref<boolean>;
+  isSmallMobile: Ref<boolean>;
+  isTinyMobile: Ref<boolean>;
+  onScreenChange: (callback: (info: ScreenInfo) => void) => () => void;
 } {
-  const { isMobile, isTablet, isDesktop, onScreenChange } = useScreenManager();
+  const {
+    isMobile,
+    isTablet,
+    isDesktop,
+    isLargeDesktop,
+    isSmallMobile,
+    isTinyMobile,
+    onScreenChange,
+  } = useScreenManager();
 
   return {
     isMobile,
     isTablet,
     isDesktop,
-    onScreenChange: (callback: (isMobile: boolean, isTablet: boolean, isDesktop: boolean) => void) => {
-      return onScreenChange((info) => {
-        callback(info.isMobile, info.isTablet, info.isDesktop);
-      });
+    isLargeDesktop,
+    isSmallMobile,
+    isTinyMobile,
+    onScreenChange: (
+      callback: (info: ScreenInfo) => void,
+    ) => {
+      return onScreenChange(callback);
     },
   };
 }

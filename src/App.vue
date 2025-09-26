@@ -227,6 +227,8 @@ onBeforeUnmount(() => {
   @apply text-gray-900 dark:text-white;
   @apply no-underline;
   @apply justify-self-start;
+  @apply flex-shrink-0;
+  @apply min-w-0;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -237,12 +239,15 @@ onBeforeUnmount(() => {
 
 .site-title {
   @apply text-xl font-bold;
+  @apply whitespace-nowrap;
+  @apply flex-shrink-0;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .header-controls {
   @apply flex items-center gap-3;
   @apply justify-self-end;
+  @apply flex-shrink-0;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

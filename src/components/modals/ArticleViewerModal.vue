@@ -1,8 +1,15 @@
 <template>
-  <div class="article-viewer-modal">
-    <!-- 头部控制栏 -->
-    <div class="viewer-header">
-      <div class="header-content">
+  <div class="article-viewer-modal" :class="{
+    'mobile': isMobile,
+  }">
+    <!-- 遮罩层 -->
+    <div class="viewer-mask" @click="close"></div>
+
+    <!-- 主内容容器 -->
+    <div class="viewer-container" ref="viewerContainer" @click.stop>
+      <!-- 头部控制栏 -->
+      <div class="viewer-header">
+        <div class="header-content">
         <!-- 文章标题和信息 -->
         <div class="article-header-info">
           <h1 class="article-title">{{ getI18nText(article.title, currentLanguage) }}</h1>
@@ -31,7 +38,7 @@
         <!-- 控制按钮 -->
         <div class="viewer-controls">
           <button
-            v-if="showCopyButton"
+            v-if="showCopyButton && customLink"
             class="control-button copy-button"
             @click="copyArticleLink"
             :title="$t('articles.copyLink')"
@@ -97,6 +104,7 @@
           <GiscusComments :key="article.id" :unique-id="article.id" prefix="article" />
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -106,11 +114,12 @@ import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
 import { marked } from 'marked';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import GiscusComments from '@/components/GiscusComments.vue';
 import { useNotificationManager } from '@/composables/useNotificationManager';
+import { useScreenManager } from '@/composables/useScreenManager';
 import articleCategoriesConfig from '@/config/articles-categories.json';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
@@ -130,6 +139,9 @@ interface Props {
 
   // 自定义链接（用于外部文章）
   customLink?: string;
+
+  // 导航回调
+  onNavigate?: (articleId: string) => void;
 }
 
 interface Emits {
@@ -143,6 +155,7 @@ const props = withDefaults(defineProps<Props>(), {
   showComments: true,
   showNavigation: true,
   customLink: undefined,
+  onNavigate: undefined,
 });
 
 const emit = defineEmits<Emits>();
@@ -150,8 +163,10 @@ const emit = defineEmits<Emits>();
 const appStore = useAppStore();
 const notificationManager = useNotificationManager();
 const { t: $t } = useI18n();
+const { isMobile } = useScreenManager();
 
 // 响应式数据
+const viewerContainer = ref<HTMLElement>();
 const viewerContent = ref<HTMLElement>();
 
 const currentLanguage = computed(() => appStore.currentLanguage);
@@ -227,14 +242,23 @@ const close = (): void => {
 };
 
 const navigateTo = (articleId: string): void => {
-  emit('navigate', articleId);
+  console.log('ArticleViewerModal navigateTo called:', { articleId, hasOnNavigate: !!props.onNavigate });
+  // 如果有onNavigate回调，使用它；否则emit事件
+  if (props.onNavigate) {
+    props.onNavigate(articleId);
+  } else {
+    emit('navigate', articleId);
+  }
 };
 
 const copyArticleLink = async (): Promise<void> => {
+  if (!props.customLink) {
+    console.warn('No custom link provided for copying');
+    return;
+  }
+
   try {
-    // 使用自定义链接或生成默认链接
-    const url = props.customLink || `${window.location.origin}${window.location.pathname}#/articles/${props.article.id}`;
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(props.customLink);
 
     // 显示成功通知
     notificationManager.success($t('articles.linkCopied'));
@@ -242,9 +266,8 @@ const copyArticleLink = async (): Promise<void> => {
     console.error('Failed to copy article link:', err);
 
     // 降级方案：选择文本
-    const url = props.customLink || `${window.location.origin}${window.location.pathname}#/articles/${props.article.id}`;
     const textArea = document.createElement('textarea');
-    textArea.value = url;
+    textArea.value = props.customLink;
     document.body.appendChild(textArea);
     textArea.select();
     document.execCommand('copy');
@@ -255,18 +278,71 @@ const copyArticleLink = async (): Promise<void> => {
   }
 };
 
+// 方法
+const show = (): void => {
+  nextTick(() => {
+    if (viewerContainer.value) {
+      viewerContainer.value.focus();
+    }
+    if (viewerContent.value) {
+      viewerContent.value.scrollTop = 0;
+    }
+  });
+};
+
 // 监听器
 watch(() => props.article, () => {
   if (viewerContent.value) {
     viewerContent.value.scrollTop = 0;
   }
 });
+
+// 生命周期
+onMounted(() => {
+  show();
+});
+
+onBeforeUnmount(() => {
+  // 恢复背景滚动
+  document.body.style.overflow = '';
+});
 </script>
 
 <style scoped>
 .article-viewer-modal {
-  @apply w-full h-full flex flex-col;
+  @apply relative;
+  @apply w-full h-full;
+  @apply flex items-center justify-center;
+  /* 覆盖 ModalContainer 的样式 */
+  @apply transform-none !important;
+  @apply p-0 !important;
+}
+
+.viewer-mask {
+  @apply absolute inset-0;
+  @apply bg-transparent;
+  @apply cursor-pointer;
+}
+
+.viewer-container {
+  @apply relative;
   @apply bg-white dark:bg-gray-900;
+  @apply rounded-lg shadow-2xl;
+  @apply max-w-4xl w-full mx-4;
+  @apply max-h-[90vh];
+  @apply flex flex-col;
+  @apply z-10;
+}
+
+/* 移动端全屏显示 */
+.article-viewer-modal.mobile .viewer-container {
+  @apply max-w-none w-full h-full mx-0 my-0 max-h-none rounded-none;
+}
+
+@media (max-width: 767px) {
+  .article-viewer-modal .viewer-container {
+    @apply max-w-none w-full h-full mx-0 my-0 max-h-none rounded-none;
+  }
 }
 
 .viewer-header {

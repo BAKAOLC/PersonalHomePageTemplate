@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed, nextTick, markRaw, type Component } from 'vue';
+import { computed, markRaw, nextTick, ref, type Component } from 'vue';
 
 import { useTimers } from '@/composables/useTimers';
 
@@ -23,6 +23,7 @@ export interface ModalConfig {
   options?: ModalOptions;
   onClose?: () => void;
   onDestroy?: () => void;
+  onNavigate?: (...args: any[]) => void;
 }
 
 export interface ModalInstance extends ModalConfig {

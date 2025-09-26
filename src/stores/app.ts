@@ -5,13 +5,6 @@ import { siteConfig } from '@/config/site';
 import type { CharacterImage, ChildImage, I18nText, Language } from '@/types';
 import { getDefaultLanguage, isValidLanguage } from '@/utils/language';
 
-// 路由信息类型
-type RouteInfo = {
-  name: string;
-  params?: Record<string, any>;
-  query?: Record<string, any>;
-};
-
 export const useAppStore = defineStore('app', () => {
   // 加载状态
   const isLoading = ref(true);
@@ -279,10 +272,6 @@ export const useAppStore = defineStore('app', () => {
     return characterImages.value[index];
   };
 
-  // 查看器状态管理
-  const isFromGallery = ref(false);
-  const viewerReturnRoute = ref<RouteInfo | null>(null);
-
   // 设置搜索查询
   const setSearchQuery = (query: string): void => {
     // 先设置查询
@@ -317,40 +306,6 @@ export const useAppStore = defineStore('app', () => {
   const clearSearch = (): void => {
     // 设置空字符串会触发setSearchQuery中的恢复逻辑
     setSearchQuery('');
-  };
-
-  // 设置从画廊进入查看器的标记（向后兼容）
-  const setFromGallery = (value: boolean): void => {
-    isFromGallery.value = value;
-    if (value) {
-      // 如果是从画廊进入，设置默认返回路由
-      viewerReturnRoute.value = { name: 'gallery' };
-    } else {
-      viewerReturnRoute.value = null;
-    }
-  };
-
-  // 设置图像查看器的返回路由
-  const setViewerReturnRoute = (route: RouteInfo | null): void => {
-    viewerReturnRoute.value = route;
-    // 同时更新 isFromGallery 以保持向后兼容
-    isFromGallery.value = route?.name === 'gallery';
-  };
-
-  // 获取图像查看器的返回路由
-  const getViewerReturnRoute = (): RouteInfo => {
-    // 如果有设置的返回路由，使用它
-    if (viewerReturnRoute.value) {
-      return viewerReturnRoute.value;
-    }
-    // 默认返回画廊
-    return { name: 'gallery' };
-  };
-
-  // 清除图像查看器状态
-  const clearViewerState = (): void => {
-    isFromGallery.value = false;
-    viewerReturnRoute.value = null;
   };
 
   // 递归获取所有依赖某个标签的子标签
@@ -683,14 +638,6 @@ export const useAppStore = defineStore('app', () => {
     getImageById,
     getImageIndexById,
     getImageByIndex,
-
-    // 查看器状态
-    isFromGallery,
-    setFromGallery,
-    viewerReturnRoute,
-    setViewerReturnRoute,
-    getViewerReturnRoute,
-    clearViewerState,
 
     // 图像组相关
     getImageGroupByChildId,

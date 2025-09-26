@@ -115,9 +115,7 @@
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
 import { marked } from 'marked';
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
-
-import type { Article } from '@/types';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import GiscusComments from '@/components/GiscusComments.vue';
 import { useScreenManager } from '@/composables/useScreenManager';
@@ -125,7 +123,8 @@ import { useTimers } from '@/composables/useTimers';
 import articleCategoriesConfig from '@/config/articles-categories.json';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
-import { getArticleCover, formatDate, getAdjacentArticles } from '@/utils/articles';
+import type { Article } from '@/types';
+import { formatDate, getAdjacentArticles, getArticleCover } from '@/utils/articles';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
@@ -261,12 +260,12 @@ const copyArticleLink = async (): Promise<void> => {
     await navigator.clipboard.writeText(url);
 
     // 这里可以添加一个提示消息，但为了简单起见，我们使用console.log
-    console.log('文章链接已复制到剪贴板');
+    console.log('Article link copied to clipboard');
 
     // 可以考虑添加一个toast提示
     // showToast('文章链接已复制到剪贴板');
   } catch (err) {
-    console.error('复制链接失败:', err);
+    console.error('Failed to copy link:', err);
     // 降级方案：选择文本
     const textArea = document.createElement('textarea');
     textArea.value = `${window.location.origin}${window.location.pathname}#/articles/${props.article.id}`;

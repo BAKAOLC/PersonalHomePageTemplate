@@ -45,7 +45,7 @@
                :aria-expanded="isPageSizeMenuOpen" aria-haspopup="true">
                 <i :class="getIconClass('list-ol')" class="page-size-icon"></i>
                 <span class="page-size-text">{{ displayPageSize }}</span>
-                <i :class="[getIconClass('chevron-down'), 'arrow-icon', { 'rotate-180': isPageSizeMenuOpen }]"></i>
+                <i class="arrow-icon" :class="[getIconClass('chevron-down'), { 'rotate-180': isPageSizeMenuOpen }]"></i>
               </button>
 
               <div v-show="isPageSizeMenuOpen" class="page-size-menu" :class="{ 'menu-open': isPageSizeMenuOpen }">
@@ -396,15 +396,15 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
-import type { Article, ArticleFilterState, ArticlePagination, ArticleCategoriesConfig } from '@/types';
-
 import ArticleViewer from '@/components/ArticleViewer.vue';
+import { useEventManager } from '@/composables/useEventManager';
 import { useMobileDetection } from '@/composables/useScreenManager';
 import articleCategoriesConfig from '@/config/articles-categories.json';
 import articlesPageConfig from '@/config/articles-page.json';
 import articlesConfig from '@/config/articles.json';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import type { Article, ArticleFilterState, ArticlePagination, ArticleCategoriesConfig } from '@/types';
 import {
   getArticleCover,
   generateArticleSummary,
@@ -429,6 +429,7 @@ const props = withDefaults(defineProps<Props>(), {
 // 导入配置
 const { t: $t } = useI18n();
 const appStore = useAppStore();
+const { addEventListener, removeEventListener } = useEventManager();
 const { onScreenChange } = useMobileDetection();
 const route = useRoute();
 const router = useRouter();
@@ -732,7 +733,7 @@ onMounted(() => {
   unsubscribeScreenChange = onScreenChange(handleScreenChange);
 
   // 添加页数选择器外部点击监听器
-  document.addEventListener('click', handlePageSizeClickOutside);
+  addEventListener('click', handlePageSizeClickOutside, undefined, document);
 
   // 检查是否需要从URL参数打开文章
   openArticleFromRoute();
@@ -746,7 +747,7 @@ onBeforeUnmount(() => {
   }
 
   // 移除页数选择器外部点击监听器
-  document.removeEventListener('click', handlePageSizeClickOutside);
+  removeEventListener('click', handlePageSizeClickOutside, undefined, document);
 
   // 清理body样式
   document.body.style.overflow = '';

@@ -2,9 +2,8 @@
  * 语言处理工具函数
  */
 
-import type { LanguagesConfig } from '@/types';
-
 import languagesConfig from '@/config/languages.json';
+import type { LanguagesConfig } from '@/types';
 
 /**
  * 获取语言配置

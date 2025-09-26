@@ -94,7 +94,7 @@
           <h3 class="comments-title">{{ $t('articles.comments') }}</h3>
         </div>
         <div class="comments-container">
-          <giscus-comments :key="article.id" :unique-id="article.id" prefix="article" />
+          <GiscusComments :key="article.id" :unique-id="article.id" prefix="article" />
         </div>
       </div>
     </div>
@@ -102,20 +102,20 @@
 </template>
 
 <script setup lang="ts">
+import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
 import { marked } from 'marked';
-import { ref, computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-import type { Article } from '@/types';
 
 import GiscusComments from '@/components/GiscusComments.vue';
 import { useNotificationManager } from '@/composables/useNotificationManager';
 import articleCategoriesConfig from '@/config/articles-categories.json';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
-import { getArticleCover, formatDate, getAdjacentArticles } from '@/utils/articles';
+import type { Article, ArticleCategoriesConfig } from '@/types';
+import { formatDate, getAdjacentArticles, getArticleCover } from '@/utils/articles';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
@@ -138,9 +138,11 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  articles: undefined,
   showCopyButton: true,
   showComments: true,
   showNavigation: true,
+  customLink: undefined,
 });
 
 const emit = defineEmits<Emits>();
@@ -161,7 +163,8 @@ const articleCover = computed(() => {
 
 const renderedContent = computed(() => {
   const content = getI18nText(props.article.content, currentLanguage.value);
-  return renderMarkdown(content);
+  const html = renderMarkdown(content);
+  return DOMPurify.sanitize(html);
 });
 
 const adjacentArticles = computed(() => {
@@ -178,12 +181,12 @@ const shouldShowComments = computed(() => {
 
 // 方法
 const getCategoryName = (categoryId: string): string => {
-  const category = (articleCategoriesConfig as any)[categoryId];
+  const category = (articleCategoriesConfig as ArticleCategoriesConfig)[categoryId];
   return category ? getI18nText(category.name, currentLanguage.value) : categoryId;
 };
 
 const getCategoryColor = (categoryId: string): string => {
-  const category = (articleCategoriesConfig as any)[categoryId];
+  const category = (articleCategoriesConfig as ArticleCategoriesConfig)[categoryId];
   return category?.color || '#6b7280';
 };
 

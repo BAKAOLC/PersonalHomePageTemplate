@@ -4,9 +4,8 @@
 
 import { getDefaultLanguage, getFallbackLanguage } from './language';
 
-import type { I18nReference, I18nText } from '@/types';
-
 import i18n from '@/i18n';
+import type { I18nReference, I18nText } from '@/types';
 
 /**
  * 解析参数中的i18n引用

@@ -16,7 +16,7 @@
         class="link-favicon"
         @error="handleFaviconError"
       />
-      <external-link-icon v-else class="link-icon" />
+      <ExternalLinkIcon v-else class="link-icon" />
       <span class="link-name">{{ getLinkName(link) }}</span>
     </a>
   </div>
@@ -27,10 +27,9 @@ import { ExternalLinkIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { AuthorLink, SitesConfig } from '@/types';
-
 import siteNames from '@/config/sites.json';
 import { useAppStore } from '@/stores/app';
+import type { AuthorLink, SitesConfig } from '@/types';
 import { getI18nText } from '@/utils/i18nText';
 
 const props = defineProps<{

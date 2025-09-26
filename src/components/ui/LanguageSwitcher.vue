@@ -2,9 +2,9 @@
   <div class="language-switcher">
     <button ref="buttonRef" @click="toggleLanguageMenu"
      class="language-button" :aria-expanded="isOpen" aria-haspopup="true">
-      <globe-icon class="icon" />
+      <GlobeIcon class="icon" />
       <span class="language-text">{{ displayLanguage }}</span>
-      <chevron-down-icon class="arrow-icon" :class="{ 'rotate-180': isOpen }" />
+      <ChevronDownIcon class="arrow-icon" :class="{ 'rotate-180': isOpen }" />
     </button>
 
     <div ref="menuRef" v-show="isOpen" class="language-menu" :class="{ 'menu-open': isOpen }">
@@ -21,11 +21,10 @@ import { GlobeIcon, ChevronDownIcon } from 'lucide-vue-next';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { Language } from '@/types';
-
 import { useEventManager } from '@/composables/useEventManager';
 import { useTimers } from '@/composables/useTimers';
 import { useAppStore } from '@/stores/app';
+import type { Language } from '@/types';
 import { getEnabledLanguages, getLanguageNativeName } from '@/utils/language';
 
 const { locale } = useI18n();

@@ -4,7 +4,8 @@
   },
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit",
-    "source.addMissingImports": "explicit"
+    "source.addMissingImports": "explicit",
+    "source.organizeImports": "explicit"
   },
   "editor.formatOnSave": true,
   "editor.wordWrapColumn": 120,
@@ -34,8 +35,12 @@
       "mode": "auto"
     }
   ],
-  "typescript.autoClosingTags": false,
+  "eslint.options": {
+    "cache": false
+  },
+  "eslint.run": "onSave",
   "eslint.format.enable": true,
+  "typescript.autoClosingTags": false,
   "[javascript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },

@@ -1,21 +1,21 @@
 <template>
   <div id="app" class="app">
-    <loading-screen v-if="isLoading" :progress="loadingProgress" @complete="onLoadingComplete" />
+    <LoadingScreen v-if="isLoading" :progress="loadingProgress" @complete="onLoadingComplete" />
 
     <template v-else>
       <header class="header">
         <div class="header-content">
           <router-link to="/" class="logo-link">
-            <img :src="siteConfig.personal.avatar" alt="Logo" class="logo" />
+            <img :src="siteConfig.personal.avatar" :alt="t('common.logo')" class="logo" />
             <h1 class="site-title">{{ appTitle }}</h1>
           </router-link>
 
           <!-- 导航栏 -->
-          <navigation-bar />
+          <NavigationBar />
 
           <div class="header-controls">
-            <language-switcher class="language-control" />
-            <theme-toggle class="theme-control" />
+            <LanguageSwitcher class="language-control" />
+            <ThemeToggle class="theme-control" />
           </div>
         </div>
       </header>
@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import LoadingScreen from '@/components/LoadingScreen.vue';
@@ -55,11 +55,15 @@ import NavigationBar from '@/components/ui/NavigationBar.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
 import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
+import { getEventManagerService } from '@/services/eventManagerService';
+import { getImageCache } from '@/services/imageCache';
+import { getScreenManagerService } from '@/services/screenManagerService';
+import { getTimerService } from '@/services/timerService';
 import { titleManager } from '@/services/titleManager';
 import { useAppStore } from '@/stores/app';
-import { getAppTitle, getAppCopyright } from '@/utils/appConfig';
+import { getAppCopyright, getAppTitle } from '@/utils/appConfig';
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const appStore = useAppStore();
 const { setTimeout } = useTimers();
 
@@ -145,6 +149,9 @@ let cleanupSystemThemeListener: (() => void) | null = null;
 
 // 初始化
 onMounted(() => {
+  // 初始化屏幕管理服务
+  getScreenManagerService().initialize();
+
   // 设置初始主题
   appStore.applyTheme();
 
@@ -175,6 +182,16 @@ onBeforeUnmount(() => {
   // 清理系统主题监听器
   if (cleanupSystemThemeListener) {
     cleanupSystemThemeListener();
+  }
+
+  // 清理所有服务
+  try {
+    getTimerService().destroy();
+    getEventManagerService().destroy();
+    getScreenManagerService().destroy();
+    getImageCache().clearAllCache();
+  } catch (error) {
+    console.error('Error cleaning up services:', error);
   }
 });
 </script>

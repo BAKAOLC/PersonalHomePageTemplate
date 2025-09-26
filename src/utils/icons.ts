@@ -1,6 +1,5 @@
-import type { FontAwesomeIcon, FontAwesomePackage } from '@/types';
-
 import { siteConfig } from '@/config/site';
+import type { FontAwesomeIcon, FontAwesomePackage } from '@/types';
 
 /**
  * 包名映射表，支持新旧格式转换
@@ -92,7 +91,7 @@ export function getIconClass(icon: string | FontAwesomeIcon | undefined): string
   }
 
   // 如果是 FontAwesome 图标对象
-  const iconPackage = normalizePackage(icon.package || siteConfig.fontawesome.defaultPackage);
+  const iconPackage = normalizePackage(icon.package ?? siteConfig.fontawesome.defaultPackage);
   return `${iconPackage} fa-${icon.name}`;
 }
 
@@ -123,7 +122,7 @@ export function getIconPackage(icon: string | FontAwesomeIcon | undefined): stri
     return normalizePackage(siteConfig.fontawesome.defaultPackage);
   }
 
-  return normalizePackage(icon.package || siteConfig.fontawesome.defaultPackage);
+  return normalizePackage(icon.package ?? siteConfig.fontawesome.defaultPackage);
 }
 
 /**

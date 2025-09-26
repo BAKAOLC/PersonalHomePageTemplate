@@ -39,14 +39,14 @@
             {{ $t('gallery.filters') }}
           </div>
           <div class="sidebar-content" :class="{ 'active': isSidebarOpen }">
-            <character-selector />
-            <tag-selector />
-            <restricted-tag-selector />
+            <CharacterSelector />
+            <TagSelector />
+            <RestrictedTagSelector />
           </div>
         </aside>
 
         <div class="gallery-main" ref="galleryMain" @scroll="handleScroll">
-          <image-gallery :images="characterImages" :grid-view="isGridView" />
+          <ImageGallery :images="characterImages" :grid-view="isGridView" />
         </div>
       </div>
     </div>
@@ -61,9 +61,9 @@
           </button>
         </div>
         <div class="mobile-filter-body">
-          <character-selector />
-          <tag-selector />
-          <restricted-tag-selector />
+          <CharacterSelector />
+          <TagSelector />
+          <RestrictedTagSelector />
         </div>
       </div>
     </div>
@@ -75,12 +75,12 @@
     </button>
 
     <!-- 在画廊页面内显示全屏查看器 -->
-    <fullscreen-viewer v-if="viewerActive" :image-id="currentImageId" :is-active="viewerActive" @close="closeViewer" />
+    <FullscreenViewer v-if="viewerActive" :image-id="currentImageId" :is-active="viewerActive" @close="closeViewer" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -242,7 +242,7 @@ const updateSearchQuery = (value: string): void => {
 
     // 搜索处理完成
     searchDebounceTimeout.value = null;
-  }, 300) as unknown as number;
+  }, 300);
 };
 
 // 清除搜索
@@ -324,8 +324,8 @@ const handleViewerNavigate = (event: CustomEvent): void => {
 let unsubscribeScreenChange: (() => void) | null = null;
 
 onMounted(() => {
-  addEventListener('viewImage', openViewer as EventListener);
-  addEventListener('viewerNavigate', handleViewerNavigate as EventListener);
+  addEventListener('viewImage', openViewer);
+  addEventListener('viewerNavigate', handleViewerNavigate);
 
   // 注册屏幕变化监听器
   unsubscribeScreenChange = onScreenChange(handleScreenChange);

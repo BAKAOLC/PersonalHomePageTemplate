@@ -1,10 +1,11 @@
-/* eslint-disable no-restricted-syntax */
 /**
  * 定时器管理 Composable
  * 用于管理组件中的 setTimeout、setInterval 和 requestAnimationFrame，确保在组件销毁时正确清理
  */
 
-import { ref, onBeforeUnmount, getCurrentInstance } from 'vue';
+import { getCurrentInstance, onBeforeUnmount, ref } from 'vue';
+
+import { getTimerService } from '@/services/timerService';
 
 export interface TimerManager {
   setTimeout: (callback: (...args: any[]) => void, delay: number) => number;
@@ -23,7 +24,7 @@ export function useTimers(): TimerManager {
   const animationFrames = ref<Set<number>>(new Set());
 
   const managedSetTimeout = (callback: (...args: any[]) => void, delay: number): number => {
-    const id = window.setTimeout(() => {
+    const id = getTimerService().setTimeout(() => {
       try {
         // 执行回调
         callback();
@@ -41,7 +42,7 @@ export function useTimers(): TimerManager {
   };
 
   const managedSetInterval = (callback: (...args: any[]) => void, delay: number): number => {
-    const id = window.setInterval(() => {
+    const id = getTimerService().setInterval(() => {
       try {
         // 执行回调
         callback();
@@ -56,20 +57,20 @@ export function useTimers(): TimerManager {
 
   const managedClearTimeout = (id: number): void => {
     if (timeouts.value.has(id)) {
-      window.clearTimeout(id);
+      getTimerService().clearTimeout(id);
       timeouts.value.delete(id);
     }
   };
 
   const managedClearInterval = (id: number): void => {
     if (intervals.value.has(id)) {
-      window.clearInterval(id);
+      getTimerService().clearInterval(id);
       intervals.value.delete(id);
     }
   };
 
   const managedRequestAnimationFrame = (callback: (timestamp: number) => void): number => {
-    const id = window.requestAnimationFrame((timestamp) => {
+    const id = getTimerService().requestAnimationFrame((timestamp) => {
       try {
         // 执行回调
         callback(timestamp);
@@ -88,7 +89,7 @@ export function useTimers(): TimerManager {
 
   const managedCancelAnimationFrame = (id: number): void => {
     if (animationFrames.value.has(id)) {
-      window.cancelAnimationFrame(id);
+      getTimerService().cancelAnimationFrame(id);
       animationFrames.value.delete(id);
     }
   };
@@ -96,19 +97,19 @@ export function useTimers(): TimerManager {
   const clearAll = (): void => {
     // 清理所有 setTimeout
     timeouts.value.forEach(id => {
-      window.clearTimeout(id);
+      getTimerService().clearTimeout(id);
     });
     timeouts.value.clear();
 
     // 清理所有 setInterval
     intervals.value.forEach(id => {
-      window.clearInterval(id);
+      getTimerService().clearInterval(id);
     });
     intervals.value.clear();
 
     // 清理所有 requestAnimationFrame
     animationFrames.value.forEach(id => {
-      window.cancelAnimationFrame(id);
+      getTimerService().cancelAnimationFrame(id);
     });
     animationFrames.value.clear();
   };
@@ -121,13 +122,16 @@ export function useTimers(): TimerManager {
     };
   };
 
-  // 组件销毁时自动清理所有定时器（仅在组件上下文中）
+  // 必须在组件上下文中使用
   const instance = getCurrentInstance();
-  if (instance) {
-    onBeforeUnmount(() => {
-      clearAll();
-    });
+  if (!instance) {
+    throw new Error('useTimers must be called within Vue component setup function');
   }
+
+  // 组件销毁时自动清理所有定时器
+  onBeforeUnmount(() => {
+    clearAll();
+  });
 
   return {
     setTimeout: managedSetTimeout,

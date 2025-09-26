@@ -17,18 +17,18 @@
         v-model="editorContent"
         language="json"
         :height="editorHeight"
-        :read-only="true"
+        read-only
         :show-toolbar="false"
         :show-minimap="false"
-        :show-line-numbers="true"
-        :word-wrap="'on'"
+        show-line-numbers
+        word-wrap="on"
         :font-size="14"
-        :format-on-paste="true"
-        :format-on-type="true"
+        format-on-paste
+        format-on-type
         :quick-suggestions="false"
         :suggest-on-trigger-characters="false"
-        :accept-suggestion-on-enter="'off'"
-        :automatic-layout="true"
+        accept-suggestion-on-enter="off"
+        automatic-layout
         @ready="onEditorReady"
         @change="onContentChange"
         @format="onFormat"
@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import * as monaco from 'monaco-editor';
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import MonacoEditor from '@/components/MonacoEditor.vue';

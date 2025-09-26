@@ -1,9 +1,8 @@
 import { useRouter } from 'vue-router';
 
-import type { Article } from '@/types';
-
 import ArticleViewerModal from '@/components/modals/ArticleViewerModal.vue';
 import { useModalManager } from '@/composables/useModalManager';
+import type { Article } from '@/types';
 
 export interface ArticleViewerOptions {
   // 文章数据
@@ -137,7 +136,7 @@ class ArticleViewerService {
 
     // 返回指定路由或默认路由
     if (options.updateRoute) {
-      const returnRoute = options.returnRoute || '/articles';
+      const returnRoute = options.returnRoute ?? '/articles';
       const router = useRouter();
       router.push(returnRoute);
     }
@@ -156,9 +155,7 @@ class ArticleViewerService {
 let articleViewerService: ArticleViewerService | null = null;
 
 export function useArticleViewerService(): ArticleViewerService {
-  if (!articleViewerService) {
-    articleViewerService = new ArticleViewerService();
-  }
+  articleViewerService ??= new ArticleViewerService();
 
   return articleViewerService;
 }

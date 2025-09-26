@@ -1,5 +1,4 @@
 import type { Article, ArticleFilterState, ArticlePagination, I18nText } from '@/types';
-
 import { getI18nText } from '@/utils/i18nText';
 
 /**

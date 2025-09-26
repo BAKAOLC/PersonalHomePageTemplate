@@ -1,34 +1,6 @@
-import { ref, computed, onMounted, type ComputedRef, type Ref } from 'vue';
+import { computed, getCurrentInstance, onBeforeUnmount, ref, type ComputedRef, type Ref } from 'vue';
 
-import { useEventManager } from '@/composables/useEventManager';
-import { useTimers } from '@/composables/useTimers';
-
-/**
- * 屏幕尺寸变化回调函数类型
- */
-export interface ScreenChangeCallback {
-  (screenInfo: ScreenInfo): void;
-}
-
-/**
- * 屏幕信息接口
- */
-export interface ScreenInfo {
-  /** 窗口宽度 */
-  width: number;
-  /** 窗口高度 */
-  height: number;
-  /** 是否为移动端 */
-  isMobile: boolean;
-  /** 是否为平板 */
-  isTablet: boolean;
-  /** 是否为桌面端 */
-  isDesktop: boolean;
-  /** 设备像素比 */
-  devicePixelRatio: number;
-  /** 屏幕方向 */
-  orientation: 'portrait' | 'landscape';
-}
+import { getScreenManagerService, type ScreenChangeCallback, type ScreenInfo } from '@/services/screenManagerService';
 
 /**
  * 屏幕管理器接口
@@ -50,173 +22,47 @@ export interface ScreenManager {
   getActiveListenersCount: () => number;
 }
 
-// 全局状态
-const screenWidth = ref(0);
-const screenHeight = ref(0);
-const devicePixelRatio = ref(1);
-
-// 回调函数集合
-const callbacks = new Set<ScreenChangeCallback>();
-
-// 防抖定时器
-let resizeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-const { setTimeout, clearTimeout } = useTimers();
-const { addEventListener, removeEventListener } = useEventManager();
-
-// 移动端断点配置
-const MOBILE_BREAKPOINT = 768;
-const TABLET_BREAKPOINT = 1024;
-
-/**
- * 计算屏幕信息
- */
-const calculateScreenInfo = (): ScreenInfo => {
-  const width = screenWidth.value;
-  const height = screenHeight.value;
-  const isMobile = width < MOBILE_BREAKPOINT;
-  const isTablet = width >= MOBILE_BREAKPOINT && width < TABLET_BREAKPOINT;
-  const isDesktop = width >= TABLET_BREAKPOINT;
-  const orientation = width > height ? 'landscape' : 'portrait';
-
-  return {
-    width,
-    height,
-    isMobile,
-    isTablet,
-    isDesktop,
-    devicePixelRatio: devicePixelRatio.value,
-    orientation,
-  };
-};
-
-/**
- * 更新屏幕信息
- */
-const updateScreenInfo = (): void => {
-  const newWidth = window.innerWidth;
-  const newHeight = window.innerHeight;
-  const newDevicePixelRatio = window.devicePixelRatio || 1;
-
-  // 检查是否有实际变化
-  const hasChanged
-    = screenWidth.value !== newWidth
-    || screenHeight.value !== newHeight
-    || devicePixelRatio.value !== newDevicePixelRatio;
-
-  if (hasChanged) {
-    screenWidth.value = newWidth;
-    screenHeight.value = newHeight;
-    devicePixelRatio.value = newDevicePixelRatio;
-
-    // 通知所有回调函数
-    const screenInfo = calculateScreenInfo();
-    callbacks.forEach(callback => {
-      try {
-        callback(screenInfo);
-      } catch (error) {
-        console.error('Screen change callback execution error', error);
-      }
-    });
-  }
-};
-
-/**
- * 防抖处理的 resize 事件处理器
- */
-const handleResize = (): void => {
-  // 清除之前的防抖定时器
-  if (resizeDebounceTimer !== null) {
-    clearTimeout(resizeDebounceTimer);
-  }
-
-  // 设置新的防抖定时器
-  resizeDebounceTimer = setTimeout(() => {
-    updateScreenInfo();
-    resizeDebounceTimer = null;
-  }, 100); // 100ms 防抖延迟
-};
-
-/**
- * 立即处理的 resize 事件（用于移动端状态切换等需要立即响应的场景）
- */
-const handleResizeImmediate = (): void => {
-  updateScreenInfo();
-};
-
-// 全局事件监听器是否已初始化
-let isGlobalListenerInitialized = false;
-
-/**
- * 初始化全局事件监听器
- */
-const initializeGlobalListener = (): void => {
-  if (isGlobalListenerInitialized) return;
-
-  // 初始化屏幕信息
-  updateScreenInfo();
-
-  // 添加事件监听器
-  addEventListener('resize', handleResize);
-  addEventListener('orientationchange', handleResizeImmediate);
-
-  isGlobalListenerInitialized = true;
-};
-
-/**
- * 清理全局事件监听器
- */
-const cleanupGlobalListener = (): void => {
-  if (!isGlobalListenerInitialized) return;
-
-  removeEventListener('resize', handleResize);
-  removeEventListener('orientationchange', handleResizeImmediate);
-
-  // 清理防抖定时器
-  if (resizeDebounceTimer !== null) {
-    clearTimeout(resizeDebounceTimer);
-    resizeDebounceTimer = null;
-  }
-
-  isGlobalListenerInitialized = false;
-};
+// 导出类型
+export type { ScreenChangeCallback, ScreenInfo };
 
 /**
  * 屏幕管理器 Composable
  */
 export function useScreenManager(): ScreenManager {
+  // 必须在组件上下文中使用
+  const instance = getCurrentInstance();
+  if (!instance) {
+    throw new Error('useScreenManager must be called within Vue component setup function');
+  }
+
+  const screenManagerService = getScreenManagerService();
+
+  // 组件级别的回调管理
+  const componentCallbacks = ref<Set<ScreenChangeCallback>>(new Set());
+  const unregisterFunctions = ref<Set<() => void>>(new Set());
+
   // 计算属性
-  const screenInfo = computed(() => calculateScreenInfo());
-  const isMobile = computed(() => screenInfo.value.isMobile);
-  const isTablet = computed(() => screenInfo.value.isTablet);
-  const isDesktop = computed(() => screenInfo.value.isDesktop);
+  const screenInfo = computed(() => screenManagerService.getScreenInfo());
+  const isMobile = computed(() => screenManagerService.getIsMobile());
+  const isTablet = computed(() => screenManagerService.getIsTablet());
+  const isDesktop = computed(() => screenManagerService.getIsDesktop());
 
   /**
    * 注册屏幕变化回调
    */
   const onScreenChange = (callback: ScreenChangeCallback): (() => void) => {
-    // 确保全局监听器已初始化
-    if (callbacks.size === 0) {
-      initializeGlobalListener();
-    }
+    // 添加到组件级别的回调集合
+    componentCallbacks.value.add(callback);
 
-    // 添加回调
-    callbacks.add(callback);
-
-    // 立即调用一次回调，传递当前屏幕信息
-    try {
-      callback(screenInfo.value);
-    } catch (error) {
-      console.error('Screen change callback initialization error', error);
-    }
+    // 注册到服务
+    const unregister = screenManagerService.registerCallback(callback);
+    unregisterFunctions.value.add(unregister);
 
     // 返回取消注册函数
     return () => {
-      callbacks.delete(callback);
-
-      // 如果没有回调了，清理全局监听器
-      if (callbacks.size === 0) {
-        cleanupGlobalListener();
-      }
+      componentCallbacks.value.delete(callback);
+      unregisterFunctions.value.delete(unregister);
+      unregister();
     };
   };
 
@@ -224,18 +70,17 @@ export function useScreenManager(): ScreenManager {
    * 获取当前活跃监听器数量
    */
   const getActiveListenersCount = (): number => {
-    return callbacks.size;
+    return componentCallbacks.value.size;
   };
 
-  // 组件挂载时确保全局监听器已初始化
-  onMounted(() => {
-    if (callbacks.size > 0) {
-      initializeGlobalListener();
-    }
+  // 组件销毁时自动清理所有回调
+  onBeforeUnmount(() => {
+    unregisterFunctions.value.forEach(unregister => {
+      unregister();
+    });
+    componentCallbacks.value.clear();
+    unregisterFunctions.value.clear();
   });
-
-  // 组件卸载时不自动清理全局监听器，因为可能有其他组件在使用
-  // 全局监听器会在所有回调都被移除时自动清理
 
   return {
     screenInfo,
@@ -243,7 +88,7 @@ export function useScreenManager(): ScreenManager {
     isTablet,
     isDesktop,
     onScreenChange,
-    updateScreenInfo,
+    updateScreenInfo: screenManagerService.updateScreenInfo.bind(screenManagerService),
     getActiveListenersCount,
   };
 }

@@ -54,11 +54,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import thumbnailMap from '@/assets/thumbnail-map.json';
 import { useTimers } from '@/composables/useTimers';
-import { imageCache, LoadPriority } from '@/services/imageCache';
+import { getImageCache, LoadPriority } from '@/services/imageCache';
 import { AnimationDurations } from '@/utils/animations';
 
 interface Props {
@@ -129,7 +129,7 @@ const getThumbnailPriority = (): LoadPriority => {
 // 使用缓存服务加载图片并跟踪进度
 const loadImageWithProgress = (url: string, isThumbnail: boolean = false): Promise<string> => {
   const priority = isThumbnail ? getThumbnailPriority() : getPriority();
-  return imageCache.loadImage(url, priority, (progress: number) => {
+  return getImageCache().loadImage(url, priority, (progress: number) => {
     loadingProgress.value = progress;
   }, isThumbnail);
 };
@@ -261,7 +261,7 @@ watch(() => props.src, (newSrc) => {
     useProgressLoading.value = false;
 
     // 检查缓存中是否已有这个图片
-    const cachedImage = imageCache.getCachedImage(newSrc);
+    const cachedImage = getImageCache().getCachedImage(newSrc);
     if (cachedImage && cachedImage.loaded && !cachedImage.error) {
       // 如果图片已经缓存且加载完成，直接使用
       if (props.showProgress && props.displayType === 'original' && props.showLoader) {

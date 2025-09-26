@@ -26,6 +26,11 @@ import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
 import { getGiscusLanguage } from '@/utils/language';
 
+const props = withDefaults(defineProps<Props>(), {
+  uniqueId: 'default',
+  prefix: undefined,
+});
+
 const appStore = useAppStore();
 
 // Props for dynamic configuration
@@ -33,10 +38,6 @@ interface Props {
   uniqueId?: string;
   prefix?: string;
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  uniqueId: 'default',
-});
 
 // Giscus configuration from site config
 const {

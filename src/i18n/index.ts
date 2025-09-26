@@ -1,8 +1,7 @@
 import { createI18n } from 'vue-i18n';
 
 import type { Language } from '@/types';
-
-import { getDefaultLanguage, getFallbackLanguage, getEnabledLanguages, isValidLanguage, getLanguagesConfig } from '@/utils/language';
+import { getDefaultLanguage, getEnabledLanguages, getFallbackLanguage, getLanguagesConfig, isValidLanguage } from '@/utils/language';
 
 // 使用 Vite 的 glob 导入功能动态加载所有语言文件
 const languageModules = import.meta.glob('./*.json', { eager: true });
@@ -17,7 +16,7 @@ for (const lang of enabledLanguages) {
   const module = languageModules[modulePath];
 
   if (module) {
-    messages[lang] = (module as any).default || module;
+    messages[lang] = (module as any).default ?? module;
   } else {
     console.warn(`Language file '${lang}.json' not found.`);
   }
@@ -35,7 +34,7 @@ const getNavigatorLanguage = (): Language => {
 
     // 1. 精确匹配语言代码
     if (browserLang === langCodeLower) {
-      return langCode as Language;
+      return langCode;
     }
 
     // 2. 精确匹配别名
@@ -43,14 +42,14 @@ const getNavigatorLanguage = (): Language => {
       for (const alias of config.aliases) {
         const aliasLower = alias.toLowerCase();
         if (browserLang === aliasLower) {
-          return langCode as Language;
+          return langCode;
         }
       }
     }
 
     // 3. 前缀匹配语言代码（如 zh-CN 匹配 zh）
     if (browserLang.startsWith(`${langCodeLower}-`)) {
-      return langCode as Language;
+      return langCode;
     }
 
     // 4. 前缀匹配别名（如 zh-CN 匹配 zh-cn 别名）
@@ -58,17 +57,17 @@ const getNavigatorLanguage = (): Language => {
       for (const alias of config.aliases) {
         const aliasLower = alias.toLowerCase();
         if (browserLang.startsWith(`${aliasLower}-`)) {
-          return langCode as Language;
+          return langCode;
         }
       }
     }
   }
 
-  return getDefaultLanguage() as Language;
+  return getDefaultLanguage();
 };
 
 // 获取存储的语言设置
-const storedLocale = localStorage.getItem('locale') as Language | null;
+const storedLocale = localStorage.getItem('locale');
 
 // 确定最终使用的语言，优先级：存储的有效语言 > 浏览器检测语言 > 默认语言
 let locale: Language;
@@ -81,7 +80,7 @@ if (storedLocale && isValidLanguage(storedLocale)) {
     locale = detectedLanguage;
   } else {
     // 如果检测失败，使用默认语言
-    locale = getDefaultLanguage() as Language;
+    locale = getDefaultLanguage();
     console.warn(`Failed to detect valid language, falling back to default: ${locale}`);
   }
 }

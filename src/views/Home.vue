@@ -1,6 +1,6 @@
 <template>
   <div class="home-page">
-    <personal-section />
+    <PersonalSection />
   </div>
 </template>
 

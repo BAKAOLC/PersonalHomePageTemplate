@@ -1,10 +1,10 @@
 <template>
   <div class="image-viewer-page">
-    <fullscreen-viewer
+    <FullscreenViewer
       :image-id="imageId"
       :child-image-id="childImageId"
       :external-image="externalImage"
-      :is-active="true"
+      is-active
       :viewer-u-i-config="effectiveConfig"
       @close="closeViewer"
     />
@@ -12,15 +12,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, computed } from 'vue';
-import { useRouter } from 'vue-router';
-
-import type { ViewerUIConfig, ExternalImageInfo } from '@/types';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { useRouter, type RouteLocationRaw } from 'vue-router';
 
 import FullscreenViewer from '@/components/FullscreenViewer.vue';
 import { useEventManager } from '@/composables/useEventManager';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import type { ExternalImageInfo, ViewerUIConfig } from '@/types';
 
 // 获取路由参数和配置
 const props = defineProps<{
@@ -72,7 +71,7 @@ const effectiveConfig = computed((): ViewerUIConfig => {
 const closeViewer = (): void => {
   // 使用 store 中配置的返回路由，如果没有配置则默认返回画廊
   const returnRoute = appStore.getViewerReturnRoute();
-  router.push(returnRoute);
+  router.push(returnRoute as RouteLocationRaw);
 };
 
 // 监听查看器导航事件
@@ -109,7 +108,7 @@ onMounted(() => {
   }
   // 如果是从画廊来的（isFromGallery已经是true），保持状态不变
 
-  eventManager.addEventListener('viewerNavigate', handleViewerNavigate as EventListener);
+  eventManager.addEventListener('viewerNavigate', handleViewerNavigate);
 });
 
 onBeforeUnmount(() => {

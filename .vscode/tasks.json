@@ -10,12 +10,21 @@
     {
       "label": "eslint all",
       "type": "shell",
+      "command": "npx eslint .",
       "problemMatcher": "$eslint-stylish",
-      "osx": {
-        "command": "eslint_cache.sh 1 ./"
-      },
-      "windows": {
-        "command": "eslint_cache.bat 1 ./"
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "eslint fix",
+      "type": "shell",
+      "command": "npx eslint --fix .",
+      "problemMatcher": "$eslint-stylish",
+      "group": {
+        "kind": "test",
+        "isDefault": false
       }
     },
     {

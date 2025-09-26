@@ -1,35 +1,37 @@
-/* eslint-disable no-restricted-syntax */
 /**
  * 事件管理 Composable
  * 用于管理组件中的自定义事件，确保在组件销毁时正确清理
  */
 
-import { ref, onBeforeUnmount, getCurrentInstance } from 'vue';
+import { getCurrentInstance, onBeforeUnmount, ref } from 'vue';
+
+import { getEventManagerService } from '@/services/eventManagerService';
 
 export interface EventManager {
-  dispatchEvent: (eventName: string, detail?: any) => void;
+  dispatchEvent: (eventName: string, detail?: any, target?: EventTarget) => void;
   addEventListener: <T extends Event = Event>(
     eventName: string,
     handler: (event: T) => void,
-    options?: boolean | { passive?: boolean; once?: boolean; capture?: boolean }
+    options?: AddEventListenerOptions,
+    target?: EventTarget
   ) => void;
   removeEventListener: <T extends Event = Event>(
     eventName: string,
     handler: (event: T) => void,
-    options?: boolean | { passive?: boolean; capture?: boolean }
+    options?: boolean | { passive?: boolean; capture?: boolean },
+    target?: EventTarget
   ) => void;
-  removeAllListeners: () => void;
-  getActiveListenersCount: () => number;
+  removeAllListeners: (target?: EventTarget) => void;
+  getActiveListenersCount: (target?: EventTarget) => number;
 }
 
 export function useEventManager(): EventManager {
   // 存储事件监听器的映射，key是事件名，value是原始处理器到包装处理器的映射
   const eventListeners = ref<Map<string, Map<Function, EventListener>>>(new Map());
 
-  const dispatchEvent = (eventName: string, detail?: any): void => {
+  const dispatchEvent = (eventName: string, detail?: any, target?: EventTarget): void => {
     try {
-      const event = new CustomEvent(eventName, { detail });
-      window.dispatchEvent(event);
+      getEventManagerService().dispatchEvent(eventName, detail, target);
     } catch (error) {
       console.error(`Error dispatching event '${eventName}':`, error);
     }
@@ -38,7 +40,8 @@ export function useEventManager(): EventManager {
   const addEventListener = <T extends Event = Event>(
     eventName: string,
     handler: (event: T) => void,
-    options?: boolean | { passive?: boolean; once?: boolean; capture?: boolean },
+    options?: boolean | AddEventListenerOptions,
+    target?: EventTarget,
   ): void => {
     try {
       // 创建一个包装函数来适配EventListener类型
@@ -46,14 +49,14 @@ export function useEventManager(): EventManager {
         handler(event as T);
       };
 
-      // 添加到window
-      window.addEventListener(eventName, wrappedHandler, options);
+      // 添加到事件管理器
+      getEventManagerService().addEventListener(eventName, wrappedHandler, target, options);
 
-      // 记录到管理器中
+      // 记录到管理器中，包含选项信息
       if (!eventListeners.value.has(eventName)) {
         eventListeners.value.set(eventName, new Map());
       }
-      eventListeners.value.get(eventName)!.set(handler, wrappedHandler);
+      eventListeners.value.get(eventName)?.set(handler, wrappedHandler);
     } catch (error) {
       console.error(`Error adding event listener for '${eventName}':`, error);
     }
@@ -62,7 +65,8 @@ export function useEventManager(): EventManager {
   const removeEventListener = <T extends Event = Event>(
     eventName: string,
     handler: (event: T) => void,
-    options?: boolean | { passive?: boolean; capture?: boolean },
+    options?: boolean | EventListenerOptions,
+    target?: EventTarget,
   ): void => {
     try {
       // 从管理器中获取包装处理器
@@ -70,8 +74,8 @@ export function useEventManager(): EventManager {
       if (handlerMap) {
         const wrappedHandler = handlerMap.get(handler);
         if (wrappedHandler) {
-          // 从window移除包装处理器
-          window.removeEventListener(eventName, wrappedHandler, options);
+          // 从目标移除包装处理器
+          getEventManagerService().removeEventListener(eventName, wrappedHandler, target, options);
           // 从管理器中移除
           handlerMap.delete(handler);
           if (handlerMap.size === 0) {
@@ -84,13 +88,13 @@ export function useEventManager(): EventManager {
     }
   };
 
-  const removeAllListeners = (): void => {
+  const removeAllListeners = (target?: EventTarget): void => {
     try {
       // 移除所有注册的事件监听器
       eventListeners.value.forEach((handlerMap, eventName) => {
         handlerMap.forEach(wrappedHandler => {
           try {
-            window.removeEventListener(eventName, wrappedHandler);
+            getEventManagerService().removeEventListener(eventName, wrappedHandler, target);
           } catch (error) {
             console.error(`Error removing event listener for '${eventName}':`, error);
           }
@@ -102,7 +106,7 @@ export function useEventManager(): EventManager {
     }
   };
 
-  const getActiveListenersCount = (): number => {
+  const getActiveListenersCount = (_target?: EventTarget): number => {
     let count = 0;
     eventListeners.value.forEach(handlerMap => {
       count += handlerMap.size;
@@ -110,13 +114,16 @@ export function useEventManager(): EventManager {
     return count;
   };
 
-  // 组件销毁时自动清理所有事件监听器（仅在组件上下文中）
+  // 必须在组件上下文中使用
   const instance = getCurrentInstance();
-  if (instance) {
-    onBeforeUnmount(() => {
-      removeAllListeners();
-    });
+  if (!instance) {
+    throw new Error('useEventManager must be called within Vue component setup function');
   }
+
+  // 组件销毁时自动清理所有事件监听器
+  onBeforeUnmount(() => {
+    removeAllListeners();
+  });
 
   return {
     dispatchEvent,

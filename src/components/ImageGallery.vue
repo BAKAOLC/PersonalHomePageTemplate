@@ -48,7 +48,7 @@
             </div>
             <!-- 图像组指示器 -->
             <div v-if="isImageGroup(image)" class="group-indicator" :title="$t('gallery.imageGroup')">
-              <layers-icon class="group-icon" />
+              <LayersIcon class="group-icon" />
             </div>
           </div>
 
@@ -76,13 +76,12 @@ import { useI18n } from 'vue-i18n';
 
 import ProgressiveImage from './ProgressiveImage.vue';
 
-import type { I18nText, CharacterImage } from '@/types';
-
 import { useEventManager } from '@/composables/useEventManager';
 import { useTags } from '@/composables/useTags';
 import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
+import type { I18nText, CharacterImage } from '@/types';
 import { getI18nText } from '@/utils/i18nText';
 
 const props = defineProps<{

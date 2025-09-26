@@ -3,8 +3,7 @@
     <div
       v-for="modal in visibleModals"
       :key="modal.id"
-      :class="[
-        'modal-wrapper',
+      class="modal-wrapper" :class="[
         modal.options?.className,
         {
           'visible': modal.visible,
@@ -41,10 +40,11 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, computed } from 'vue';
 
+import { useEventManager } from '@/composables/useEventManager';
 import { useModalStore, type ModalInstance } from '@/stores/modal';
 
 const modalStore = useModalStore();
-
+const { addEventListener, removeEventListener } = useEventManager();
 const visibleModals = computed(() => modalStore.visibleModals);
 
 // 处理遮罩点击
@@ -89,11 +89,11 @@ const handleKeydown = (e: KeyboardEvent): void => {
 };
 
 onMounted(() => {
-  document.addEventListener('keydown', handleKeydown);
+  addEventListener('keydown', handleKeydown, undefined, document);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener('keydown', handleKeydown);
+  removeEventListener('keydown', handleKeydown, undefined, document);
 });
 </script>
 

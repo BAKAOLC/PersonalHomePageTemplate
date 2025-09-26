@@ -27,6 +27,6 @@ export const toAbsoluteUrl = (url: string, baseUrl?: string): string => {
     return url;
   }
 
-  const base = baseUrl || window.location.origin;
+  const base = baseUrl ?? window.location.origin;
   return `${base}${url}`;
 };

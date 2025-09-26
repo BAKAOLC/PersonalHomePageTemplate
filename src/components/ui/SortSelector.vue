@@ -3,7 +3,7 @@
     <button @click="toggleSortMenu" class="sort-button" :aria-expanded="isOpen" aria-haspopup="true" ref="buttonRef">
       <i :class="getIconClass('sort')" class="sort-icon"></i>
       <span class="sort-text">{{ displaySort }}</span>
-      <i :class="[getIconClass('chevron-down'), 'arrow-icon', { 'rotate-180': isOpen }]"></i>
+      <i class="arrow-icon" :class="[getIconClass('chevron-down'), { 'rotate-180': isOpen }]"></i>
     </button>
 
     <div v-show="isOpen" class="sort-menu" :class="{ 'menu-open': isOpen }">

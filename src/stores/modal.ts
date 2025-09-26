@@ -94,7 +94,7 @@ export const useModalStore = defineStore('modal', () => {
   // 关闭弹窗
   const close = (id: string): void => {
     const modal = modals.value.get(id);
-    if (!modal || !modal.visible) return;
+    if (!modal?.visible) return;
 
     // 先关闭所有子弹窗
     const childrenToClose = Array.from(modal.children);

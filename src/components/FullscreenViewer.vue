@@ -12,15 +12,15 @@
       <div class="viewer-controls">
         <button class="control-button zoom-button" @click="zoomOut" :title="$t('viewer.zoomOut')"
           :class="{ 'disabled': isZoomDisabled }" :disabled="isZoomDisabled">
-          <zoom-out-icon class="icon" />
+          <ZoomOutIcon class="icon" />
         </button>
         <button class="control-button zoom-button" @click="resetZoom" :title="$t('viewer.resetZoom')"
           :class="{ 'disabled': isZoomDisabled }" :disabled="isZoomDisabled">
-          <rotate-ccw-icon class="icon" />
+          <RotateCcwIcon class="icon" />
         </button>
         <button class="control-button zoom-button" @click="zoomIn" :title="$t('viewer.zoomIn')"
           :class="{ 'disabled': isZoomDisabled }" :disabled="isZoomDisabled">
-          <zoom-in-icon class="icon" />
+          <ZoomInIcon class="icon" />
         </button>
         <button
           v-if="hasInfoContent"
@@ -29,7 +29,7 @@
           :class="{ 'disabled': infoPanelAnimating || mobileInfoOverlayAnimating }"
           :disabled="infoPanelAnimating || mobileInfoOverlayAnimating"
           :title="getInfoButtonTitle()">
-          <info-icon class="icon" />
+          <InfoIcon class="icon" />
         </button>
         <button
           v-if="effectiveViewerConfig.commentsButton && siteConfig.features.comments"
@@ -38,10 +38,10 @@
           :class="{ 'disabled': commentsModalAnimating }"
           :disabled="commentsModalAnimating"
           :title="getCommentsButtonTitle()">
-          <message-circle-icon class="icon" />
+          <MessageCircleIcon class="icon" />
         </button>
         <button class="control-button close-button" @click="close" :title="t('viewer.close')">
-          <x-icon class="icon" />
+          <XIcon class="icon" />
         </button>
       </div>
     </div>
@@ -58,7 +58,7 @@
           <transition name="fade" mode="out-in">
             <ProgressiveImage v-if="currentImage && currentImage.src" :key="currentImage.id" :src="currentImage.src"
               :alt="t(currentImage.name, currentLanguage)" class="image" image-class="fullscreen-image"
-              object-fit="contain" :show-loader="true" display-type="original" priority="high" @load="onImageLoad"
+              object-fit="contain" show-loader display-type="original" priority="high" @load="onImageLoad"
               ref="imageElement" :style="{
                 transform: imageTransform,
                 transition: imageTransitionStyle
@@ -236,7 +236,7 @@
 
     <div v-if="effectiveViewerConfig.imageList" class="viewer-navigation">
       <button class="nav-button prev-button" @click="prevImage" :disabled="!hasPrevImage" :title="t('viewer.prev')">
-        <chevron-left-icon class="icon" />
+        <ChevronLeftIcon class="icon" />
       </button>
 
       <div class="image-thumbnails-container" :class="{ 'dragging': isDragging }" ref="thumbnailsContainer"
@@ -269,7 +269,7 @@
               </div>
               <!-- 图像组标识 -->
               <div v-if="hasValidChildImages(image)" class="thumbnail-group-indicator">
-                <layers-icon class="layers-icon" />
+                <LayersIcon class="layers-icon" />
               </div>
             </div>
           </button>
@@ -277,7 +277,7 @@
       </div>
 
       <button class="nav-button next-button" @click="nextImage" :disabled="!hasNextImage" :title="t('viewer.next')">
-        <chevron-right-icon class="icon" />
+        <ChevronRightIcon class="icon" />
       </button>
     </div>
 
@@ -308,7 +308,7 @@
                   {{ t(artist, currentLanguage) }}
                 </span>
               </div>
-              <author-links
+              <AuthorLinks
                 :author-links="getAuthorLinksWithFallback.current"
                 :fallback-author-links="getAuthorLinksWithFallback.fallback"
               />
@@ -341,7 +341,7 @@
             <div class="mobile-info-header">
               <h3 class="mobile-info-title">{{ $t('viewer.imageInfo') }}</h3>
               <button class="mobile-info-close" @click="closeMobileInfoOverlay">
-                <x-icon class="icon" />
+                <XIcon class="icon" />
               </button>
             </div>
 
@@ -365,7 +365,7 @@
                       {{ t(artist, currentLanguage) }}
                     </span>
                   </div>
-                  <author-links
+                  <AuthorLinks
                     :author-links="getAuthorLinksWithFallback.current"
                     :fallback-author-links="getAuthorLinksWithFallback.fallback"
                   />
@@ -403,7 +403,7 @@
             <div class="comments-modal-header">
               <h3 class="comments-modal-title">{{ $t('viewer.comments') }}</h3>
               <button class="comments-modal-close" @click="closeCommentsModal">
-                <x-icon class="icon" />
+                <XIcon class="icon" />
               </button>
             </div>
             <div class="comments-modal-content">
@@ -418,8 +418,8 @@
 
 <script setup lang="ts">
 
-import { XIcon, ChevronLeftIcon, ChevronRightIcon, InfoIcon, ZoomInIcon, ZoomOutIcon, RotateCcwIcon, LayersIcon, MessageCircleIcon } from 'lucide-vue-next';
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { ChevronLeftIcon, ChevronRightIcon, InfoIcon, LayersIcon, MessageCircleIcon, RotateCcwIcon, XIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-vue-next';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -427,16 +427,15 @@ import AuthorLinks from './AuthorLinks.vue';
 import GiscusComments from './GiscusComments.vue';
 import ProgressiveImage from './ProgressiveImage.vue';
 
-import type { I18nText, ViewerUIConfig, ExternalImageInfo } from '@/types';
-
 import thumbnailMap from '@/assets/thumbnail-map.json';
 import { useEventManager } from '@/composables/useEventManager';
 import { useMobileDetection } from '@/composables/useScreenManager';
 import { useTags } from '@/composables/useTags';
 import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
-import { imageCache, LoadPriority } from '@/services/imageCache';
+import { getImageCache, LoadPriority } from '@/services/imageCache';
 import { useAppStore } from '@/stores/app';
+import type { ExternalImageInfo, I18nText, ViewerUIConfig } from '@/types';
 import { AnimationDurations } from '@/utils/animations';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
@@ -1973,7 +1972,7 @@ const handleMinimapMouseDown = (event: MouseEvent): void => {
     const handleMinimapMouseMove = (e: MouseEvent): void => {
       if (!isDraggingMinimap.value) return;
 
-      const minimapRect = minimapImage.value!.getBoundingClientRect();
+      const minimapRect = minimapImage?.value?.getBoundingClientRect() ?? { left: 0, top: 0, width: 0, height: 0 };
       const currentX = e.clientX - minimapRect.left;
       const currentY = e.clientY - minimapRect.top;
 
@@ -2051,7 +2050,7 @@ const handleMinimapMouseDown = (event: MouseEvent): void => {
     const handleMinimapMouseMove = (e: MouseEvent): void => {
       if (!isDraggingMinimap.value) return;
 
-      const minimapRect = minimapImage.value!.getBoundingClientRect();
+      const minimapRect = minimapImage?.value?.getBoundingClientRect() ?? { left: 0, top: 0, width: 0, height: 0 };
       const currentX = e.clientX - minimapRect.left;
       const currentY = e.clientY - minimapRect.top;
 
@@ -2152,7 +2151,7 @@ const handleMinimapTouchStart = (event: TouchEvent): void => {
       e.stopPropagation();
 
       const touch = e.touches[0];
-      const minimapRect = minimapImage.value!.getBoundingClientRect();
+      const minimapRect = minimapImage?.value?.getBoundingClientRect() ?? { left: 0, top: 0, width: 0, height: 0 };
       const currentX = touch.clientX - minimapRect.left;
       const currentY = touch.clientY - minimapRect.top;
 
@@ -2234,7 +2233,7 @@ const handleMinimapTouchStart = (event: TouchEvent): void => {
       e.stopPropagation();
 
       const touch = e.touches[0];
-      const minimapRect = minimapImage.value!.getBoundingClientRect();
+      const minimapRect = minimapImage?.value?.getBoundingClientRect() ?? { left: 0, top: 0, width: 0, height: 0 };
       const currentX = touch.clientX - minimapRect.left;
       const currentY = touch.clientY - minimapRect.top;
 
@@ -2372,15 +2371,15 @@ const preloadAdjacentImages = (): void => {
 
   // 预加载前一张和后一张图片（普通优先级）
   if (currentIdx > 0 && imagesList.value[currentIdx - 1].src) {
-    imagesToPreload.push(imagesList.value[currentIdx - 1].src!);
+    imagesToPreload.push(imagesList.value[currentIdx - 1].src ?? '');
   }
   if (currentIdx < imagesList.value.length - 1 && imagesList.value[currentIdx + 1].src) {
-    imagesToPreload.push(imagesList.value[currentIdx + 1].src!);
+    imagesToPreload.push(imagesList.value[currentIdx + 1].src ?? '');
   }
 
   // 异步预加载相邻图片
   imagesToPreload.forEach(src => {
-    imageCache.preloadImage(src, LoadPriority.OTHER_IMAGE).catch(() => {
+    getImageCache().preloadImage(src, LoadPriority.OTHER_IMAGE).catch(() => {
       // 预加载失败不影响主要功能
     });
   });
@@ -2388,16 +2387,16 @@ const preloadAdjacentImages = (): void => {
   // 预加载前两张和后两张图片（低优先级）
   const lowPriorityImages: string[] = [];
   if (currentIdx > 1 && imagesList.value[currentIdx - 2].src) {
-    lowPriorityImages.push(imagesList.value[currentIdx - 2].src!);
+    lowPriorityImages.push(imagesList.value[currentIdx - 2].src ?? '');
   }
   if (currentIdx < imagesList.value.length - 2 && imagesList.value[currentIdx + 2].src) {
-    lowPriorityImages.push(imagesList.value[currentIdx + 2].src!);
+    lowPriorityImages.push(imagesList.value[currentIdx + 2].src ?? '');
   }
 
   // 低优先级预加载 - 延迟执行以确保当前图片优先
   setTimeout(() => {
     lowPriorityImages.forEach(src => {
-      imageCache.preloadImage(src, LoadPriority.OTHER_IMAGE).catch(() => {
+      getImageCache().preloadImage(src, LoadPriority.OTHER_IMAGE).catch(() => {
         // 预加载失败不影响主要功能
       });
     });
@@ -2434,7 +2433,7 @@ watch(currentImage, (newImage) => {
       const thumbnailSrc = getThumbnailUrl(newImage.src, 'tiny');
 
       // 设置当前图片，这会触发优先级重新评估
-      imageCache.setCurrentImage(newImage.src, thumbnailSrc || undefined);
+      getImageCache().setCurrentImage(newImage.src, thumbnailSrc || undefined);
     }
 
     // 延迟触发预加载，确保当前图片优先
@@ -2450,8 +2449,8 @@ watch(currentImage, (newImage) => {
 
 // 获取缩略图URL的辅助函数
 const getThumbnailUrl = (originalSrc: string, size: 'tiny' | 'small' | 'medium'): string | null => {
-  const thumbnails = (thumbnailMap as any)[originalSrc] as Record<string, string> | undefined;
-  return thumbnails?.[size] || null;
+  const thumbnails = (thumbnailMap as Record<string, Record<string, string>>)[originalSrc] ?? undefined;
+  return thumbnails?.[size] ?? null;
 };
 
 // 监听激活状态

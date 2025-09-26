@@ -1,9 +1,8 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-
-import type { I18nText } from '@/types';
+import { computed, ref } from 'vue';
 
 import { useTimers } from '@/composables/useTimers';
+import type { I18nText } from '@/types';
 
 export interface NotificationConfig {
   id: string;
@@ -46,7 +45,7 @@ export const useNotificationStore = defineStore('notification', () => {
       visible: true,
       duration: config.duration ?? 3000,
       closable: config.closable ?? true,
-      type: config.type || 'info',
+      type: config.type ?? 'info',
     };
 
     notifications.value.push(notification);
@@ -121,7 +120,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
   // 便捷方法
   const success = (message: string | I18nText, options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id || `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     return show({
       id,
       message,
@@ -131,7 +130,7 @@ export const useNotificationStore = defineStore('notification', () => {
   };
 
   const error = (message: string | I18nText, options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id || `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     return show({
       id,
       message,
@@ -141,7 +140,7 @@ export const useNotificationStore = defineStore('notification', () => {
   };
 
   const warning = (message: string | I18nText, options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id || `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     return show({
       id,
       message,
@@ -151,7 +150,7 @@ export const useNotificationStore = defineStore('notification', () => {
   };
 
   const info = (message: string | I18nText, options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id || `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     return show({
       id,
       message,

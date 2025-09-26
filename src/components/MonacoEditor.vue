@@ -33,15 +33,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import MonacoEditorToolbar from '@/components/MonacoEditorToolbar.vue';
 import { useMonacoEditor, type MonacoEditorOptions } from '@/composables/useMonacoEditor';
+import type monacoConfig from '@/config/monaco-editor.json';
 
 interface Props {
   modelValue?: string;
-  language?: keyof typeof import('@/config/monaco-editor.json')['languageConfigs'];
-  theme?: keyof typeof import('@/config/monaco-editor.json')['themes'];
+  language?: keyof typeof monacoConfig.languageConfigs;
+  theme?: keyof typeof monacoConfig.themes;
   readOnly?: boolean;
   showMinimap?: boolean;
   showLineNumbers?: boolean;

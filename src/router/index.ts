@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHashHistory, type NavigationGuardNext, type RouteLocationNormalized } from 'vue-router';
 
 import { siteConfig } from '@/config/site';
 import { titleManager } from '@/services/titleManager';
@@ -70,7 +70,7 @@ const router = createRouter({
       path: '/viewer-url',
       name: 'external-image-viewer',
       component: () => import('@/views/ImageViewer.vue'),
-      props: (route: any) => ({
+      props: (route: RouteLocationNormalized) => ({
         externalImage: route.query.url
           ? {
             url: route.query.url as string,
@@ -100,7 +100,7 @@ const router = createRouter({
 });
 
 // 路由前置守卫：处理图像组重定向和功能禁用重定向
-router.beforeEach((to: any, _from: any, next: any) => {
+router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
   // 检查功能是否被禁用，如果禁用则自动重定向到首页
   if (to.name === 'gallery') {
     if (!siteConfig.features.gallery) {
@@ -129,7 +129,7 @@ router.beforeEach((to: any, _from: any, next: any) => {
     const image = siteConfig.images.find(img => img.id === imageId);
 
     // 如果是图像组（有childImages），自动重定向到第一个可用子图像
-    if (image && image.childImages && image.childImages.length > 0) {
+    if (image?.childImages && image.childImages.length > 0) {
       // 获取第一个可用的子图像ID（考虑过滤）
       let firstChildId = image.childImages[0].id;
 
@@ -166,7 +166,7 @@ router.beforeEach((to: any, _from: any, next: any) => {
 titleManager.setRouter(router);
 
 // 路由后置守卫：确保页面状态正确
-router.afterEach((to: any) => {
+router.afterEach((to: RouteLocationNormalized) => {
   // 确保页面滚动到顶部（除非有hash）
   if (!to.hash) {
     window.scrollTo(0, 0);

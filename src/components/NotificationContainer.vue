@@ -10,13 +10,12 @@
         <div
           v-for="notification in sortedNotifications"
           :key="notification.id"
-          :class="[
-            'notification-item',
+          class="notification-item" :class="[
             notification.type,
             { 'visible': notification.visible }
           ]"
         >
-          <div :class="['notification-icon', notification.type]">
+          <div class="notification-icon" :class="[notification.type]">
             <i :class="getIconClass(notification.type || 'info')"></i>
           </div>
 

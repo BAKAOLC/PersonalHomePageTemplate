@@ -39,7 +39,7 @@ const emit = defineEmits<{
 const fadeOut = ref(false);
 const progress = ref(0);
 const animationFrameId = ref<number | null>(null);
-const { setTimeout, requestAnimationFrame } = useTimers();
+const { setTimeout, requestAnimationFrame, cancelAnimationFrame } = useTimers();
 
 // 伪加载进度函数
 const updateProgress = (startTime: number): void => {

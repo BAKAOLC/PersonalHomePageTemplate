@@ -1,6 +1,5 @@
-import type { I18nText } from '@/types';
-
 import { useNotificationStore, type NotificationConfig } from '@/stores/notification';
+import type { I18nText } from '@/types';
 
 interface NotificationManagerComposable {
   show: (message: string | I18nText, type?: NotificationConfig['type'], options?: Partial<NotificationConfig>) => string;
@@ -18,7 +17,7 @@ export function useNotificationManager(): NotificationManagerComposable {
   const notificationStore = useNotificationStore();
 
   const show = (message: string | I18nText, type: NotificationConfig['type'] = 'info', options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id || `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     return notificationStore.show({
       id,

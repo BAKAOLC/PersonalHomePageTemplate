@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 
-import type { Language, CharacterImage, ChildImage, I18nText } from '@/types';
+import { siteConfig } from '@/config/site';
+import type { CharacterImage, ChildImage, I18nText, Language } from '@/types';
+import { getDefaultLanguage, isValidLanguage } from '@/utils/language';
 
 // 路由信息类型
 type RouteInfo = {
@@ -9,9 +11,6 @@ type RouteInfo = {
   params?: Record<string, any>;
   query?: Record<string, any>;
 };
-
-import { siteConfig } from '@/config/site';
-import { getDefaultLanguage, isValidLanguage } from '@/utils/language';
 
 export const useAppStore = defineStore('app', () => {
   // 加载状态
@@ -179,8 +178,8 @@ export const useAppStore = defineStore('app', () => {
         }
         case 'date': {
           // 将无日期的项目视为最早的作品
-          const aDate = a.date || '0000-00-00';
-          const bDate = b.date || '0000-00-00';
+          const aDate = a.date ?? '0000-00-00';
+          const bDate = b.date ?? '0000-00-00';
           comparison = aDate.localeCompare(bDate);
           break;
         }
@@ -365,8 +364,7 @@ export const useAppStore = defineStore('app', () => {
 
     // 找到所有直接依赖当前标签的子标签
     const directDependents = siteConfig.tags.filter(tag => tag.isRestricted
-      && tag.prerequisiteTags
-      && tag.prerequisiteTags.includes(tagId));
+      && tag.prerequisiteTags?.includes(tagId));
 
     directDependents.forEach(dependentTag => {
       dependentTags.push(dependentTag.id);
@@ -436,9 +434,9 @@ export const useAppStore = defineStore('app', () => {
       description: getI18NPropertyWithFallback('description'),
       artist: getI18NPropertyWithFallback('artist', undefined, 'N/A'),
       src: childImage.src,
-      tags: childImage.tags || parentImage.tags,
-      characters: childImage.characters || parentImage.characters,
-      date: childImage.date || parentImage.date,
+      tags: childImage.tags ?? parentImage.tags,
+      characters: childImage.characters ?? parentImage.characters,
+      date: childImage.date ?? parentImage.date,
       // 子图像不会有自己的子图像
       childImages: undefined,
     };
@@ -530,9 +528,7 @@ export const useAppStore = defineStore('app', () => {
     for (const childImage of parentImage.childImages) {
       const fullChildImage = getChildImageWithDefaults(parentImage, childImage);
       if (doesImagePassFilter(fullChildImage)) {
-        if (!firstValidChild) {
-          firstValidChild = childImage;
-        }
+        firstValidChild ??= childImage;
         validCount++;
       }
     }
@@ -591,12 +587,12 @@ export const useAppStore = defineStore('app', () => {
       return {
         id: parentImage.id, // 使用父图像ID用于组图标识
         name: parentImage.name, // 优先显示父图像名称
-        description: parentImage.description || childImage.description || '',
-        artist: parentImage.artist || childImage.artist || 'N/A',
+        description: parentImage.description ?? childImage.description ?? '',
+        artist: parentImage.artist ?? childImage.artist ?? 'N/A',
         src: childImage.src, // 显示子图像的实际图片
         tags: parentImage.tags, // 优先显示父图像标签
         characters: parentImage.characters, // 优先显示父图像角色
-        date: parentImage.date || childImage.date, // 优先显示父图像日期
+        date: parentImage.date ?? childImage.date, // 优先显示父图像日期
         childImages: parentImage.childImages, // 保留子图像信息用于组图判断
       };
     } else {
@@ -604,12 +600,12 @@ export const useAppStore = defineStore('app', () => {
       return {
         id: childImage.id, // 使用子图像ID
         name: childImage.name, // 优先显示子图像名称
-        description: childImage.description || parentImage.description || '',
-        artist: childImage.artist || parentImage.artist || 'N/A',
+        description: childImage.description ?? parentImage.description ?? '',
+        artist: childImage.artist ?? parentImage.artist ?? 'N/A',
         src: childImage.src, // 显示子图像的实际图片
         tags: childImage.tags, // 优先显示子图像标签
         characters: childImage.characters, // 优先显示子图像角色
-        date: childImage.date || parentImage.date, // 优先显示子图像日期
+        date: childImage.date ?? parentImage.date, // 优先显示子图像日期
         childImages: undefined, // 单个图像时不保留子图像信息
       };
     }

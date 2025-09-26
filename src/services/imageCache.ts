@@ -1,8 +1,7 @@
 // 图片缓存服务
 
+import { getTimerService } from '@/services/timerService';
 import type { CacheStats } from '@/types';
-
-import { useTimers } from '@/composables/useTimers';
 
 // LoadPriority 枚举
 enum LoadPriority {
@@ -39,7 +38,7 @@ class ImageCacheService {
     const oldThumbnailSrc = this.currentThumbnailSrc;
 
     this.currentImageSrc = imageSrc;
-    this.currentThumbnailSrc = thumbnailSrc || null;
+    this.currentThumbnailSrc = thumbnailSrc ?? null;
 
     // 重新评估所有图片的优先级
     this.reevaluateAllPriorities();
@@ -104,12 +103,8 @@ class ImageCacheService {
     onProgress?: (progress: number) => void,
     isThumbnail: boolean = false,
   ): Promise<string> {
-    const { setTimeout } = useTimers();
-
     // 如果没有指定优先级，根据当前状态自动计算
-    if (priority === undefined) {
-      priority = this.calculatePriority(url, isThumbnail);
-    }
+    priority ??= this.calculatePriority(url, isThumbnail);
 
     let cached = this.getCachedImage(url);
 
@@ -184,7 +179,7 @@ class ImageCacheService {
 
     const loadPromise = new Promise<string>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      cached!.xhr = xhr;
+      cached.xhr = xhr;
 
       xhr.open('GET', url, true);
       xhr.responseType = 'blob';
@@ -192,7 +187,7 @@ class ImageCacheService {
       xhr.onprogress = (event) => {
         if (event.lengthComputable) {
           const progress = (event.loaded / event.total) * 100;
-          cached!.loadingProgress = progress;
+          cached.loadingProgress = progress;
           if (onProgress) {
             onProgress(progress);
           }
@@ -201,36 +196,36 @@ class ImageCacheService {
 
       xhr.onload = () => {
         if (xhr.status === 200) {
-          cached!.loadingProgress = 100;
+          cached.loadingProgress = 100;
           const blob = xhr.response;
           const objectUrl = URL.createObjectURL(blob);
-          cached!.objectUrl = objectUrl;
-          cached!.loaded = true;
-          cached!.loading = false;
+          cached.objectUrl = objectUrl;
+          cached.loaded = true;
+          cached.loading = false;
 
           // 如果是高优先级图片加载完成，恢复被暂停的低优先级请求
-          if (cached!.priority >= LoadPriority.CURRENT_IMAGE) {
-            setTimeout(() => {
+          if (cached.priority >= LoadPriority.CURRENT_IMAGE) {
+            getTimerService().setTimeout(() => {
               this.resumePausedRequests();
             }, 100); // 稍微延迟以确保当前图片开始显示
           }
 
           resolve(objectUrl);
         } else {
-          cached!.error = true;
-          cached!.loading = false;
+          cached.error = true;
+          cached.loading = false;
           reject(new Error(`HTTP ${xhr.status}`));
         }
       };
 
       xhr.onerror = () => {
-        cached!.error = true;
-        cached!.loading = false;
+        cached.error = true;
+        cached.loading = false;
         reject(new Error('Network error'));
       };
 
       xhr.onabort = () => {
-        cached!.loading = false;
+        cached.loading = false;
         reject(new Error('Request aborted'));
       };
 
@@ -248,7 +243,7 @@ class ImageCacheService {
   // 取消加载
   cancelLoad(url: string): void {
     const cached = this.cache.get(url);
-    if (cached && cached.xhr && cached.loading) {
+    if (cached?.xhr && cached.loading) {
       cached.xhr.abort();
       cached.loading = false;
     }
@@ -371,8 +366,13 @@ class ImageCacheService {
 }
 
 // 创建全局单例
-export const imageCache = new ImageCacheService();
+const imageCache = new ImageCacheService();
+
+// 获取实例
+export const getImageCache = (): ImageCacheService => {
+  return imageCache;
+};
 
 // 导出类型和枚举
-export type { CachedImage };
 export { LoadPriority };
+export type { CachedImage };

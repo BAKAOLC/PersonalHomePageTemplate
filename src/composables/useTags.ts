@@ -52,7 +52,7 @@ export function useTags(): {
    */
   const getTagColor = (tagId: string): string => {
     const tag = siteConfig.tags.find(t => t.id === tagId);
-    return tag?.color || '#8b5cf6';
+    return tag?.color ?? '#8b5cf6';
   };
 
   /**

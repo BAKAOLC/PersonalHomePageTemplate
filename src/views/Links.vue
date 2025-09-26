@@ -179,10 +179,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-import type { I18nText, LinksConfig } from '@/types';
 
 import ProgressiveImage from '@/components/ProgressiveImage.vue';
 import JsonViewerModal from '@/components/modals/JsonViewerModal.vue';
@@ -194,6 +192,7 @@ import htmlConfig from '@/config/html.json';
 import linksConfigData from '@/config/links.json';
 import personalConfig from '@/config/personal.json';
 import { useAppStore } from '@/stores/app';
+import type { I18nText, LinksConfig } from '@/types';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 import { toAbsoluteUrl } from '@/utils/url';
@@ -360,7 +359,7 @@ const updateSearchQuery = (value: string): void => {
   searchDebounceTimeout.value = setTimeout(() => {
     searchQuery.value = value;
     searchDebounceTimeout.value = null;
-  }, 300) as unknown as number;
+  }, 300);
 };
 
 const clearSearch = (): void => {

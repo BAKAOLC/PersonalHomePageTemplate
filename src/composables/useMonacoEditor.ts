@@ -1,5 +1,5 @@
 import * as monaco from 'monaco-editor';
-import { ref, onBeforeUnmount, type Ref } from 'vue';
+import { getCurrentInstance, onBeforeUnmount, ref, type Ref } from 'vue';
 
 import monacoConfig from '@/config/monaco-editor.json';
 import { useAppStore } from '@/stores/app';
@@ -76,6 +76,12 @@ export interface MonacoEditorInstance {
 }
 
 export function useMonacoEditor(): MonacoEditorInstance {
+  // 必须在组件上下文中使用
+  const instance = getCurrentInstance();
+  if (!instance) {
+    throw new Error('useMonacoEditor must be called within Vue component setup function');
+  }
+
   const container = ref<HTMLElement | null>(null);
   const editor = ref<monaco.editor.IStandaloneCodeEditor | null>(null);
   const abortController = ref<AbortControllerType | null>(null);
@@ -106,7 +112,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
 
   // 合并配置选项
   const mergeOptions = (options: MonacoEditorOptions = {}): monaco.editor.IStandaloneEditorConstructionOptions => {
-    const languageConfig = getLanguageConfig(options.language || 'json');
+    const languageConfig = getLanguageConfig(options.language ?? 'json');
     const monacoTheme = getMonacoTheme(options);
 
     return {
@@ -171,7 +177,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
 
   // 获取编辑器值
   const getValue = (): string => {
-    return editor.value?.getValue() || '';
+    return editor.value?.getValue() ?? '';
   };
 
   // 设置编辑器值
@@ -216,7 +222,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
           editor.value.focus();
           editor.value.setSelection(
             editor.value.getModel()?.getFullModelRange()
-            || new monaco.Range(1, 1, 1, 1),
+            ?? new monaco.Range(1, 1, 1, 1),
           );
           document.execCommand('copy');
         }
@@ -275,12 +281,12 @@ export function useMonacoEditor(): MonacoEditorInstance {
 
   // 检查是否可以撤销
   const canUndo = (): boolean => {
-    return editor.value?.getAction('undo')?.isSupported() || false;
+    return editor.value?.getAction('undo')?.isSupported() ?? false;
   };
 
   // 检查是否可以重做
   const canRedo = (): boolean => {
-    return editor.value?.getAction('redo')?.isSupported() || false;
+    return editor.value?.getAction('redo')?.isSupported() ?? false;
   };
 
   // 查找
@@ -349,7 +355,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
 
   // 获取字体大小
   const getFontSize = (): number => {
-    return editor.value?.getOption(monaco.editor.EditorOption.fontSize) || 14;
+    return editor.value?.getOption(monaco.editor.EditorOption.fontSize) ?? 14;
   };
 
   // 设置字体大小
@@ -361,12 +367,12 @@ export function useMonacoEditor(): MonacoEditorInstance {
 
   // 获取自动换行状态
   const getWordWrap = (): string => {
-    return editor.value?.getOption(monaco.editor.EditorOption.wordWrap) || 'on';
+    return editor.value?.getOption(monaco.editor.EditorOption.wordWrap) ?? 'on';
   };
 
   // 获取小地图状态
   const getMinimapEnabled = (): boolean => {
-    return editor.value?.getOption(monaco.editor.EditorOption.minimap).enabled || false;
+    return editor.value?.getOption(monaco.editor.EditorOption.minimap).enabled ?? false;
   };
 
   // 获取行号状态

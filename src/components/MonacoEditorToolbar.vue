@@ -157,9 +157,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useTimers } from '@/composables/useTimers';
 import { useAppStore } from '@/stores/app';
 import { getIconClass } from '@/utils/icons';
 
@@ -214,20 +215,33 @@ const props = withDefaults(defineProps<Props>(), {
     showLineNumbersToggle: true,
     showFontSizeControls: true,
   }),
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   undo: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   redo: () => {},
   canUndo: false,
   canRedo: false,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   find: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   replace: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   format: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   copyToClipboard: async () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   toggleReadOnly: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   toggleMinimap: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   toggleWordWrap: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   toggleLineNumbers: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   increaseFontSize: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   decreaseFontSize: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   resetFontSize: () => {},
   getFontSize: () => 14,
   getWordWrap: () => 'on',
@@ -238,6 +252,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { t: $t } = useI18n();
 const appStore = useAppStore();
+const { setTimeout } = useTimers();
 
 // 响应式状态
 const copying = ref(false);
@@ -271,7 +286,94 @@ const toggleTheme = (): void => {
   appStore.toggleThemeMode();
 };
 
-// 移除未使用的方法
+// 实现工具栏方法
+const undo = (): void => {
+  if (props.undo) {
+    props.undo();
+  }
+};
+
+const redo = (): void => {
+  if (props.redo) {
+    props.redo();
+  }
+};
+
+const find = (): void => {
+  if (props.find) {
+    props.find();
+  }
+};
+
+const replace = (): void => {
+  if (props.replace) {
+    props.replace();
+  }
+};
+
+const format = (): void => {
+  if (props.format) {
+    props.format();
+  }
+};
+
+const copyToClipboard = async (): Promise<void> => {
+  if (props.copyToClipboard) {
+    copying.value = true;
+    await props.copyToClipboard();
+    setTimeout(() => {
+      copying.value = false;
+    }, 2000);
+  }
+};
+
+const toggleReadOnly = (): void => {
+  if (props.toggleReadOnly) {
+    props.toggleReadOnly();
+  }
+};
+
+const toggleMinimap = (): void => {
+  if (props.toggleMinimap) {
+    props.toggleMinimap();
+    minimapEnabled.value = props.getMinimapEnabled();
+  }
+};
+
+const toggleWordWrap = (): void => {
+  if (props.toggleWordWrap) {
+    props.toggleWordWrap();
+    wordWrap.value = props.getWordWrap();
+  }
+};
+
+const toggleLineNumbers = (): void => {
+  if (props.toggleLineNumbers) {
+    props.toggleLineNumbers();
+    lineNumbersEnabled.value = props.getLineNumbersEnabled();
+  }
+};
+
+const increaseFontSize = (): void => {
+  if (props.increaseFontSize) {
+    props.increaseFontSize();
+    fontSize.value = props.getFontSize();
+  }
+};
+
+const decreaseFontSize = (): void => {
+  if (props.decreaseFontSize) {
+    props.decreaseFontSize();
+    fontSize.value = props.getFontSize();
+  }
+};
+
+const resetFontSize = (): void => {
+  if (props.resetFontSize) {
+    props.resetFontSize();
+    fontSize.value = props.getFontSize();
+  }
+};
 </script>
 
 <style scoped>

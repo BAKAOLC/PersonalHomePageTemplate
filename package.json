@@ -36,7 +36,9 @@
     "highlight.js": "^11.11.1",
     "lucide-vue-next": "^0.294.0",
     "marked": "^16.3.0",
+    "monaco-editor": "^0.53.0",
     "pinia": "^2.1.7",
+    "vite-plugin-monaco-editor": "^1.1.0",
     "vue": "^3.3.4",
     "vue-i18n": "^9.5.0",
     "vue-router": "^4.2.5"

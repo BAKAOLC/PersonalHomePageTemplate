@@ -105,9 +105,10 @@ onBeforeUnmount(() => {
 }
 
 .modal-wrapper {
-  @apply absolute inset-0 flex items-center justify-center p-5;
+  @apply absolute inset-0 flex items-center justify-center;
   @apply opacity-0 pointer-events-none;
   @apply transition-opacity duration-300 ease-in-out;
+  @apply p-2;
 }
 
 .modal-wrapper.visible {
@@ -127,9 +128,6 @@ onBeforeUnmount(() => {
 
 .modal-content {
   @apply relative;
-  @apply bg-white dark:bg-gray-900;
-  @apply rounded-xl shadow-2xl;
-  @apply max-w-[90vw] max-h-[90vh];
   @apply overflow-hidden;
   @apply flex flex-col;
   @apply transform scale-95 translate-y-5;

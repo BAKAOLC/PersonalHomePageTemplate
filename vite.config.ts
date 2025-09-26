@@ -5,6 +5,8 @@ import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
 const require = createRequire(import.meta.url);
+const monacoEditorPlugin = require('vite-plugin-monaco-editor').default;
+
 const articlesConfigPlugin = require('./vite-plugins/articles-config-plugin.cjs');
 const htmlConfigPlugin = require('./vite-plugins/html-config-plugin.cjs');
 const imagesConfigPlugin = require('./vite-plugins/images-config-plugin.cjs');
@@ -27,6 +29,9 @@ export default defineConfig({
     articlesConfigPlugin(),
     thumbnailPlugin(),
     vue(),
+    monacoEditorPlugin({
+      languageWorkers: ['editorWorkerService', 'json'],
+    }),
   ],
   resolve: {
     alias: {

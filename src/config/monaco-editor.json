@@ -1,0 +1,122 @@
+{
+  "defaultOptions": {
+    "theme": "auto",
+    "automaticLayout": true,
+    "minimap": {
+      "enabled": false
+    },
+    "scrollBeyondLastLine": false,
+    "wordWrap": "on",
+    "fontSize": 14,
+    "lineNumbers": "on",
+    "renderWhitespace": "selection",
+    "bracketPairColorization": {
+      "enabled": true
+    },
+    "formatOnPaste": true,
+    "formatOnType": true,
+    "stopRenderingLineAfter": 10000,
+    "renderLineHighlight": "line",
+    "selectOnLineNumbers": true,
+    "quickSuggestions": true,
+    "suggestOnTriggerCharacters": true,
+    "acceptSuggestionOnEnter": "on",
+    "tabSize": 2,
+    "insertSpaces": true,
+    "detectIndentation": true,
+    "trimAutoWhitespace": true,
+    "largeFileOptimizations": true,
+    "contextmenu": true,
+    "mouseWheelZoom": true,
+    "cursorBlinking": "blink",
+    "cursorSmoothCaretAnimation": true,
+    "smoothScrolling": true,
+    "cursorStyle": "line",
+    "fontLigatures": false,
+    "fontFamily": "'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace"
+  },
+  "toolbarOptions": {
+    "showToolbar": true,
+    "showUndoRedo": true,
+    "showFormat": true,
+    "showCopy": true,
+    "showFindReplace": true,
+    "showThemeToggle": true,
+    "showReadOnlyToggle": true,
+    "showMinimapToggle": true,
+    "showWordWrapToggle": true,
+    "showLineNumbersToggle": true,
+    "showFontSizeControls": true
+  },
+  "languageConfigs": {
+    "json": {
+      "language": "json",
+      "formatOptions": {
+        "indentSize": 2,
+        "insertSpaces": true
+      }
+    },
+    "javascript": {
+      "language": "javascript",
+      "formatOptions": {
+        "indentSize": 2,
+        "insertSpaces": true
+      }
+    },
+    "typescript": {
+      "language": "typescript",
+      "formatOptions": {
+        "indentSize": 2,
+        "insertSpaces": true
+      }
+    },
+    "html": {
+      "language": "html",
+      "formatOptions": {
+        "indentSize": 2,
+        "insertSpaces": true
+      }
+    },
+    "css": {
+      "language": "css",
+      "formatOptions": {
+        "indentSize": 2,
+        "insertSpaces": true
+      }
+    },
+    "markdown": {
+      "language": "markdown",
+      "formatOptions": {
+        "indentSize": 2,
+        "insertSpaces": true
+      }
+    },
+    "yaml": {
+      "language": "yaml",
+      "formatOptions": {
+        "indentSize": 2,
+        "insertSpaces": true
+      }
+    },
+    "xml": {
+      "language": "xml",
+      "formatOptions": {
+        "indentSize": 2,
+        "insertSpaces": true
+      }
+    }
+  },
+  "themes": {
+    "vs-dark": "vs-dark",
+    "vs-light": "vs-light",
+    "hc-black": "hc-black"
+  },
+  "themeMapping": {
+    "light": "vs-light",
+    "dark": "vs-dark",
+    "auto": {
+      "light": "vs-light",
+      "dark": "vs-dark"
+    }
+  }
+}

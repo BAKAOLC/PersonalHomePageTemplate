@@ -1,39 +1,52 @@
 <template>
   <div class="json-viewer-modal">
-        <!-- 头部 -->
-        <div class="modal-header">
-          <h3 class="modal-title">{{ title }}</h3>
-          <button class="modal-close" @click="close" :title="$t('common.close')">
-            <i :class="getIconClass('times')"></i>
-          </button>
-        </div>
+    <!-- 头部 -->
+    <div class="modal-header">
+      <h3 class="modal-title">{{ title }}</h3>
+      <div class="header-actions">
+        <button class="modal-close" @click="close" :title="$t('common.close')">
+          <i :class="getIconClass('times')"></i>
+        </button>
+      </div>
+    </div>
 
-        <!-- 内容 -->
-        <div class="modal-body">
-          <textarea
-            ref="textareaRef"
-            v-model="editableContent"
-            class="json-textarea"
-            :placeholder="$t('common.loading')"
-            spellcheck="false"
-          ></textarea>
-        </div>
+    <!-- Monaco Editor 组件 -->
+    <div class="modal-body">
+      <MonacoEditor
+        ref="monacoEditorRef"
+        v-model="editorContent"
+        language="json"
+        :height="editorHeight"
+        :read-only="true"
+        :show-toolbar="false"
+        :show-minimap="false"
+        :show-line-numbers="true"
+        :word-wrap="'on'"
+        :font-size="14"
+        :format-on-paste="true"
+        :format-on-type="true"
+        :quick-suggestions="false"
+        :suggest-on-trigger-characters="false"
+        :accept-suggestion-on-enter="'off'"
+        :automatic-layout="true"
+        @ready="onEditorReady"
+        @change="onContentChange"
+        @format="onFormat"
+      />
+    </div>
 
-        <!-- 底部按钮 -->
-        <div class="modal-footer">
-          <button class="copy-button" @click="copyToClipboard" :disabled="copying">
-            <i :class="getIconClass(copying ? 'check' : 'copy')" class="button-icon"></i>
-            {{ copying ? $t('links.copied') : $t('links.copyToClipboard') }}
-          </button>
-        </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue';
+import * as monaco from 'monaco-editor';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import MonacoEditor from '@/components/MonacoEditor.vue';
 import { useNotificationManager } from '@/composables/useNotificationManager';
+import { useScreenManager } from '@/composables/useScreenManager';
+import { useTimers } from '@/composables/useTimers';
 import { getIconClass } from '@/utils/icons';
 
 interface Props {
@@ -54,72 +67,161 @@ const emit = defineEmits<Emits>();
 
 const { t: $t } = useI18n();
 const notificationManager = useNotificationManager();
+const screenManager = useScreenManager();
+const timers = useTimers();
 
 // 响应式数据
-const textareaRef = ref<HTMLElement | null>(null);
-const copying = ref(false);
-const editableContent = ref('');
+const monacoEditorRef = ref<InstanceType<typeof MonacoEditor> | null>(null);
+const editorContent = ref(props.content);
+
+// 编辑器高度
+const editorHeight = ref('300px');
 
 // 方法
 const close = (): void => {
   emit('close');
 };
 
-const copyToClipboard = async (): Promise<void> => {
-  if (!editableContent.value || copying.value) return;
+// 动态调整编辑器高度
+const adjustEditorHeight = (): void => {
+  if (!monacoEditorRef.value || !monacoEditorRef.value.isReady) {
+    return;
+  }
+
+  const { editor } = monacoEditorRef.value;
+  if (!editor) {
+    return;
+  }
+
+  const model = editor.getModel();
+  if (!model) {
+    return;
+  }
 
   try {
-    copying.value = true;
+    // 获取内容行数
+    const lineCount = model.getLineCount();
 
-    // 尝试使用现代剪贴板API
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(editableContent.value);
+    // 获取行高
+    const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
+
+    // 计算内容高度
+    const contentHeight = lineCount * lineHeight;
+
+    // 根据屏幕尺寸设置编辑器的上下限
+    const screenInfo = screenManager.screenInfo.value;
+
+    let minHeight: number;
+    let maxHeight: number;
+
+    if (screenInfo.width <= 480) {
+      // 小屏手机：最小200px，最大屏幕高度的70%
+      minHeight = 200;
+      maxHeight = screenInfo.height * 0.70;
+    } else if (screenInfo.width <= 768) {
+      // 移动端：最小200px，最大屏幕高度的65%
+      minHeight = 200;
+      maxHeight = screenInfo.height * 0.65;
+    } else if (screenInfo.width <= 1024) {
+      // 平板：最小250px，最大屏幕高度的60%
+      minHeight = 250;
+      maxHeight = screenInfo.height * 0.60;
+    } else if (screenInfo.width <= 1280) {
+      // 中等屏幕：最小300px，最大屏幕高度的55%
+      minHeight = 300;
+      maxHeight = screenInfo.height * 0.55;
     } else {
-      // 降级方案：使用传统方法
-      const textarea = textareaRef.value as any;
-      if (textarea && textarea.select) {
-        textarea.select();
-        textarea.setSelectionRange?.(0, 99999); // 移动端兼容
-        document.execCommand('copy');
-      }
+      // 桌面：最小300px，最大屏幕高度的50%
+      minHeight = 300;
+      maxHeight = screenInfo.height * 0.50;
     }
 
-    // 显示成功通知
-    notificationManager.success($t('links.copied'));
-
-    // 重置按钮状态
-    setTimeout(() => {
-      copying.value = false;
-    }, 2000);
-  } catch (err) {
-    console.error('Failed to copy to clipboard:', err);
-    copying.value = false;
-
-    // 显示错误通知
-    notificationManager.error($t('common.error'));
+    // 编辑器高度：内容高度，但受上下限约束
+    const finalHeight = Math.max(minHeight, Math.min(contentHeight, maxHeight));
+    // 更新高度
+    const newHeight = `${finalHeight}px`;
+    if (editorHeight.value !== newHeight) {
+      editorHeight.value = newHeight;
+    }
+  } catch (error) {
+    console.warn('Height adjustment failed:', error);
   }
 };
 
+// 编辑器事件处理
+const onEditorReady = (): void => {
+  // 编辑器准备好后调整高度
+  timers.setTimeout(() => {
+    adjustEditorHeight();
+  }, 100);
+};
+
+// 内容变化防抖定时器
+let contentChangeTimeout: number | null = null;
+let isContentChanging = false;
+
+const onContentChange = (value: string): void => {
+  editorContent.value = value;
+
+  if (isContentChanging) return;
+
+  isContentChanging = true;
+
+  // 清除之前的定时器
+  if (contentChangeTimeout) {
+    clearTimeout(contentChangeTimeout);
+  }
+
+  // 设置新的防抖定时器
+  contentChangeTimeout = timers.setTimeout(() => {
+    adjustEditorHeight();
+    contentChangeTimeout = null;
+    isContentChanging = false;
+  }, 150); // 150ms 防抖延迟
+};
+
+const onFormat = (): void => {
+  notificationManager.success($t('common.success'));
+};
+
+// 屏幕变化回调
+const handleScreenChange = (): void => {
+  adjustEditorHeight();
+};
+
+// 屏幕变化取消注册函数
+let unregisterScreenChange: (() => void) | null = null;
+
 // 生命周期
 onMounted(() => {
-  // 初始化编辑内容
-  editableContent.value = props.content;
+  editorContent.value = props.content;
 
-  // 自动选中文本内容，方便用户复制
-  nextTick(() => {
-    const textarea = textareaRef.value as any;
-    if (textarea && textarea.select) {
-      textarea.focus();
-      textarea.select();
-    }
-  });
+  // 注册屏幕变化监听器
+  unregisterScreenChange = screenManager.onScreenChange(handleScreenChange);
+});
+
+onBeforeUnmount(() => {
+  // 取消注册屏幕变化监听器
+  if (unregisterScreenChange) {
+    unregisterScreenChange();
+    unregisterScreenChange = null;
+  }
+
+  // 清理内容变化定时器
+  if (contentChangeTimeout) {
+    clearTimeout(contentChangeTimeout);
+    contentChangeTimeout = null;
+  }
+
+  isContentChanging = false;
 });
 </script>
 
 <style scoped>
 .json-viewer-modal {
-  @apply w-full max-w-2xl;
-  @apply max-h-[80vh];
+  @apply w-[calc(100vw-1rem)] max-w-6xl;
+  @apply min-h-[200px];
+  @apply max-h-[90vh];
   @apply flex flex-col;
   @apply bg-white dark:bg-gray-900;
   @apply rounded-xl shadow-2xl;
@@ -129,8 +231,29 @@ onMounted(() => {
 
 .modal-header {
   @apply flex items-center justify-between;
-  @apply p-6 pb-4;
+  @apply p-5 pb-4;
   @apply border-b border-gray-200 dark:border-gray-700;
+  @apply flex-shrink-0;
+}
+
+.header-actions {
+  @apply flex items-center gap-2;
+}
+
+.action-button {
+  @apply w-8 h-8;
+  @apply flex items-center justify-center;
+  @apply bg-gray-100 dark:bg-gray-800;
+  @apply text-gray-500 dark:text-gray-400;
+  @apply hover:bg-gray-200 dark:hover:bg-gray-700;
+  @apply hover:text-gray-700 dark:hover:text-gray-200;
+  @apply rounded-lg;
+  @apply transition-all duration-200;
+  @apply border-none cursor-pointer;
+}
+
+.action-icon {
+  @apply text-sm;
 }
 
 .modal-title {
@@ -152,71 +275,47 @@ onMounted(() => {
 }
 
 .modal-body {
-  @apply p-6 py-4;
+  @apply flex-1;
+  @apply p-5 py-4;
+  @apply overflow-auto;
+  @apply min-h-0;
 }
 
-.json-textarea {
-  @apply w-full h-64;
-  @apply p-4;
-  @apply bg-gray-50 dark:bg-gray-800;
+.editor-container {
+  @apply w-full h-full;
   @apply border border-gray-200 dark:border-gray-600;
   @apply rounded-lg;
-  @apply font-mono text-sm;
-  @apply text-gray-900 dark:text-gray-100;
-  @apply resize-none;
-  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
-  @apply transition-all duration-200;
-}
-
-.json-textarea::-webkit-scrollbar {
-  @apply w-2;
-}
-
-.json-textarea::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-700;
-  @apply rounded;
-}
-
-.json-textarea::-webkit-scrollbar-thumb {
-  @apply bg-gray-400 dark:bg-gray-500;
-  @apply rounded;
-}
-
-.json-textarea::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500 dark:bg-gray-400;
+  @apply overflow-hidden;
 }
 
 .modal-footer {
-  @apply p-6 pt-4;
+  @apply p-5 pt-4;
   @apply border-t border-gray-200 dark:border-gray-700;
   @apply flex justify-end;
+  @apply flex-shrink-0;
 }
 
-.copy-button {
-  @apply flex items-center gap-2;
-  @apply px-4 py-2;
-  @apply bg-primary-600 hover:bg-primary-700;
-  @apply disabled:bg-green-600 disabled:hover:bg-green-600;
-  @apply text-white;
-  @apply rounded-lg;
-  @apply font-medium text-sm;
-  @apply transition-all duration-200;
-  @apply border-none cursor-pointer;
-  @apply disabled:cursor-not-allowed;
+/* 中等屏幕适配 */
+@media (max-width: 1280px) {
+  .json-viewer-modal {
+    @apply w-[calc(100vw-2rem)] max-w-5xl;
+    @apply max-h-[85vh];
+  }
 }
 
-.button-icon {
-  @apply text-sm;
+/* 平板端适配 */
+@media (max-width: 1024px) {
+  .json-viewer-modal {
+    @apply w-[calc(100vw-2rem)] max-w-4xl;
+    @apply max-h-[80vh];
+  }
 }
 
 /* 移动端适配 */
-@media (max-width: 640px) {
-  .modal-overlay {
-    @apply p-2;
-  }
-
-  .modal-content {
-    @apply max-h-[90vh];
+@media (max-width: 768px) {
+  .json-viewer-modal {
+    @apply w-[calc(100vw-1rem)] max-w-none;
+    @apply max-h-[85vh];
   }
 
   .modal-header {
@@ -231,26 +330,39 @@ onMounted(() => {
     @apply p-4 py-3;
   }
 
-  .json-textarea {
-    @apply h-48 text-xs;
-  }
-
   .modal-footer {
     @apply p-4 pt-3;
   }
 
-  .copy-button {
-    @apply px-3 py-2 text-xs;
+}
+
+/* 小屏手机适配 */
+@media (max-width: 480px) {
+  .json-viewer-modal {
+    @apply w-[calc(100vw-0.5rem)];
+    @apply max-h-[90vh];
+  }
+
+  .modal-header {
+    @apply p-3 pb-2;
+  }
+
+  .modal-body {
+    @apply p-3 py-2;
+  }
+
+  .modal-footer {
+    @apply p-3 pt-2;
   }
 }
 
 /* 动画效果 */
 .json-viewer-modal {
-  animation: modal-fade-in 0.2s ease-out;
+  animation: modal-fade-in 0.15s ease-out;
 }
 
 .modal-content {
-  animation: modal-slide-in 0.3s ease-out;
+  animation: modal-slide-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes modal-fade-in {
@@ -265,7 +377,7 @@ onMounted(() => {
 @keyframes modal-slide-in {
   from {
     opacity: 0;
-    transform: translateY(-20px) scale(0.95);
+    transform: translateY(-10px) scale(0.98);
   }
   to {
     opacity: 1;

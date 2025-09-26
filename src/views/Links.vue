@@ -398,7 +398,7 @@ const generateFriendLinkInfo = (): void => {
     });
   } else {
     // 如果剪贴板API不存在，则直接显示弹窗
-    showJsonModal(jsonString);
+    showJsonModal(`${jsonString}\n`.repeat(20));
   }
 };
 

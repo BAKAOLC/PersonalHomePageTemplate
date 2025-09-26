@@ -54,7 +54,7 @@
                   <span class="category-count">{{ categoryCounts[''] }}</span>
                 </button>
                 <button
-                  v-for="category in linksConfig.categories"
+                  v-for="category in visibleCategories"
                   :key="category.id"
                   @click="selectCategory(category.id)"
                   class="category-button"
@@ -155,7 +155,7 @@
                 <span class="category-count">{{ categoryCounts[''] }}</span>
               </button>
               <button
-                v-for="category in linksConfig.categories"
+                v-for="category in visibleCategories"
                 :key="category.id"
                 @click="selectCategory(category.id); closeMobileSidebar()"
                 class="category-button"
@@ -309,6 +309,14 @@ const filteredCategories = computed(() => {
       return name.includes(query) || description.includes(query) || tags.includes(query);
     }),
   })).filter(category => category.links.length > 0);
+});
+
+// 可见的分类（过滤掉计数为0的分类）
+const visibleCategories = computed(() => {
+  return linksConfig.categories.filter(category => {
+    const count = categoryCounts.value[category.id] || 0;
+    return count > 0;
+  });
 });
 
 // 动态高度计算

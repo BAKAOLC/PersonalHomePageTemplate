@@ -1313,7 +1313,7 @@ onBeforeUnmount(() => {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 60;
   display: flex;
   align-items: flex-end;
   touch-action: none;

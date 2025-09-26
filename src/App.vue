@@ -34,6 +34,12 @@
         </div>
       </footer>
     </template>
+
+    <!-- 弹窗容器 -->
+    <ModalContainer />
+
+    <!-- 通知容器 -->
+    <NotificationContainer />
   </div>
 </template>
 
@@ -42,6 +48,8 @@ import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import LoadingScreen from '@/components/LoadingScreen.vue';
+import NotificationContainer from '@/components/NotificationContainer.vue';
+import ModalContainer from '@/components/modals/ModalContainer.vue';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher.vue';
 import NavigationBar from '@/components/ui/NavigationBar.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';

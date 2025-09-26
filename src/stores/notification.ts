@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 
 import type { I18nText } from '@/types';
 
+import { useTimers } from '@/composables/useTimers';
+
 export interface NotificationConfig {
   id: string;
   message: string | I18nText;
@@ -21,6 +23,7 @@ export const useNotificationStore = defineStore('notification', () => {
   const notifications = ref<NotificationInstance[]>([]);
   const maxNotifications = ref(5);
   const pendingQueue = ref<NotificationConfig[]>([]);
+  const { setTimeout, clearTimeout } = useTimers();
 
   // 获取可见通知数量
   const visibleCount = computed(() => notifications.value.filter(n => n.visible).length);
@@ -50,7 +53,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
     // 设置自动关闭定时器
     if (notification.duration && notification.duration > 0) {
-      notification.timer = window.setTimeout(() => {
+      notification.timer = setTimeout(() => {
         remove(notification.id);
       }, notification.duration);
     }

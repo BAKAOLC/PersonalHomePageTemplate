@@ -456,8 +456,9 @@ const emit = defineEmits<{
 const { t: $t } = useI18n();
 const router = useRouter();
 const appStore = useAppStore();
-const timers = useTimers();
+const { setTimeout, clearTimeout } = useTimers();
 const eventManager = useEventManager();
+const { addEventListener, removeEventListener } = useEventManager();
 const { isMobile, onScreenChange } = useMobileDetection();
 const { getSortedTags, getTagColor, getTagName } = useTags();
 
@@ -1273,7 +1274,7 @@ const toggleInfoPanel = (): void => {
       // 如果没有动画或动画时长为0，立即重置状态
       infoPanelAnimating.value = false;
     } else {
-      timers.setTimeout(() => {
+      setTimeout(() => {
         infoPanelAnimating.value = false;
       }, duration);
     }
@@ -1298,7 +1299,7 @@ const toggleMobileInfoOverlay = (): void => {
   }
 
   // 动画结束后重置状态
-  timers.setTimeout(() => {
+  setTimeout(() => {
     mobileInfoOverlayAnimating.value = false;
     // 移动端覆盖层不会改变图像容器大小，无需额外处理
   }, 300); // 覆盖层动画时长
@@ -1314,7 +1315,7 @@ const closeMobileInfoOverlay = (): void => {
   // 恢复背景滚动
   document.body.style.overflow = '';
 
-  timers.setTimeout(() => {
+  setTimeout(() => {
     mobileInfoOverlayAnimating.value = false;
     // 移动端覆盖层不会改变图像容器大小，无需额外处理
   }, 300);
@@ -1336,7 +1337,7 @@ const toggleCommentsModal = (): void => {
   }
 
   // 动画结束后重置状态
-  timers.setTimeout(() => {
+  setTimeout(() => {
     commentsModalAnimating.value = false;
   }, 300); // 模态框动画时长
 };
@@ -1351,7 +1352,7 @@ const closeCommentsModal = (): void => {
   // 恢复背景滚动
   document.body.style.overflow = '';
 
-  timers.setTimeout(() => {
+  setTimeout(() => {
     commentsModalAnimating.value = false;
   }, 300);
 };
@@ -1434,11 +1435,11 @@ const startResizeGroupSelector = (event: MouseEvent | TouchEvent): void => {
   const handleMouseUp = (e: MouseEvent | TouchEvent): void => stopResizeGroupSelector(e);
 
   if ('touches' in event) {
-    document.addEventListener('touchmove', handleMouseMove, { passive: false });
-    document.addEventListener('touchend', handleMouseUp);
+    addEventListener('touchmove', handleMouseMove, { passive: false });
+    addEventListener('touchend', handleMouseUp);
   } else {
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    addEventListener('mousemove', handleMouseMove);
+    addEventListener('mouseup', handleMouseUp);
   }
 
   // 添加拖拽样式
@@ -1476,10 +1477,10 @@ const stopResizeGroupSelector = (event: MouseEvent | TouchEvent): void => {
   }
 
   // 移除全局事件监听器
-  document.removeEventListener('mousemove', handleResizeGroupSelector);
-  document.removeEventListener('mouseup', stopResizeGroupSelector);
-  document.removeEventListener('touchmove', handleResizeGroupSelector);
-  document.removeEventListener('touchend', stopResizeGroupSelector);
+  removeEventListener('mousemove', handleResizeGroupSelector);
+  removeEventListener('mouseup', stopResizeGroupSelector);
+  removeEventListener('touchmove', handleResizeGroupSelector);
+  removeEventListener('touchend', stopResizeGroupSelector);
 
   // 恢复样式
   document.body.style.cursor = '';
@@ -1626,7 +1627,7 @@ const handleThumbnailWheel = (event: WheelEvent): void => {
   setManualThumbnailOffset(thumbnailsOffset.value + delta);
 
   // 1秒后重置用户滚动状态
-  timers.setTimeout(() => {
+  setTimeout(() => {
     isUserScrolling.value = false;
   }, 1000);
 };
@@ -1657,20 +1658,20 @@ const handleThumbnailMouseDown = (event: MouseEvent): void => {
 
   const handleMouseUp = (): void => {
     // 延迟重置拖拽状态，确保点击事件处理完毕
-    timers.setTimeout(() => {
+    setTimeout(() => {
       isDragging.value = false;
     }, 50);
 
-    timers.setTimeout(() => {
+    setTimeout(() => {
       isUserScrolling.value = false;
     }, 500);
 
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+    removeEventListener('mousemove', handleMouseMove);
+    removeEventListener('mouseup', handleMouseUp);
   };
 
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseup', handleMouseUp);
+  addEventListener('mousemove', handleMouseMove);
+  addEventListener('mouseup', handleMouseUp);
 };
 
 // 触摸拖拽处理
@@ -1704,11 +1705,11 @@ const handleThumbnailTouchStart = (event: TouchEvent): void => {
 
   const handleTouchEnd = (): void => {
     // 延迟重置拖拽状态，确保点击事件处理完毕
-    timers.setTimeout(() => {
+    setTimeout(() => {
       isDragging.value = false;
     }, 50);
 
-    timers.setTimeout(() => {
+    setTimeout(() => {
       isUserScrolling.value = false;
     }, 500);
 
@@ -1842,12 +1843,12 @@ const handleImageMouseDown = (event: MouseEvent): void => {
   const handleMouseUp = (): void => {
     isDraggingImage.value = false;
     enableImageTransition.value = true; // 重新启用过渡动画
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+    removeEventListener('mousemove', handleMouseMove);
+    removeEventListener('mouseup', handleMouseUp);
   };
 
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseup', handleMouseUp);
+  addEventListener('mousemove', handleMouseMove);
+  addEventListener('mouseup', handleMouseUp);
 };
 
 const handleImageTouchStart = (event: TouchEvent): void => {
@@ -2005,12 +2006,12 @@ const handleMinimapMouseDown = (event: MouseEvent): void => {
     const handleMinimapMouseUp = (): void => {
       isDraggingMinimap.value = false;
       enableImageTransition.value = true; // 重新启用过渡动画
-      document.removeEventListener('mousemove', handleMinimapMouseMove);
-      document.removeEventListener('mouseup', handleMinimapMouseUp);
+      removeEventListener('mousemove', handleMinimapMouseMove);
+      removeEventListener('mouseup', handleMinimapMouseUp);
     };
 
-    document.addEventListener('mousemove', handleMinimapMouseMove);
-    document.addEventListener('mouseup', handleMinimapMouseUp);
+    addEventListener('mousemove', handleMinimapMouseMove);
+    addEventListener('mouseup', handleMinimapMouseUp);
   } else {
     // 点击在视口框外，直接跳转到点击位置
     // 将点击位置转换为相对于图像区域的坐标
@@ -2083,12 +2084,12 @@ const handleMinimapMouseDown = (event: MouseEvent): void => {
     const handleMinimapMouseUp = (): void => {
       isDraggingMinimap.value = false;
       enableImageTransition.value = true; // 重新启用过渡动画
-      document.removeEventListener('mousemove', handleMinimapMouseMove);
-      document.removeEventListener('mouseup', handleMinimapMouseUp);
+      removeEventListener('mousemove', handleMinimapMouseMove);
+      removeEventListener('mouseup', handleMinimapMouseUp);
     };
 
-    document.addEventListener('mousemove', handleMinimapMouseMove);
-    document.addEventListener('mouseup', handleMinimapMouseUp);
+    addEventListener('mousemove', handleMinimapMouseMove);
+    addEventListener('mouseup', handleMinimapMouseUp);
 
     updateMinimapViewport();
   }
@@ -2184,12 +2185,12 @@ const handleMinimapTouchStart = (event: TouchEvent): void => {
     const handleMinimapTouchEnd = (): void => {
       isDraggingMinimap.value = false;
       enableImageTransition.value = true; // 重新启用过渡动画
-      document.removeEventListener('touchmove', handleMinimapTouchMove);
-      document.removeEventListener('touchend', handleMinimapTouchEnd);
+      removeEventListener('touchmove', handleMinimapTouchMove);
+      removeEventListener('touchend', handleMinimapTouchEnd);
     };
 
-    document.addEventListener('touchmove', handleMinimapTouchMove, { passive: false });
-    document.addEventListener('touchend', handleMinimapTouchEnd);
+    addEventListener('touchmove', handleMinimapTouchMove, { passive: false });
+    addEventListener('touchend', handleMinimapTouchEnd);
   } else {
     // 点击在视口框外，直接跳转到点击位置
     // 将点击位置转换为相对于图像区域的坐标
@@ -2266,12 +2267,12 @@ const handleMinimapTouchStart = (event: TouchEvent): void => {
     const handleMinimapTouchEnd = (): void => {
       isDraggingMinimap.value = false;
       enableImageTransition.value = true; // 重新启用过渡动画
-      document.removeEventListener('touchmove', handleMinimapTouchMove);
-      document.removeEventListener('touchend', handleMinimapTouchEnd);
+      removeEventListener('touchmove', handleMinimapTouchMove);
+      removeEventListener('touchend', handleMinimapTouchEnd);
     };
 
-    document.addEventListener('touchmove', handleMinimapTouchMove, { passive: false });
-    document.addEventListener('touchend', handleMinimapTouchEnd);
+    addEventListener('touchmove', handleMinimapTouchMove, { passive: false });
+    addEventListener('touchend', handleMinimapTouchEnd);
 
     updateMinimapViewport();
   }
@@ -2298,7 +2299,7 @@ const close = (): void => {
     // 重置关闭状态，以便下次打开
     isClosing.value = false;
   } else {
-    timers.setTimeout(() => {
+    setTimeout(() => {
       emit('close');
       // 重置关闭状态，以便下次打开
       isClosing.value = false;
@@ -2394,7 +2395,7 @@ const preloadAdjacentImages = (): void => {
   }
 
   // 低优先级预加载 - 延迟执行以确保当前图片优先
-  timers.setTimeout(() => {
+  setTimeout(() => {
     lowPriorityImages.forEach(src => {
       imageCache.preloadImage(src, LoadPriority.OTHER_IMAGE).catch(() => {
         // 预加载失败不影响主要功能
@@ -2438,7 +2439,7 @@ watch(currentImage, (newImage) => {
 
     // 延迟触发预加载，确保当前图片优先
     nextTick(() => {
-      timers.setTimeout(() => {
+      setTimeout(() => {
         updateThumbnailsOffset();
         // 预加载相邻图片
         preloadAdjacentImages();
@@ -2461,7 +2462,7 @@ watch(() => props.isActive, (newValue) => {
 
     // 组件激活时，先添加可见样式，然后再添加过渡动画样式
     nextTick(() => {
-      timers.setTimeout(() => {
+      setTimeout(() => {
         transitionActive.value = true;
       }, 50);
     });
@@ -2507,7 +2508,7 @@ const autoCenterImage = (): void => {
     imageOffset.value = newOffset;
     // 启用过渡动画使居中更平滑
     enableImageTransition.value = true;
-    timers.setTimeout(() => {
+    setTimeout(() => {
       enableImageTransition.value = false;
     }, 150);
   }
@@ -2523,10 +2524,10 @@ let containerResizeDebounceTimer: number | null = null;
 // 处理图像容器尺寸变化
 const handleImageContainerResize = (): void => {
   if (containerResizeDebounceTimer !== null) {
-    timers.clearTimeout(containerResizeDebounceTimer);
+    clearTimeout(containerResizeDebounceTimer);
   }
 
-  containerResizeDebounceTimer = timers.setTimeout(() => {
+  containerResizeDebounceTimer = setTimeout(() => {
     // 立即应用拖拽限制修正，确保图像在新的容器尺寸下保持在有效范围内
     applyDragLimits();
 
@@ -2564,17 +2565,17 @@ const handleScreenChange = (wasMobile: boolean, currentIsMobile: boolean): void 
 
   // 清除之前的防抖定时器
   if (resizeDebounceTimer !== null) {
-    timers.clearTimeout(resizeDebounceTimer);
+    clearTimeout(resizeDebounceTimer);
   }
 
   // 使用防抖处理图像相关的更新，避免频繁重新计算
-  resizeDebounceTimer = timers.setTimeout(() => {
+  resizeDebounceTimer = setTimeout(() => {
     handleResizeDebounced();
     resizeDebounceTimer = null;
   }, 150); // 150ms防抖延迟
 
   // 动画完成后重置过渡状态
-  timers.setTimeout(() => {
+  setTimeout(() => {
     isResponsiveTransitioning.value = false;
   }, 400); // 与动画时长保持一致
 };
@@ -2599,7 +2600,7 @@ const handleResizeDebounced = (): void => {
 
   // 如果用户之前在滚动，延迟恢复状态
   if (wasUserScrolling) {
-    timers.setTimeout(() => {
+    setTimeout(() => {
       isUserScrolling.value = true;
     }, 100);
   }
@@ -2630,7 +2631,7 @@ onMounted(() => {
     previousMobile = currentIsMobile;
   });
 
-  window.addEventListener('keydown', handleKeyDown);
+  addEventListener('keydown', handleKeyDown);
 
   // 设置图像容器的 ResizeObserver
   nextTick(() => {
@@ -2653,7 +2654,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeyDown);
+  removeEventListener('keydown', handleKeyDown);
 
   // 取消屏幕变化监听器
   if (unsubscribeScreenChange) {
@@ -2663,13 +2664,13 @@ onBeforeUnmount(() => {
 
   // 清理resize防抖定时器
   if (resizeDebounceTimer !== null) {
-    timers.clearTimeout(resizeDebounceTimer);
+    clearTimeout(resizeDebounceTimer);
     resizeDebounceTimer = null;
   }
 
   // 清理容器resize防抖定时器
   if (containerResizeDebounceTimer !== null) {
-    timers.clearTimeout(containerResizeDebounceTimer);
+    clearTimeout(containerResizeDebounceTimer);
     containerResizeDebounceTimer = null;
   }
 
@@ -2686,10 +2687,10 @@ onBeforeUnmount(() => {
 
   // 清理子图像列表拖拽调整宽度的事件监听器
   if (isDraggingGroupResize.value) {
-    document.removeEventListener('mousemove', handleResizeGroupSelector);
-    document.removeEventListener('mouseup', stopResizeGroupSelector);
-    document.removeEventListener('touchmove', handleResizeGroupSelector);
-    document.removeEventListener('touchend', stopResizeGroupSelector);
+    removeEventListener('mousemove', handleResizeGroupSelector);
+    removeEventListener('mouseup', stopResizeGroupSelector);
+    removeEventListener('touchmove', handleResizeGroupSelector);
+    removeEventListener('touchend', stopResizeGroupSelector);
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
   }

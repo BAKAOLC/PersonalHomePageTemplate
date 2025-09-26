@@ -26,6 +26,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 
+import { useTimers } from '@/composables/useTimers';
+
 const props = defineProps<{
   onComplete?: () => void;
 }>();
@@ -37,6 +39,7 @@ const emit = defineEmits<{
 const fadeOut = ref(false);
 const progress = ref(0);
 const animationFrameId = ref<number | null>(null);
+const { setTimeout } = useTimers();
 
 // 伪加载进度函数
 const updateProgress = (startTime: number): void => {

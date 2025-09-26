@@ -99,8 +99,8 @@ import { getIconClass } from '@/utils/icons';
 const { t: $t } = useI18n();
 const router = useRouter();
 const appStore = useAppStore();
-const timers = useTimers();
-const eventManager = useEventManager();
+const { setTimeout, clearTimeout } = useTimers();
+const { addEventListener } = useEventManager();
 const { onScreenChange } = useMobileDetection();
 
 // 动态高度计算
@@ -233,10 +233,10 @@ const handleScreenChange = (currentIsMobile: boolean): void => {
 const updateSearchQuery = (value: string): void => {
   // 防抖处理
   if (searchDebounceTimeout.value) {
-    timers.clearTimeout(searchDebounceTimeout.value);
+    clearTimeout(searchDebounceTimeout.value);
   }
 
-  searchDebounceTimeout.value = timers.setTimeout(() => {
+  searchDebounceTimeout.value = setTimeout(() => {
     // 使用 store 的方法更新搜索查询
     appStore.setSearchQuery(value);
 
@@ -324,8 +324,8 @@ const handleViewerNavigate = (event: CustomEvent): void => {
 let unsubscribeScreenChange: (() => void) | null = null;
 
 onMounted(() => {
-  eventManager.addEventListener('viewImage', openViewer as EventListener);
-  eventManager.addEventListener('viewerNavigate', handleViewerNavigate as EventListener);
+  addEventListener('viewImage', openViewer as EventListener);
+  addEventListener('viewerNavigate', handleViewerNavigate as EventListener);
 
   // 注册屏幕变化监听器
   unsubscribeScreenChange = onScreenChange(handleScreenChange);

@@ -80,6 +80,7 @@ import type { I18nText, CharacterImage } from '@/types';
 
 import { useEventManager } from '@/composables/useEventManager';
 import { useTags } from '@/composables/useTags';
+import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
 import { getI18nText } from '@/utils/i18nText';
@@ -119,6 +120,7 @@ watch(() => props.images, async (newImages, oldImages) => {
 }, { deep: true });
 
 const { t: $t } = useI18n();
+const { setTimeout } = useTimers();
 const appStore = useAppStore();
 const eventManager = useEventManager();
 const { getSortedTags, getTagColor, getTagName } = useTags();

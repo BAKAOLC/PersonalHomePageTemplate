@@ -121,6 +121,7 @@ import type { Article } from '@/types';
 
 import GiscusComments from '@/components/GiscusComments.vue';
 import { useScreenManager } from '@/composables/useScreenManager';
+import { useTimers } from '@/composables/useTimers';
 import articleCategoriesConfig from '@/config/articles-categories.json';
 import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/stores/app';
@@ -145,6 +146,7 @@ const emit = defineEmits<Emits>();
 
 const { isMobile } = useScreenManager();
 const appStore = useAppStore();
+const { setTimeout } = useTimers();
 
 // 响应式数据
 const isActive = ref(false);

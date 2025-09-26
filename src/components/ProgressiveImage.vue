@@ -57,6 +57,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 
 import thumbnailMap from '@/assets/thumbnail-map.json';
+import { useTimers } from '@/composables/useTimers';
 import { imageCache, LoadPriority } from '@/services/imageCache';
 import { AnimationDurations } from '@/utils/animations';
 
@@ -99,6 +100,7 @@ const imageLoaded = ref(false);
 const isLoading = ref(true);
 const showThumbnail = ref(false);
 const thumbnailLoaded = ref(false);
+const { setTimeout } = useTimers();
 const thumbnailHidden = ref(false);
 const shouldShowMainImage = ref(false);
 const mainImageStartedLoading = ref(false);

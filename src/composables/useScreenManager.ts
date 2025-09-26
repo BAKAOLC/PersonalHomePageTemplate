@@ -1,5 +1,8 @@
 import { ref, computed, onMounted, type ComputedRef, type Ref } from 'vue';
 
+import { useEventManager } from '@/composables/useEventManager';
+import { useTimers } from '@/composables/useTimers';
+
 /**
  * 屏幕尺寸变化回调函数类型
  */
@@ -57,6 +60,8 @@ const callbacks = new Set<ScreenChangeCallback>();
 
 // 防抖定时器
 let resizeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+const { setTimeout, clearTimeout } = useTimers();
+const { addEventListener, removeEventListener } = useEventManager();
 
 // 移动端断点配置
 const MOBILE_BREAKPOINT = 768;
@@ -151,8 +156,8 @@ const initializeGlobalListener = (): void => {
   updateScreenInfo();
 
   // 添加事件监听器
-  window.addEventListener('resize', handleResize);
-  window.addEventListener('orientationchange', handleResizeImmediate);
+  addEventListener('resize', handleResize);
+  addEventListener('orientationchange', handleResizeImmediate);
 
   isGlobalListenerInitialized = true;
 };
@@ -163,8 +168,8 @@ const initializeGlobalListener = (): void => {
 const cleanupGlobalListener = (): void => {
   if (!isGlobalListenerInitialized) return;
 
-  window.removeEventListener('resize', handleResize);
-  window.removeEventListener('orientationchange', handleResizeImmediate);
+  removeEventListener('resize', handleResize);
+  removeEventListener('orientationchange', handleResizeImmediate);
 
   // 清理防抖定时器
   if (resizeDebounceTimer !== null) {

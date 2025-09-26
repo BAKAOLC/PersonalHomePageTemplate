@@ -2,6 +2,8 @@
 
 import type { CacheStats } from '@/types';
 
+import { useTimers } from '@/composables/useTimers';
+
 // LoadPriority 枚举
 enum LoadPriority {
   OTHER_IMAGE = 1, // 当前不在看的所有图片（最低优先级）
@@ -102,6 +104,8 @@ class ImageCacheService {
     onProgress?: (progress: number) => void,
     isThumbnail: boolean = false,
   ): Promise<string> {
+    const { setTimeout } = useTimers();
+
     // 如果没有指定优先级，根据当前状态自动计算
     if (priority === undefined) {
       priority = this.calculatePriority(url, isThumbnail);

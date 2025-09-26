@@ -204,6 +204,78 @@ export default [
       ],
       // 禁用原生的no-unused-vars规则，使用TypeScript版本
       'no-unused-vars': 'off',
+      // 禁止使用原生setTimeout和setInterval，强制使用useTimers
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'setTimeout',
+          message: '请使用 useTimers() 中的 setTimeout 替代原生 setTimeout',
+        },
+        {
+          name: 'setInterval',
+          message: '请使用 useTimers() 中的 setInterval 替代原生 setInterval',
+        },
+        {
+          name: 'clearTimeout',
+          message: '请使用 useTimers() 中的 clearTimeout 替代原生 clearTimeout',
+        },
+        {
+          name: 'clearInterval',
+          message: '请使用 useTimers() 中的 clearInterval 替代原生 clearInterval',
+        },
+      ],
+      // 禁止使用原生addEventListener，强制使用被管理的事件监听器
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="addEventListener"]',
+          message: '禁止使用原生 addEventListener，请使用被管理的事件监听器，如 useEventManager 或组件内的事件管理',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="removeEventListener"]',
+          message: '禁止使用原生 removeEventListener，请使用被管理的事件监听器，如 useEventManager 或组件内的事件管理',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="document"][callee.property.name="addEventListener"]',
+          message: '禁止使用原生 addEventListener，请使用被管理的事件监听器，如 useEventManager 或组件内的事件管理',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="document"][callee.property.name="removeEventListener"]',
+          message: '禁止使用原生 removeEventListener，请使用被管理的事件监听器，如 useEventManager 或组件内的事件管理',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="document"][callee.property.name="addEventListener"]',
+          message: '禁止使用原生 addEventListener，请使用被管理的事件监听器，如 useEventManager 或组件内的事件管理',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="document"][callee.property.name="removeEventListener"]',
+          message: '禁止使用原生 removeEventListener，请使用被管理的事件监听器，如 useEventManager 或组件内的事件管理',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="setTimeout"]',
+          message: '禁止使用 window.setTimeout，请使用 useTimers() 中的 setTimeout',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="setInterval"]',
+          message: '禁止使用 window.setInterval，请使用 useTimers() 中的 setInterval',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="clearTimeout"]',
+          message: '禁止使用 window.clearTimeout，请使用 useTimers() 中的 clearTimeout',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="clearInterval"]',
+          message: '禁止使用 window.clearInterval，请使用 useTimers() 中的 clearInterval',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="requestAnimationFrame"]',
+          message: '禁止使用 window.requestAnimationFrame，请使用 useTimers() 中的 requestAnimationFrame',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="cancelAnimationFrame"]',
+          message: '禁止使用 window.cancelAnimationFrame，请使用 useTimers() 中的 cancelAnimationFrame',
+        },
+      ],
     },
   },
   // Vue 文件配置
@@ -286,6 +358,62 @@ export default [
       ],
       // 禁用原生的no-unused-vars规则，使用TypeScript版本
       'no-unused-vars': 'off',
+      // 禁止使用原生setTimeout和setInterval，强制使用useTimers
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'setTimeout',
+          message: '请使用 useTimers() 中的 setTimeout 替代原生 setTimeout',
+        },
+        {
+          name: 'setInterval',
+          message: '请使用 useTimers() 中的 setInterval 替代原生 setInterval',
+        },
+        {
+          name: 'clearTimeout',
+          message: '请使用 useTimers() 中的 clearTimeout 替代原生 clearTimeout',
+        },
+        {
+          name: 'clearInterval',
+          message: '请使用 useTimers() 中的 clearInterval 替代原生 clearInterval',
+        },
+      ],
+      // 禁止使用原生addEventListener，强制使用被管理的事件监听器
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="addEventListener"]',
+          message: '禁止使用 window.addEventListener，请使用被管理的事件监听器，如 useEventManager 或组件内的事件管理',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="removeEventListener"]',
+          message: '禁止使用 window.removeEventListener，请使用被管理的事件监听器，如 useEventManager 或组件内的事件管理',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="setTimeout"]',
+          message: '禁止使用 window.setTimeout，请使用 useTimers() 中的 setTimeout',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="setInterval"]',
+          message: '禁止使用 window.setInterval，请使用 useTimers() 中的 setInterval',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="clearTimeout"]',
+          message: '禁止使用 window.clearTimeout，请使用 useTimers() 中的 clearTimeout',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="clearInterval"]',
+          message: '禁止使用 window.clearInterval，请使用 useTimers() 中的 clearInterval',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="requestAnimationFrame"]',
+          message: '禁止使用 window.requestAnimationFrame，请使用 useTimers() 中的 requestAnimationFrame',
+        },
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="cancelAnimationFrame"]',
+          message: '禁止使用 window.cancelAnimationFrame，请使用 useTimers() 中的 cancelAnimationFrame',
+        },
+      ],
     },
   },
   {

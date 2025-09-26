@@ -202,7 +202,7 @@ import { toAbsoluteUrl } from '@/utils/url';
 
 const { t: $t } = useI18n();
 const appStore = useAppStore();
-const timers = useTimers();
+const { setTimeout, clearTimeout } = useTimers();
 const modalManager = useModalManager();
 const notificationManager = useNotificationManager();
 const { onScreenChange } = useMobileDetection();
@@ -354,10 +354,10 @@ const closeMobileSidebar = (): void => {
 // 搜索功能
 const updateSearchQuery = (value: string): void => {
   if (searchDebounceTimeout.value) {
-    timers.clearTimeout(searchDebounceTimeout.value);
+    clearTimeout(searchDebounceTimeout.value);
   }
 
-  searchDebounceTimeout.value = timers.setTimeout(() => {
+  searchDebounceTimeout.value = setTimeout(() => {
     searchQuery.value = value;
     searchDebounceTimeout.value = null;
   }, 300) as unknown as number;

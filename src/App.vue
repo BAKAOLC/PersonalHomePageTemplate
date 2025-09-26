@@ -53,6 +53,7 @@ import ModalContainer from '@/components/modals/ModalContainer.vue';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher.vue';
 import NavigationBar from '@/components/ui/NavigationBar.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
+import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
 import { titleManager } from '@/services/titleManager';
 import { useAppStore } from '@/stores/app';
@@ -60,6 +61,7 @@ import { getAppTitle, getAppCopyright } from '@/utils/appConfig';
 
 const { locale } = useI18n();
 const appStore = useAppStore();
+const { setTimeout } = useTimers();
 
 // 应用配置的计算属性
 const appTitle = computed(() => getAppTitle(appStore.currentLanguage));

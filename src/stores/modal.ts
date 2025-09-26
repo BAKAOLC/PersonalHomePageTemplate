@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed, nextTick, markRaw, type Component } from 'vue';
 
+import { useTimers } from '@/composables/useTimers';
+
 export interface ModalOptions {
   closable?: boolean; // 是否可关闭
   maskClosable?: boolean; // 点击遮罩是否关闭
@@ -36,6 +38,7 @@ export const useModalStore = defineStore('modal', () => {
   const baseZIndex = ref(2000);
   const currentZIndex = ref(2000);
   const activeModalStack = ref<string[]>([]); // 活跃弹窗栈
+  const { setTimeout } = useTimers();
 
   // 获取可见弹窗
   const visibleModals = computed(() => {

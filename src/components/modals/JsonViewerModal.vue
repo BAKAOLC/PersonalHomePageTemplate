@@ -68,7 +68,7 @@ const emit = defineEmits<Emits>();
 const { t: $t } = useI18n();
 const notificationManager = useNotificationManager();
 const screenManager = useScreenManager();
-const timers = useTimers();
+const { setTimeout, clearTimeout } = useTimers();
 
 // 响应式数据
 const monacoEditorRef = ref<InstanceType<typeof MonacoEditor> | null>(null);
@@ -151,7 +151,7 @@ const adjustEditorHeight = (): void => {
 // 编辑器事件处理
 const onEditorReady = (): void => {
   // 编辑器准备好后调整高度
-  timers.setTimeout(() => {
+  setTimeout(() => {
     adjustEditorHeight();
   }, 100);
 };
@@ -173,7 +173,7 @@ const onContentChange = (value: string): void => {
   }
 
   // 设置新的防抖定时器
-  contentChangeTimeout = timers.setTimeout(() => {
+  contentChangeTimeout = setTimeout(() => {
     adjustEditorHeight();
     contentChangeTimeout = null;
     isContentChanging = false;

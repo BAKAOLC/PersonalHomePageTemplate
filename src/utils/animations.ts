@@ -2,6 +2,8 @@
  * 动画工具函数 - 从CSS读取动画时长避免硬编码魔数
  */
 
+import { useTimers } from '@/composables/useTimers';
+
 /**
  * 从CSS transition-duration属性获取动画时长（毫秒）
  * @param element - DOM元素
@@ -102,6 +104,7 @@ export const waitForTransition = (element: HTMLElement, property?: string): Prom
     element.addEventListener('transitionend', handler);
 
     // 后备超时，防止transitionend事件未触发
+    const { setTimeout } = useTimers();
     setTimeout(() => {
       element.removeEventListener('transitionend', handler);
       resolve();

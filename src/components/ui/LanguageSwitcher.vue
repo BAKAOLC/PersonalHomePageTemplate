@@ -23,13 +23,15 @@ import { useI18n } from 'vue-i18n';
 
 import type { Language } from '@/types';
 
+import { useEventManager } from '@/composables/useEventManager';
 import { useTimers } from '@/composables/useTimers';
 import { useAppStore } from '@/stores/app';
 import { getEnabledLanguages, getLanguageNativeName } from '@/utils/language';
 
 const { locale } = useI18n();
 const appStore = useAppStore();
-const timers = useTimers();
+const { setTimeout } = useTimers();
+const { addEventListener, removeEventListener } = useEventManager();
 
 const isOpen = ref(false);
 const menuRef = ref<HTMLDivElement | null>(null);
@@ -56,7 +58,7 @@ const toggleLanguageMenu = (): void => {
   const button = event?.target as HTMLElement;
   if (button) {
     button.style.transform = 'scale(0.95)';
-    timers.setTimeout(() => {
+    setTimeout(() => {
       button.style.transform = '';
     }, 150);
   }
@@ -82,13 +84,12 @@ const handleClickOutside = (event: MouseEvent): void => {
     isOpen.value = false;
   }
 };
-
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
+  addEventListener('click', handleClickOutside);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside);
+  removeEventListener('click', handleClickOutside);
 });
 </script>
 

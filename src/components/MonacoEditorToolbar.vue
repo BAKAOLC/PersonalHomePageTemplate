@@ -267,7 +267,7 @@ watch(() => props.getLineNumbersEnabled(), (newEnabled) => {
 });
 
 // 方法
-const toggleTheme = () => {
+const toggleTheme = (): void => {
   appStore.toggleThemeMode();
 };
 

@@ -58,49 +58,52 @@
             </div>
           </div>
 
-          <!-- 中间主图片区域 -->
-          <div class="main-image-section">
-            <div class="main-image-container">
-              <div v-if="selectedImage" class="main-image-wrapper">
-                <ProgressiveImage
-                  :src="selectedImage.src"
-                  :alt="getI18nText(selectedImage.alt, currentLanguage)"
-                  class="main-image"
-                  object-fit="contain"
-                  display-type="original"
-                  @click="openImageViewer(selectedImage)"
-                />
-              </div>
-              <div v-else class="no-image-placeholder">
-                <i class="fas fa-image"></i>
-                <p>{{ $t('characterProfiles.noImageSelected') }}</p>
+          <!-- 右侧内容区域 -->
+          <div class="right-content-section">
+            <!-- 主图片区域 -->
+            <div class="main-image-section">
+              <div class="main-image-container">
+                <div v-if="selectedImage" class="main-image-wrapper">
+                  <ProgressiveImage
+                    :src="selectedImage.src"
+                    :alt="getI18nText(selectedImage.alt, currentLanguage)"
+                    class="main-image"
+                    object-fit="contain"
+                    display-type="original"
+                    @click="openImageViewer(selectedImage)"
+                  />
+                </div>
+                <div v-else class="no-image-placeholder">
+                  <i class="fas fa-image"></i>
+                  <p>{{ $t('characterProfiles.noImageSelected') }}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- 右侧图片列表区域 -->
-          <div class="image-list-section">
-            <div v-if="selectedVariant.images.length > 0" class="image-list">
-              <button
-                v-for="image in selectedVariant.images"
-                :key="image.id"
-                @click="selectImage(image)"
-                class="image-item"
-                :class="{ 'active': selectedImage?.id === image.id }"
-              >
-                <ProgressiveImage
-                  :src="image.src"
-                  :alt="getI18nText(image.alt, currentLanguage)"
-                  class="image-thumbnail"
-                  object-fit="contain"
-                  display-type="thumbnail"
-                  display-size="medium"
-                />
-              </button>
-            </div>
-            <div v-else class="no-images-placeholder">
-              <i class="fas fa-images"></i>
-              <p>{{ $t('characterProfiles.noImages') }}</p>
+            <!-- 图片列表区域 -->
+            <div class="image-list-section">
+              <div v-if="selectedVariant.images.length > 0" class="image-list">
+                <button
+                  v-for="image in selectedVariant.images"
+                  :key="image.id"
+                  @click="selectImage(image)"
+                  class="image-item"
+                  :class="{ 'active': selectedImage?.id === image.id }"
+                >
+                  <ProgressiveImage
+                    :src="image.src"
+                    :alt="getI18nText(image.alt, currentLanguage)"
+                    class="image-thumbnail"
+                    object-fit="contain"
+                    display-type="thumbnail"
+                    display-size="medium"
+                  />
+                </button>
+              </div>
+              <div v-else class="no-images-placeholder">
+                <i class="fas fa-images"></i>
+                <p>{{ $t('characterProfiles.noImages') }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -337,14 +340,22 @@ onMounted(() => {
 
 /* 主内容区域 - 三列布局 */
 .main-content {
-  @apply flex gap-4;
+  @apply flex gap-6;
   min-height: calc(100vh - var(--app-header-height, 60px) - var(--app-footer-height, 60px) - 3rem);
   flex: 1;
+  margin-top: 2rem;
 }
 
 /* 左侧信息卡片区域 */
 .info-section {
   @apply w-80 flex-shrink-0;
+}
+
+/* 优化 768-1024px 级别的信息卡片区域宽度 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .info-section {
+    @apply w-72;
+  }
 }
 
 /* 桌面端信息卡片区域 */
@@ -435,6 +446,13 @@ onMounted(() => {
   @apply w-32 flex-shrink-0;
 }
 
+/* 优化 768-1024px 级别的图片列表区域宽度 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .image-list-section {
+    @apply w-28;
+  }
+}
+
 /* 桌面端图片列表区域 */
 @media (min-width: 768px) {
   .image-list-section {
@@ -465,7 +483,7 @@ onMounted(() => {
 }
 
 .image-item {
-  @apply w-full h-24 rounded-lg overflow-hidden;
+  @apply w-20 h-20 rounded-lg overflow-hidden;
   @apply border-2 border-transparent;
   @apply hover:border-primary-300 dark:hover:border-primary-600;
   @apply transition-colors duration-200;
@@ -526,7 +544,7 @@ onMounted(() => {
 }
 
 .mobile-info-cards {
-  @apply space-y-3;
+  @apply space-y-2;
 }
 
 /* 移动端主图片 */
@@ -623,27 +641,185 @@ onMounted(() => {
   @apply text-sm text-center;
 }
 
-/* 响应式设计 */
+/* 右侧内容区域 */
+.right-content-section {
+  @apply flex-1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 移动端布局 - 全竖 */
 @media (max-width: 767px) {
   .main-content {
-    @apply flex-col gap-4;
+    @apply flex-col gap-8;
   }
 
   .info-section {
     @apply w-full;
   }
 
-  .image-list-section {
+  .right-content-section {
     @apply w-full;
   }
 
+  .main-image-section {
+    @apply w-full;
+  }
+
+  .image-list-section {
+    @apply w-full;
+    margin-top: 1.5rem;
+  }
+
   .image-list {
-    @apply flex-row gap-2 overflow-x-auto;
-    @apply h-32;
+    @apply flex-row gap-3 overflow-x-auto;
+    @apply h-24;
   }
 
   .image-item {
     @apply w-20 h-20 flex-shrink-0;
+  }
+}
+
+/* 中等屏幕布局 - 右边竖 */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .main-content {
+    @apply flex-row gap-8;
+    height: calc(100vh - var(--app-header-height, 60px) - var(--app-footer-height, 60px) - 4rem);
+  }
+
+  .info-section {
+    @apply w-80 flex-shrink-0;
+    height: 100%;
+  }
+
+  .info-cards {
+    height: 100%;
+    max-height: none;
+  }
+
+  .right-content-section {
+    @apply flex-1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .main-image-section {
+    @apply flex-1;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .main-image-container {
+    @apply flex-1;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .main-image-wrapper {
+    @apply h-full;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .image-list-section {
+    @apply w-full;
+    height: auto;
+  }
+
+  .image-list {
+    @apply flex-row gap-3 overflow-x-auto;
+    @apply h-24;
+    @apply justify-start;
+  }
+
+  .image-item {
+    @apply w-20 h-20 flex-shrink-0;
+  }
+}
+
+/* 桌面端布局 - 全横 */
+@media (min-width: 1281px) {
+  .main-content {
+    @apply flex-row gap-8;
+    min-height: calc(100vh - var(--app-header-height, 60px) - var(--app-footer-height, 60px) - 3rem);
+  }
+
+  .info-section {
+    @apply w-80 flex-shrink-0;
+    @apply h-full;
+  }
+
+  .info-cards {
+    @apply h-full;
+    max-height: none;
+  }
+
+  .right-content-section {
+    @apply flex-1;
+    @apply h-full;
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+  }
+
+  .main-image-section {
+    @apply flex-1;
+    min-height: 0;
+  }
+
+  .main-image-container {
+    @apply flex-1;
+    min-height: 0;
+  }
+
+  .main-image-wrapper {
+    @apply flex-1;
+    min-height: 0;
+  }
+
+  .image-list-section {
+    @apply w-28 flex-shrink-0;
+    @apply h-full;
+  }
+
+  .image-list {
+    @apply flex flex-col gap-3 h-full overflow-y-auto;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+  }
+
+  .image-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .image-list::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-700 rounded;
+  }
+
+  .image-list::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 dark:bg-gray-500 rounded;
+  }
+
+  .image-list::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500 dark:bg-gray-400;
+  }
+
+  .image-item {
+    @apply w-20 h-20 rounded-lg overflow-hidden;
+    @apply border-2 border-transparent;
+    @apply hover:border-primary-300 dark:hover:border-primary-600;
+    @apply transition-colors duration-200;
+    cursor: pointer;
+    flex-shrink: 0;
+    @apply bg-gray-50 dark:bg-gray-800;
+  }
+
+  .image-item.active {
+    @apply border-primary-500;
   }
 }
 

@@ -923,6 +923,14 @@ onBeforeUnmount(() => {
     @apply sticky top-4;
     scrollbar-gutter: stable;
   }
+}
+
+/* 优化 768-1024px 级别的侧边栏宽度 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .gallery-sidebar {
+    width: 16rem;
+  }
+}
 
   /* 细滚动条样式 */
   .sidebar-content::-webkit-scrollbar {
@@ -949,7 +957,6 @@ onBeforeUnmount(() => {
   .dark .sidebar-content::-webkit-scrollbar-thumb:hover {
     background: rgba(75, 85, 99, 0.7);
   }
-}
 
 /* 移动端滚动条样式 */
 .sidebar-content.active::-webkit-scrollbar {
@@ -991,6 +998,14 @@ onBeforeUnmount(() => {
   padding-bottom: 1rem;
   /* 减少底部内边距，避免过多空白 */
   transition: padding-left 0.3s ease, padding-right 0.3s ease;
+}
+
+/* 优化 768-1024px 级别的内边距 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .gallery-main {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
 }
 
 /* 移动端全屏筛选弹窗 */

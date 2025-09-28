@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import ProgressiveImage from './ProgressiveImage.vue';
 
@@ -135,6 +135,13 @@ onMounted(() => {
   @apply max-w-2xl mx-auto;
   z-index: 2;
   transition: all 0.5s ease-in-out;
+}
+
+/* 优化 768-1024px 级别的内容卡片宽度 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .content-card {
+    @apply max-w-4xl;
+  }
 }
 
 /* 磨砂玻璃效果 */

@@ -222,6 +222,14 @@ onBeforeUnmount(() => {
   gap: 1rem;
 }
 
+/* 优化 768-1024px 级别的容器宽度 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .header-content {
+    @apply px-2;
+    max-width: calc(100vw - 2rem);
+  }
+}
+
 .logo-link {
   @apply flex items-center gap-3;
   @apply text-gray-900 dark:text-white;
@@ -273,6 +281,14 @@ onBeforeUnmount(() => {
   @apply text-gray-500 dark:text-gray-400;
   @apply text-sm;
   height: 100%;
+}
+
+/* 优化 768-1024px 级别的容器宽度 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .footer-content {
+    @apply px-2;
+    max-width: calc(100vw - 2rem);
+  }
 }
 
 /* Page Transitions */

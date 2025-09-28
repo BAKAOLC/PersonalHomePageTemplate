@@ -1065,6 +1065,13 @@ onBeforeUnmount(() => {
   }
 }
 
+/* 优化 768-1024px 级别的侧边栏宽度 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .articles-sidebar {
+    width: 320px;
+  }
+}
+
 /* 移动端滚动条样式 */
 .mobile-category-filter.active::-webkit-scrollbar {
   width: 6px;
@@ -1198,6 +1205,14 @@ onBeforeUnmount(() => {
   padding-top: 1rem;
   padding-bottom: 1rem;
   transition: padding-left 0.3s ease, padding-right 0.3s ease;
+}
+
+/* 优化 768-1024px 级别的内边距 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .articles-main {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
 }
 
 .articles-list {

@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const monacoEditorPlugin = require('vite-plugin-monaco-editor').default;
 
 const articlesConfigPlugin = require('./vite-plugins/articles-config-plugin.cjs');
+const characterProfilesConfigPlugin = require('./vite-plugins/character-profiles-config-plugin.cjs');
 const htmlConfigPlugin = require('./vite-plugins/html-config-plugin.cjs');
 const imagesConfigPlugin = require('./vite-plugins/images-config-plugin.cjs');
 const { thumbnailPlugin } = require('./vite-plugins/thumbnail-plugin.cjs');
@@ -27,6 +28,7 @@ export default defineConfig({
     htmlConfigPlugin(),
     imagesConfigPlugin(),
     articlesConfigPlugin(),
+    characterProfilesConfigPlugin(),
     thumbnailPlugin(),
     vue(),
     monacoEditorPlugin({

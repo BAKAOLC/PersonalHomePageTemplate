@@ -25,6 +25,10 @@ src/config/images.json.backup
 src/config/articles.json
 src/config/articles.json.backup
 
+# Character profiles config files (auto-generated from src/config/character-profiles/)
+src/config/character-profiles.json
+src/config/character-profiles.json.backup
+
 # Local env files
 .env
 .env.local

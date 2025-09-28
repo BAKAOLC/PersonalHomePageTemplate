@@ -1,0 +1,60 @@
+{
+  "id": "ritsukage-utsumabo",
+  "name": {
+    "en": "Ritsukage Utsumabo",
+    "zh": "律影映幻",
+    "jp": "律影映幻"
+  },
+  "color": "#667eea",
+  "variants": [
+    {
+      "id": "default",
+      "name": {
+        "en": "Default",
+        "zh": "默认",
+        "jp": "デフォルト"
+      },
+      "images": [
+        {
+          "id": "main-image",
+          "src": "/assets/category/ritsukage-utsumabo/miscellaneous/QQ人小律影.png",
+          "alt": {
+            "en": "Preview image",
+            "zh": "预览图",
+            "jp": "プレビュー画像"
+          }
+        }
+      ],
+      "infoCards": [
+        {
+          "id": "basic-info",
+          "title": {
+            "en": "Basic Information",
+            "zh": "基本信息",
+            "jp": "基本情報"
+          },
+          "content": {
+            "en": "Example information Example information Example information Example information Example information Example information Example information Example information Example information Example information Example information Example information",
+            "zh": "示例信息示例信息示例信息示例信息示例信息示例信息示例信息示例信息示例信息示例信息",
+            "jp": "示例情報示例情報示例情報示例情報示例情報示例情報示例情報示例情報示例情報"
+          },
+          "color": "#667eea"
+        },
+        {
+          "id": "personality",
+          "title": {
+            "en": "Personality",
+            "zh": "性格",
+            "jp": "性格"
+          },
+          "content": {
+            "en": "Example information Example information Example information Example information Example information Example information Example information Example information Example information Example information Example information Example information Example information",
+            "zh": "示例信息示例信息示例信息示例信息示例信息示例信息示例信息示例信息示例信息示例信息",
+            "jp": "示例情報示例情報示例情報示例情報示例情報示例情報示例情報示例情報示例情報"
+          },
+          "color": "#f093fb"
+        }
+      ]
+    }
+  ]
+}

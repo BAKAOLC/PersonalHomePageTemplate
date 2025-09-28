@@ -4,19 +4,24 @@
 
     <template v-else>
       <header class="header">
-        <div class="header-content">
-          <router-link to="/" class="logo-link">
-            <img :src="siteConfig.personal.avatar" :alt="t('common.logo')" class="logo" />
-            <h1 class="site-title">{{ appTitle }}</h1>
-          </router-link>
+        <!-- 第一行：标题和功能菜单 -->
+        <div class="header-top">
+          <div class="header-content">
+            <router-link to="/" class="logo-link">
+              <img :src="siteConfig.personal.avatar" :alt="t('common.logo')" class="logo" />
+              <h1 class="site-title">{{ appTitle }}</h1>
+            </router-link>
 
-          <!-- 导航栏 -->
-          <NavigationBar />
-
-          <div class="header-controls">
-            <LanguageSwitcher class="language-control" />
-            <ThemeToggle class="theme-control" />
+            <div class="header-controls">
+              <LanguageSwitcher class="language-control" />
+              <ThemeToggle class="theme-control" />
+            </div>
           </div>
+        </div>
+
+        <!-- 第二行：导航栏 -->
+        <div class="header-nav">
+          <NavigationBar />
         </div>
       </header>
 
@@ -208,18 +213,25 @@ onBeforeUnmount(() => {
   @apply border-b border-gray-200 dark:border-gray-700;
   @apply shadow-sm;
   @apply transition-all duration-500;
-  min-height: 60px;
-  /* 最小头部高度，允许在移动端扩展 */
+}
+
+.header-top {
+  @apply border-b border-gray-100 dark:border-gray-700;
+  min-height: 48px;
 }
 
 .header-content {
   @apply container mx-auto px-4;
-  @apply flex items-center;
-  min-height: 60px;
+  @apply flex items-center justify-between;
+  min-height: 48px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 1rem;
+}
+
+.header-nav {
+  @apply bg-gray-50 dark:bg-gray-800/50;
+  @apply transition-all duration-500;
+  @apply flex items-center;
+  min-height: 40px;
 }
 
 /* 优化 768-1024px 级别的容器宽度 */
@@ -271,7 +283,7 @@ onBeforeUnmount(() => {
   @apply bg-white dark:bg-gray-800;
   @apply border-t border-gray-200 dark:border-gray-700;
   @apply transition-colors duration-500;
-  height: 60px;
+  height: 40px;
   /* 固定底部高度 */
 }
 
@@ -279,7 +291,7 @@ onBeforeUnmount(() => {
   @apply container mx-auto px-4;
   @apply flex items-center justify-center;
   @apply text-gray-500 dark:text-gray-400;
-  @apply text-sm;
+  @apply text-xs;
   height: 100%;
 }
 
@@ -303,35 +315,34 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 640px) {
-  .header {
+  .header-top {
     min-height: auto;
   }
 
   .header-content {
-    @apply flex items-center justify-between;
-    @apply py-3;
+    @apply py-2;
     min-height: auto;
-    display: flex;
-    grid-template-columns: none;
     gap: 0.5rem;
   }
 
   .logo-link {
     gap: 0.5rem;
-    @apply justify-self-auto;
   }
 
   .logo {
-    @apply w-6 h-6;
+    @apply w-5 h-5;
   }
 
   .site-title {
-    @apply text-lg;
+    @apply text-base;
   }
 
   .header-controls {
-    @apply gap-2;
-    @apply justify-self-auto;
+    @apply gap-1;
+  }
+
+  .header-nav {
+    min-height: 36px;
   }
 }
 </style>

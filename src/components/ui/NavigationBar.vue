@@ -65,15 +65,15 @@ import { siteConfig } from '@/config/site';
 const { t } = useI18n();
 const route = useRoute();
 const { addEventListener, removeEventListener } = useEventManager();
-const { isMobile, isTablet, onScreenChange } = useScreenManager();
+const { isMobile, onScreenChange } = useScreenManager();
 
 // 移动端菜单状态
 const isMobileMenuOpen = ref(false);
 
 // 窄屏检测（使用屏幕管理器的移动端和平板判断）
-// 在移动端（< 768px）和平板端（768px-1024px）使用下拉菜单，宽屏桌面端显示完整导航
+// 在移动端（< 768px）使用下拉菜单，平板端和桌面端显示完整导航
 const isNarrowMobile = computed(() => {
-  return isMobile.value || isTablet.value;
+  return isMobile.value;
 });
 
 // 导航项配置
@@ -234,9 +234,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .navigation-bar {
-  @apply relative z-40;
-  @apply flex justify-center;
-  @apply justify-self-center;
+  @apply flex items-center justify-center;
   @apply w-full;
   @apply transition-all duration-100;
   @apply flex-shrink;
@@ -244,10 +242,11 @@ onBeforeUnmount(() => {
 
 .nav-container {
   @apply relative;
-  min-height: 48px;
+  min-height: 40px;
   @apply flex items-center justify-center;
-  @apply w-full;
+  @apply w-full max-w-6xl;
   @apply transition-all duration-100;
+  @apply px-4;
 }
 
 /* 通用导航项样式 */
@@ -258,11 +257,12 @@ onBeforeUnmount(() => {
   @apply overflow-hidden;
   @apply flex-shrink;
   @apply min-w-0;
+  @apply flex-wrap;
 }
 
 .nav-item {
-  @apply flex items-center gap-2;
-  @apply px-4 py-2 rounded-lg;
+  @apply flex items-center justify-center gap-1.5;
+  @apply px-2 py-1.5 rounded-lg;
   @apply text-gray-600 dark:text-gray-300;
   @apply hover:text-primary-600 dark:hover:text-primary-400;
   @apply hover:bg-gray-100 dark:hover:bg-gray-700;
@@ -271,7 +271,16 @@ onBeforeUnmount(() => {
   @apply font-medium;
   @apply whitespace-nowrap;
   @apply flex-shrink-0;
+  @apply text-xs;
+  @apply min-w-0;
+  @apply w-28;
   animation: navItemFadeIn 0.15s ease-out;
+}
+
+.nav-text {
+  @apply text-xs;
+  @apply truncate;
+  @apply max-w-24;
 }
 
 .nav-item-active {
@@ -283,25 +292,24 @@ onBeforeUnmount(() => {
   @apply text-sm;
 }
 
-.nav-text {
-  @apply text-sm;
-}
-
 /* 窄屏移动端导航样式 */
 .mobile-nav {
   @apply relative;
   @apply flex items-center justify-center;
+  @apply w-full;
 }
 
 .mobile-nav-current {
-  @apply flex items-center gap-2;
-  @apply px-4 py-2 rounded-lg;
+  @apply flex items-center gap-1.5;
+  @apply px-3 py-1.5 rounded-lg;
   @apply text-gray-700 dark:text-gray-200;
   @apply hover:bg-gray-100 dark:hover:bg-gray-700;
   @apply transition-all duration-100;
   @apply font-medium;
   @apply border-none bg-transparent;
   @apply cursor-pointer;
+  @apply w-full max-w-xs;
+  @apply justify-center;
 }
 
 .mobile-nav-current-active {
@@ -328,17 +336,19 @@ onBeforeUnmount(() => {
 }
 
 .mobile-dropdown {
-  @apply absolute top-full left-0 right-0 z-50;
+  @apply absolute top-full left-1/2 transform -translate-x-1/2 z-50;
   @apply bg-white dark:bg-gray-800;
   @apply border border-gray-200 dark:border-gray-700;
   @apply rounded-lg shadow-xl;
   @apply mt-1;
   @apply overflow-hidden;
+  @apply w-full max-w-xs;
+  @apply min-w-0;
 }
 
 .mobile-dropdown-item {
-  @apply flex items-center gap-3;
-  @apply px-4 py-3;
+  @apply flex items-center gap-2.5;
+  @apply px-3 py-2;
   @apply text-gray-700 dark:text-gray-200;
   @apply hover:bg-gray-50 dark:hover:bg-gray-700;
   @apply transition-all duration-100;
@@ -359,6 +369,8 @@ onBeforeUnmount(() => {
 
 .mobile-dropdown-text {
   @apply text-sm;
+  @apply truncate;
+  @apply flex-1;
 }
 
 /* 导航项淡入动画 */
@@ -517,27 +529,24 @@ onBeforeUnmount(() => {
 
 /* 平板端适配 */
 @media (min-width: 768px) and (max-width: 1023px) {
-  .nav-items {
-    @apply gap-2;
-  }
-
-  .nav-item {
-    @apply px-3 py-2;
+  .nav-container {
+    min-height: 36px;
   }
 }
 
 /* 移动端适配 */
 @media (max-width: 767px) {
-  .navigation-bar {
-    @apply px-4;
+  .nav-container {
+    @apply px-2;
+    min-height: 32px;
   }
 
-  .nav-items {
-    @apply gap-1;
+  .mobile-nav-current {
+    @apply max-w-sm;
   }
 
-  .nav-item {
-    @apply px-2 py-1 text-sm;
+  .mobile-dropdown {
+    @apply max-w-sm;
   }
 }
 </style>

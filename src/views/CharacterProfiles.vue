@@ -705,6 +705,7 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    max-width: calc(100% - 20rem - 2rem); /* 容器宽度 - 左侧卡片宽度(20rem) - 主内容gap(2rem) */
   }
 
   .main-image-section {

@@ -65,15 +65,15 @@ import { siteConfig } from '@/config/site';
 const { t } = useI18n();
 const route = useRoute();
 const { addEventListener, removeEventListener } = useEventManager();
-const { isMobile, onScreenChange } = useScreenManager();
+const { isMobile, isTablet, onScreenChange } = useScreenManager();
 
 // 移动端菜单状态
 const isMobileMenuOpen = ref(false);
 
-// 窄屏移动端检测（使用屏幕管理器的移动端判断）
-// 在移动端（< 768px）使用下拉菜单，平板端和桌面端显示完整导航
+// 窄屏检测（使用屏幕管理器的移动端和平板判断）
+// 在移动端（< 768px）和平板端（768px-1024px）使用下拉菜单，宽屏桌面端显示完整导航
 const isNarrowMobile = computed(() => {
-  return isMobile.value;
+  return isMobile.value || isTablet.value;
 });
 
 // 导航项配置
@@ -105,6 +105,13 @@ const navItems: NavItem[] = [
     label: 'nav.articles',
     icon: 'fas fa-newspaper',
     requiresFeature: 'articles',
+  },
+  {
+    name: 'character-profiles',
+    path: '/character-profiles',
+    label: 'nav.characterProfiles',
+    icon: 'fas fa-user-circle',
+    requiresFeature: 'characterProfiles',
   },
   {
     name: 'links',

@@ -49,6 +49,14 @@ const router = createRouter({
       },
     },
     {
+      path: '/character-profiles',
+      name: 'character-profiles',
+      component: () => import('@/views/CharacterProfiles.vue'),
+      meta: {
+        titleKey: 'characterProfiles.title',
+      },
+    },
+    {
       path: '/viewer/:imageId',
       name: 'image-viewer',
       component: () => import('@/views/Gallery.vue'),
@@ -119,6 +127,13 @@ router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized, 
   if (to.name === 'links') {
     if (!siteConfig.features.links) {
       console.log('Links feature is disabled, redirecting to home');
+      return next({ name: 'home', replace: true });
+    }
+  }
+
+  if (to.name === 'character-profiles') {
+    if (!siteConfig.features.characterProfiles) {
+      console.log('Character profiles feature is disabled, redirecting to home');
       return next({ name: 'home', replace: true });
     }
   }

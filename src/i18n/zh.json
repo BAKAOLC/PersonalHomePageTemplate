@@ -162,6 +162,7 @@
     "gallery": "画廊",
     "home": "首页",
     "links": "友链",
+    "characterProfiles": "角色设定",
     "menu": "菜单",
     "toggleMenu": "切换菜单"
   },
@@ -200,5 +201,16 @@
     "visitAuthorPage": "访问 {name}",
     "zoomIn": "放大",
     "zoomOut": "缩小"
+  },
+  "characterProfiles": {
+    "title": "角色设定",
+    "subtitle": "探索角色的不同设定和差分",
+    "selectCharacter": "选择角色",
+    "selectVariant": "选择差分",
+    "images": "图片展示",
+    "noCharacterSelected": "未选择角色",
+    "selectCharacterToView": "请选择一个角色来查看详细信息",
+    "noImageSelected": "未选择图片",
+    "noImages": "暂无图片"
   }
 }

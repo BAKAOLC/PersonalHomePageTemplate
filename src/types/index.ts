@@ -179,6 +179,7 @@ export interface FeaturesConfig {
   gallery: boolean;
   articles: boolean;
   links: boolean;
+  characterProfiles: boolean;
   comments: boolean;
   viewer: ViewerInfoConfig; // Viewer信息栏配置（向后兼容）
   viewerUI: ViewerUIConfig; // 新的结构化Viewer配置
@@ -384,4 +385,37 @@ export interface ArticlesConfig {
 // 文章页面信息卡片配置
 export interface ArticlesPageConfig {
   infoCards: InfoCard[];
+}
+
+// 角色设定相关类型
+export interface CharacterVariant {
+  id: string;
+  name: I18nText;
+  images: CharacterVariantImage[];
+  infoCards?: CharacterInfoCard[];
+}
+
+export interface CharacterVariantImage {
+  id: string;
+  src: string;
+  alt: I18nText;
+  infoCards?: CharacterInfoCard[];
+}
+
+export interface CharacterInfoCard {
+  id: string;
+  title: I18nText;
+  content: I18nText;
+  color?: string;
+}
+
+export interface CharacterProfile {
+  id: string;
+  name: I18nText;
+  color?: string;
+  variants: CharacterVariant[];
+}
+
+export interface CharacterProfilesConfig {
+  characters: CharacterProfile[];
 }

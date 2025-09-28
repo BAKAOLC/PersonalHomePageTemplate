@@ -162,6 +162,7 @@
     "gallery": "ギャラリー",
     "home": "ホーム",
     "links": "リンク",
+    "characterProfiles": "キャラクター設定",
     "menu": "メニュー",
     "toggleMenu": "メニュー切り替え"
   },
@@ -200,5 +201,15 @@
     "visitAuthorPage": "{name} を訪問",
     "zoomIn": "拡大",
     "zoomOut": "縮小"
+  },
+  "characterProfiles": {
+    "title": "キャラクター設定",
+    "subtitle": "キャラクターの異なるデザインとバリエーションを探索",
+    "selectCharacter": "キャラクターを選択",
+    "selectVariant": "バリエーションを選択",
+    "images": "画像",
+    "noCharacterSelected": "キャラクターが選択されていません",
+    "selectCharacterToView": "詳細を表示するにはキャラクターを選択してください",
+    "noImageSelected": "画像が選択されていません"
   }
 }

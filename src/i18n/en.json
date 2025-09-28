@@ -162,6 +162,7 @@
     "gallery": "Gallery",
     "home": "Home",
     "links": "Links",
+    "characterProfiles": "Character Profiles",
     "menu": "Menu",
     "toggleMenu": "Toggle Menu"
   },
@@ -200,5 +201,15 @@
     "visitAuthorPage": "Visit {name}",
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out"
+  },
+  "characterProfiles": {
+    "title": "Character Profiles",
+    "subtitle": "Explore different character designs and variants",
+    "selectCharacter": "Select Character",
+    "selectVariant": "Select Variant",
+    "images": "Images",
+    "noCharacterSelected": "No Character Selected",
+    "selectCharacterToView": "Please select a character to view details",
+    "noImageSelected": "No Image Selected"
   }
 }

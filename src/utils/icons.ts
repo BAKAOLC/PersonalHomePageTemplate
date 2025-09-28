@@ -25,7 +25,7 @@ const PACKAGE_MAP: Record<string, string> = {
  * @returns 标准化的包名
  */
 function normalizePackage(packageName: FontAwesomePackage): string {
-  return PACKAGE_MAP[packageName] || packageName;
+  return PACKAGE_MAP[packageName] ?? packageName;
 }
 
 /**

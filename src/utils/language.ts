@@ -41,7 +41,7 @@ export const getFallbackLanguage = (): string => {
  */
 export const getLanguageNativeName = (langCode: string): string => {
   const config = getLanguagesConfig();
-  return config.languages[langCode]?.name || langCode;
+  return config.languages[langCode]?.name ?? langCode;
 };
 
 /**

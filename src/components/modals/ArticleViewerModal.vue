@@ -202,7 +202,7 @@ const getCategoryName = (categoryId: string): string => {
 
 const getCategoryColor = (categoryId: string): string => {
   const category = (articleCategoriesConfig as ArticleCategoriesConfig)[categoryId];
-  return category?.color || '#6b7280';
+  return category?.color ?? '#6b7280';
 };
 
 const renderMarkdown = (content: string): string => {

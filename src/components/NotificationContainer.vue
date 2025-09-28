@@ -16,7 +16,7 @@
           ]"
         >
           <div class="notification-icon" :class="[notification.type]">
-            <i :class="getIconClass(notification.type || 'info')"></i>
+            <i :class="getIconClass(notification.type ?? 'info')"></i>
           </div>
 
           <div class="notification-content">
@@ -71,7 +71,7 @@ const getIconClass = (type: string): string => {
     warning: 'fas fa-exclamation-triangle',
     info: 'fas fa-info-circle',
   };
-  return icons[type as keyof typeof icons] || icons.info;
+  return icons[type as keyof typeof icons] ?? icons.info;
 };
 
 const removeNotification = (id: string | undefined): void => {

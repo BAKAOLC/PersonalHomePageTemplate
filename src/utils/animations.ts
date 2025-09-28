@@ -23,7 +23,7 @@ export const getTransitionDuration = (element: HTMLElement, property?: string): 
 
   if (property) {
     // 如果指定了属性，尝试找到对应的时长
-    const properties = computedStyle.transitionProperty?.split(',').map(p => p.trim()) || [];
+    const properties = computedStyle.transitionProperty?.split(',').map(p => p.trim()) ?? [];
     const index = properties.indexOf(property);
     if (index >= 0 && index < durations.length) {
       return parseDuration(durations[index]);
@@ -70,11 +70,11 @@ const parseDuration = (duration: string): number => {
   const trimmed = duration.trim();
 
   if (trimmed.endsWith('ms')) {
-    return parseFloat(trimmed.slice(0, -2)) || 0;
+    return parseFloat(trimmed.slice(0, -2)) ?? 0;
   }
 
   if (trimmed.endsWith('s')) {
-    return (parseFloat(trimmed.slice(0, -1)) || 0) * 1000;
+    return (parseFloat(trimmed.slice(0, -1)) ?? 0) * 1000;
   }
 
   return 0;

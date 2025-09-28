@@ -124,7 +124,7 @@ const effectiveAuthorLinks = computed(() => {
   if (props.authorLinks && props.authorLinks.length > 0) {
     return props.authorLinks;
   }
-  return props.fallbackAuthorLinks || [];
+  return props.fallbackAuthorLinks ?? [];
 });
 
 // 获取链接名称

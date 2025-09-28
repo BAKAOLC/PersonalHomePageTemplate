@@ -224,6 +224,7 @@ const importRules = {
 const projectSpecificRules = {
   'no-restricted-globals': [
     'error',
+    // 禁用原生事件监听器
     {
       name: 'addEventListener',
       message: '请使用 useEventManager() 中的 addEventListener 替代原生 addEventListener',
@@ -259,6 +260,24 @@ const projectSpecificRules = {
   ],
   'no-restricted-syntax': [
     'error',
+    // 禁用不正确的逻辑或操作符
+    {
+      selector: 'LogicalExpression[operator="||"][left.type="MemberExpression"][right.type="Literal"]',
+      message: '建议使用 ?? 操作符替代 || 操作符，除非明确需要处理 falsy 值',
+    },
+    {
+      selector: 'LogicalExpression[operator="||"][left.type="MemberExpression"][right.type="Identifier"]',
+      message: '建议使用 ?? 操作符替代 || 操作符，除非明确需要处理 falsy 值',
+    },
+    {
+      selector: 'LogicalExpression[operator="||"][left.type="CallExpression"][right.type="Literal"]',
+      message: '建议使用 ?? 操作符替代 || 操作符，除非明确需要处理 falsy 值',
+    },
+    {
+      selector: 'LogicalExpression[operator="||"][left.type="CallExpression"][right.type="Identifier"]',
+      message: '建议使用 ?? 操作符替代 || 操作符，除非明确需要处理 falsy 值',
+    },
+    // 禁用原生事件监听器
     {
       selector: 'CallExpression[callee.object.name="window"][callee.property.name="addEventListener"]',
       message: '禁止使用原生 addEventListener，请使用被管理的事件监听器',

@@ -143,7 +143,7 @@
         class="group-selector-resize-border"
         :class="{ 'active': isDraggingGroupResize }"
         :style="{
-          left: (groupSelectorWidth || 200) + 'px',
+          left: (groupSelectorWidth ?? 200) + 'px',
           transition: isDraggingGroupResize ? 'none' : 'width 0.15s ease, background 0.15s ease, left 0.1s ease'
         }"
         @mousedown="startResizeGroupSelector"
@@ -316,13 +316,13 @@
 
           <div v-if="effectiveViewerConfig.infoPanel.date" class="info-group">
             <h4 class="info-subtitle">{{ $t('gallery.date') }}</h4>
-            <p>{{ currentImage?.date || 'N/A' }}</p>
+            <p>{{ currentImage?.date ?? 'N/A' }}</p>
           </div>
 
           <div v-if="effectiveViewerConfig.infoPanel.tags" class="info-group">
             <h4 class="info-subtitle">{{ $t('gallery.tags') }}</h4>
             <div class="tags-list">
-              <span v-for="tagId in getSortedTags(currentImage?.tags || [])" :key="tagId" class="tag"
+              <span v-for="tagId in getSortedTags(currentImage?.tags ?? [])" :key="tagId" class="tag"
                 :style="{ backgroundColor: getTagColor(tagId) }">
                 {{ getTagName(tagId, currentLanguage) }}
               </span>
@@ -373,13 +373,13 @@
 
               <div v-if="effectiveViewerConfig.infoPanel.date" class="info-group">
                 <h4 class="info-subtitle">{{ $t('gallery.date') }}</h4>
-                <p>{{ currentImage?.date || 'N/A' }}</p>
+                <p>{{ currentImage?.date ?? 'N/A' }}</p>
               </div>
 
               <div v-if="effectiveViewerConfig.infoPanel.tags" class="info-group">
                 <h4 class="info-subtitle">{{ $t('gallery.tags') }}</h4>
                 <div class="tags-list">
-                  <span v-for="tagId in getSortedTags(currentImage?.tags || [])" :key="tagId" class="tag"
+                  <span v-for="tagId in getSortedTags(currentImage?.tags ?? [])" :key="tagId" class="tag"
                     :style="{ backgroundColor: getTagColor(tagId) }">
                     {{ getTagName(tagId, currentLanguage) }}
                   </span>
@@ -535,7 +535,7 @@ const isOriginalImageLoaded = ref(false);
 
 // 当前图片索引和图片列表
 const imageList = computed(() => {
-  return props.imageList || [];
+  return props.imageList ?? [];
 });
 
 // 当前选中的子图像ID（独立状态）
@@ -577,11 +577,11 @@ const currentImage = computed(() => {
     const info = props.externalImage;
     return {
       id: 'external-image',
-      name: info.name || $t('common.externalImage'),
-      description: info.description || '',
-      artist: info.artist || 'N/A',
+      name: info.name ?? $t('common.externalImage'),
+      description: info.description ?? '',
+      artist: info.artist ?? 'N/A',
       src: info.url,
-      tags: info.tags || [],
+      tags: info.tags ?? [],
       characters: [],
       date: info.date,
       childImages: undefined,
@@ -698,12 +698,12 @@ const getArtistListWithFallback = computed(() => {
     const { parentImage } = currentGroup;
 
     // 子图像有artist则用子图像的，否则用父图像的，最后fallback
-    const artist = childImage.artist || parentImage.artist || 'N/A';
+    const artist = childImage.artist ?? parentImage.artist ?? 'N/A';
     return Array.isArray(artist) ? artist : [artist];
   }
 
   // 当前是父图像或普通图像
-  const artist = currentImage.value.artist || 'N/A';
+  const artist = currentImage.value.artist ?? 'N/A';
   return Array.isArray(artist) ? artist : [artist];
 });
 
@@ -719,14 +719,14 @@ const getAuthorLinksWithFallback = computed(() => {
     const { parentImage } = currentGroup;
 
     return {
-      current: childImage.authorLinks || [],
-      fallback: parentImage.authorLinks || [],
+      current: childImage.authorLinks ?? [],
+      fallback: parentImage.authorLinks ?? [],
     };
   }
 
   // 当前是父图像或普通图像
   return {
-    current: currentImage.value.authorLinks || [],
+    current: currentImage.value.authorLinks ?? [],
     fallback: [],
   };
 });
@@ -743,11 +743,11 @@ const getDescriptionWithFallback = computed(() => {
     const { parentImage } = currentGroup;
 
     // 子图像有description则用子图像的，否则用父图像的，最后fallback
-    return childImage.description || parentImage.description || '';
+    return childImage.description ?? parentImage.description ?? '';
   }
 
   // 当前是父图像或普通图像
-  return currentImage.value.description || '';
+  return currentImage.value.description ?? '';
 });
 
 // 检查图像是否有有效的子图像（用于显示组图标识）
@@ -978,7 +978,7 @@ const getImageDisplayInfo = (): {
   }
 
   // 从Vue组件实例中获取实际的DOM元素
-  const imageEl = imageElement.value.$el || imageElement.value;
+  const imageEl = imageElement.value.$el ?? imageElement.value;
   const image = imageEl.querySelector ? imageEl.querySelector('img') as HTMLImageElement : imageEl as HTMLImageElement;
   if (!image) {
     return null;
@@ -1398,7 +1398,7 @@ const startResizeGroupSelector = (event: MouseEvent | TouchEvent): void => {
   groupResizeStartX.value = clientX;
 
   // 获取当前容器宽度
-  const currentWidth = groupSelectorWidth.value || 200; // 默认宽度
+  const currentWidth = groupSelectorWidth.value ?? 200; // 默认宽度
   groupResizeStartWidth.value = currentWidth;
 
   // 添加全局事件监听器
@@ -1486,7 +1486,7 @@ const getThumbnailDimensions = (): { width: number; gap: number } => {
   } else if (thumbnailsElement) {
     // 如果只有一个缩略图，尝试从CSS计算gap值
     const computedStyle = window.getComputedStyle(thumbnailsElement);
-    const gapValue = computedStyle.gap || computedStyle.columnGap;
+    const gapValue = computedStyle.gap ?? computedStyle.columnGap;
     if (gapValue && gapValue !== 'normal') {
       const gapPx = parseFloat(gapValue);
       if (!isNaN(gapPx)) {
@@ -2413,7 +2413,7 @@ watch(currentImage, (newImage) => {
       const thumbnailSrc = getThumbnailUrl(newImage.src, 'tiny');
 
       // 设置当前图片，这会触发优先级重新评估
-      getImageCache().setCurrentImage(newImage.src, thumbnailSrc || undefined);
+      getImageCache().setCurrentImage(newImage.src, thumbnailSrc ?? undefined);
     }
 
     // 延迟触发预加载，确保当前图片优先
@@ -2512,7 +2512,7 @@ const handleImageContainerResize = (): void => {
 
 // 处理屏幕变化（移动端状态切换等）
 const handleScreenChange = (info: any): void => {
-  const wasMobile = info.wasMobile || false;
+  const wasMobile = info.wasMobile ?? false;
   const currentIsMobile = info.isMobile;
   // 标记正在进行响应式切换
   isResponsiveTransitioning.value = true;
@@ -2716,7 +2716,7 @@ const getChildImageTags = (image: any): string[] => {
 const t = (text: I18nText | undefined, lang?: string): string => {
   if (!text) return '';
   if (typeof text === 'string') return text;
-  const currentLang = lang || appStore.currentLanguage;
+  const currentLang = lang ?? appStore.currentLanguage;
   return getI18nText(text, currentLang);
 };
 </script>

@@ -100,7 +100,7 @@
                 >
                   <div class="link-avatar" v-if="linksConfig.settings.showAvatar">
                     <ProgressiveImage
-                      :src="link.avatar || linksConfig.settings.defaultAvatar"
+                      :src="link.avatar ?? linksConfig.settings.defaultAvatar"
                       :alt="link.name"
                       class="avatar-img"
                       object-fit="cover"
@@ -253,7 +253,7 @@ const filteredLinks = computed(() => {
     links = links.filter(link => {
       const name = link.name.toLowerCase();
       const description = t(link.description, currentLanguage.value).toLowerCase();
-      const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() || '';
+      const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
 
       return name.includes(query) || description.includes(query) || tags.includes(query);
     });
@@ -276,7 +276,7 @@ const categoryCounts = computed(() => {
       const query = searchQuery.value.toLowerCase().trim();
       const name = link.name.toLowerCase();
       const description = t(link.description, currentLanguage.value).toLowerCase();
-      const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() || '';
+      const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
 
       return name.includes(query) || description.includes(query) || tags.includes(query);
     });
@@ -304,7 +304,7 @@ const filteredCategories = computed(() => {
       const query = searchQuery.value.toLowerCase().trim();
       const name = link.name.toLowerCase();
       const description = t(link.description, currentLanguage.value).toLowerCase();
-      const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() || '';
+      const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
 
       return name.includes(query) || description.includes(query) || tags.includes(query);
     }),
@@ -314,7 +314,7 @@ const filteredCategories = computed(() => {
 // 可见的分类（过滤掉计数为0的分类）
 const visibleCategories = computed(() => {
   return linksConfig.categories.filter(category => {
-    const count = categoryCounts.value[category.id] || 0;
+    const count = categoryCounts.value[category.id] ?? 0;
     return count > 0;
   });
 });

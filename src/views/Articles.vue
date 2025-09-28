@@ -79,7 +79,7 @@
                 :href="link.url"
                 :title="getI18nText(link.name, currentLanguage)"
                 class="social-link"
-                :style="{ '--icon-color': link.color || '#333' }"
+                :style="{ '--icon-color': link.color ?? '#333' }"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -125,14 +125,14 @@
                   :class="{ 'active': selectedCategory === String(categoryId) }"
                   @click="selectCategory(String(categoryId))"
                   :style="{
-                    '--category-color': category.color || '#8b5cf6',
+                    '--category-color': category.color ?? '#8b5cf6',
                     '--category-hover-color': category.color ? `${category.color}20` : '#8b5cf620'
                   }"
                 >
                   <div class="category-left">
                     <span class="category-name">{{ getI18nText(category.name, currentLanguage) }}</span>
                   </div>
-                  <span class="category-count">{{ categoryCounts[String(categoryId)] || 0 }}</span>
+                  <span class="category-count">{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
                 </button>
               </div>
             </Transition>
@@ -248,7 +248,7 @@
                     >
                       {{
                         getI18nText(
-                          (articleCategories as any)[categoryId]?.name || categoryId,
+                          (articleCategories as any)[categoryId]?.name ?? categoryId,
                           currentLanguage
                         )
                       }}
@@ -356,14 +356,14 @@
                   :class="{ 'active': selectedCategory === String(categoryId) }"
                   @click="selectCategory(String(categoryId))"
                   :style="{
-                    '--category-color': category.color || '#8b5cf6',
+                    '--category-color': category.color ?? '#8b5cf6',
                     '--category-hover-color': category.color ? `${category.color}20` : '#8b5cf620'
                   }"
                 >
                   <div class="category-left">
                     <span class="category-name">{{ getI18nText(category.name, currentLanguage) }}</span>
                   </div>
-                  <span class="category-count">{{ categoryCounts[String(categoryId)] || 0 }}</span>
+                  <span class="category-count">{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
                 </button>
               </div>
             </Transition>
@@ -695,7 +695,7 @@ const navigateToArticle = (articleId: string): void => {
 
 // 从URL参数打开文章
 const openArticleFromRoute = (): void => {
-  const articleId = props.articleId || route.params.articleId as string;
+  const articleId = props.articleId ?? route.params.articleId as string;
   if (articleId) {
     const article = articles.value.find(a => a.id === articleId);
     if (article) {

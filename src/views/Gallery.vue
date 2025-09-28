@@ -490,7 +490,7 @@ const getUrlImageData = (): { imageList: any[]; viewerUIConfig: any } => {
     // 创建包含所有子图像的图像对象（不被过滤）
     const imageWithAllChildren = {
       ...image,
-      childImages: image.childImages || [],
+      childImages: image.childImages ?? [],
     };
 
     const result = {
@@ -510,7 +510,7 @@ const getUrlImageData = (): { imageList: any[]; viewerUIConfig: any } => {
     // 创建包含所有子图像的图像对象（不被过滤）
     const imageWithAllChildren = {
       ...image,
-      childImages: image.childImages || [],
+      childImages: image.childImages ?? [],
     };
 
     return {

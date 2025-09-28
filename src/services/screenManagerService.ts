@@ -187,7 +187,7 @@ class ScreenManagerService implements ScreenManager {
 
     const newWidth = window.innerWidth;
     const newHeight = window.innerHeight;
-    const newDevicePixelRatio = window.devicePixelRatio || 1;
+    const newDevicePixelRatio = window.devicePixelRatio ?? 1;
 
     // 检查是否有实际变化
     const hasChanged

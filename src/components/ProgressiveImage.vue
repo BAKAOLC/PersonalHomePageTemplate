@@ -138,7 +138,7 @@ const loadImageWithProgress = (url: string, isThumbnail: boolean = false): Promi
 const preloadThumbnailSrc = computed(() => {
   if (!props.src) return null;
   const thumbnails = (thumbnailMap as any)[props.src] as Record<string, string> | undefined;
-  return thumbnails?.[props.preloadSize] || null;
+  return thumbnails?.[props.preloadSize] ?? null;
 });
 
 // 获取实际显示的图像路径
@@ -149,7 +149,7 @@ const displayImageSrc = computed(() => {
     return props.src;
   } else {
     const thumbnails = (thumbnailMap as any)[props.src] as Record<string, string> | undefined;
-    return thumbnails?.[props.displaySize] || props.src;
+    return thumbnails?.[props.displaySize] ?? props.src;
   }
 });
 

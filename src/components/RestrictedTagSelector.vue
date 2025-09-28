@@ -25,7 +25,7 @@
           }"
           @click="handleTagClick(tag.id)"
           :style="{
-            '--tag-color': tag.color || '#dc2626'
+            '--tag-color': tag.color ?? '#dc2626'
           }"
         >
           <div class="restricted-tag-left">
@@ -34,14 +34,14 @@
             </div>
             <div class="restricted-tag-content">
               <i v-if="tag.icon" :class="getIconClass(tag.icon)" class="tag-icon"></i>
-              <span class="tag-name">{{ getI18nText(tag.name, currentLanguage) || tag.id }}</span>
+              <span class="tag-name">{{ getI18nText(tag.name, currentLanguage) ?? tag.id }}</span>
             </div>
           </div>
           <span
             class="tag-count"
             :class="{ 'invisible': !getRestrictedTagState(tag.id) }"
           >
-                       {{ restrictedTagCounts[tag.id] || 0 }}
+                       {{ restrictedTagCounts[tag.id] ?? 0 }}
         </span>
       </button>
         </div>
@@ -216,13 +216,13 @@ const getChildImageWithDefaults = (parentImage: any, childImage: any): any => {
 
   return {
     id: childImage.id,
-    name: childImage.name || parentImage.name,
+    name: childImage.name ?? parentImage.name,
     description: getDescriptionWithFallback(),
     artist: getArtistWithFallback(),
     src: childImage.src,
-    tags: childImage.tags || parentImage.tags,
-    characters: childImage.characters || parentImage.characters,
-    date: childImage.date || parentImage.date,
+    tags: childImage.tags ?? parentImage.tags,
+    characters: childImage.characters ?? parentImage.characters,
+    date: childImage.date ?? parentImage.date,
     // 子图像不会有自己的子图像
     childImages: undefined,
   };
@@ -296,14 +296,14 @@ const visibleRestrictedTags = computed(() => {
 
   // 过滤掉在当前筛选条件下没有图像的特殊标签
   restrictedTags = restrictedTags.filter(tag => {
-    const count = restrictedTagCounts.value[tag.id] || 0;
+    const count = restrictedTagCounts.value[tag.id] ?? 0;
     return count > 0;
   });
 
   // 按当前语言的名称排序
   restrictedTags.sort((a, b) => {
-    const aName = getI18nText(a.name, appStore.currentLanguage) || a.id;
-    const bName = getI18nText(b.name, appStore.currentLanguage) || b.id;
+    const aName = getI18nText(a.name, appStore.currentLanguage) ?? a.id;
+    const bName = getI18nText(b.name, appStore.currentLanguage) ?? b.id;
     return aName.localeCompare(bName);
   });
 

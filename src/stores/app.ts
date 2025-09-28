@@ -25,7 +25,7 @@ export const useAppStore = defineStore('app', () => {
   // 主题相关
   type ThemeMode = 'light' | 'dark' | 'auto';
 
-  const themeMode = ref<ThemeMode>((localStorage.getItem('theme') as ThemeMode) || 'auto');
+  const themeMode = ref<ThemeMode>((localStorage.getItem('theme') as ThemeMode) ?? 'auto');
   const systemDarkMode = ref(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   // 计算实际的暗色模式状态
@@ -102,7 +102,7 @@ export const useAppStore = defineStore('app', () => {
   };
 
   // 当前选择的角色
-  const selectedCharacterId = ref(siteConfig.characters[0]?.id || '');
+  const selectedCharacterId = ref(siteConfig.characters[0]?.id ?? '');
 
   // 当前选择的标签
   const selectedTag = ref('all');
@@ -349,7 +349,7 @@ export const useAppStore = defineStore('app', () => {
 
   // 获取特殊标签的选择状态
   const getRestrictedTagState = (tagId: string): boolean => {
-    return selectedRestrictedTags.value[tagId] || false;
+    return selectedRestrictedTags.value[tagId] ?? false;
   };
 
   // 图像组相关辅助函数
@@ -411,7 +411,7 @@ export const useAppStore = defineStore('app', () => {
         imageHasTag = image.childImages.some(child => child.tags?.includes(restrictedTag.id));
       }
 
-      const tagIsEnabled = selectedRestrictedTags.value[restrictedTag.id] || false;
+      const tagIsEnabled = selectedRestrictedTags.value[restrictedTag.id] ?? false;
 
       // 如果图片（或其子图像）有这个特殊标签，但是这个标签没有被启用，则过滤掉
       if (imageHasTag && !tagIsEnabled) {

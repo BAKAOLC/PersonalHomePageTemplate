@@ -186,7 +186,7 @@ export function countArticlesByCategory(articles: Article[]): Record<string, num
 
   articles.forEach(article => {
     article.categories.forEach(categoryId => {
-      counts[categoryId] = (counts[categoryId] || 0) + 1;
+      counts[categoryId] = (counts[categoryId] ?? 0) + 1;
     });
   });
 

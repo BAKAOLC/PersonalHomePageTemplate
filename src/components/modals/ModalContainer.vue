@@ -22,7 +22,7 @@
       <!-- 内容区域 -->
       <div
         class="modal-content"
-        :class="{ 'custom-size': modal.options?.width || modal.options?.height }"
+        :class="{ 'custom-size': modal.options?.width ?? modal.options?.height }"
         :style="getContentStyle(modal)"
       >
         <!-- 渲染组件 -->

@@ -200,7 +200,7 @@ const isImageGroup = (image: CharacterImage): boolean => {
 // 通用的翻译辅助函数
 const t = (text: I18nText | undefined, lang?: string): string => {
   if (typeof text === 'string') return text;
-  const currentLang = lang || currentLanguage.value;
+  const currentLang = lang ?? currentLanguage.value;
   return getI18nText(text, currentLang);
 };
 

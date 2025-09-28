@@ -93,13 +93,13 @@ export function useMonacoEditor(): MonacoEditorInstance {
 
   // 获取语言配置
   const getLanguageConfig = (language: keyof typeof monacoConfig.languageConfigs): any => {
-    return monacoConfig.languageConfigs[language] || monacoConfig.languageConfigs.json;
+    return monacoConfig.languageConfigs[language] ?? monacoConfig.languageConfigs.json;
   };
 
   // 计算Monaco主题
   const getMonacoTheme = (options: MonacoEditorOptions = {}): string => {
     if (options.theme) {
-      return monacoConfig.themes[options.theme] || options.theme;
+      return monacoConfig.themes[options.theme] ?? options.theme;
     }
 
     // 使用应用的主题
@@ -107,7 +107,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
     if (appTheme === 'auto') {
       return appStore.isDarkMode ? 'vs-dark' : 'vs-light';
     }
-    return monacoConfig.themeMapping[appTheme] || 'vs-dark';
+    return monacoConfig.themeMapping[appTheme] ?? 'vs-dark';
   };
 
   // 合并配置选项
@@ -249,7 +249,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
   // 设置主题
   const setTheme = (theme: keyof typeof monacoConfig.themes): void => {
     if (editor.value && !isDisposed.value) {
-      const themeValue = monacoConfig.themes[theme] || theme;
+      const themeValue = monacoConfig.themes[theme] ?? theme;
       editor.value.updateOptions({ theme: themeValue });
     }
   };

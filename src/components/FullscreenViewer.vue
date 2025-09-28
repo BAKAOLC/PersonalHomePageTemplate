@@ -406,7 +406,10 @@
               </button>
             </div>
             <div class="comments-modal-content">
-              <GiscusComments :unique-id="currentDisplayImageId" prefix="image-viewer" />
+              <GiscusComments
+                :unique-id="props.commentsUniqueId ?? currentDisplayImageId"
+                :prefix="props.commentsPrefix ?? 'gallery-comment'"
+              />
             </div>
           </div>
         </transition>
@@ -444,6 +447,8 @@ const props = defineProps<{
   externalImage?: ExternalImageInfo; // 外部图像信息（包含URL和其他信息）
   imageList?: CharacterImage[]; // 提供的图像列表
   viewerUIConfig?: ViewerUIConfig; // 结构化配置参数
+  commentsUniqueId?: string; // 评论区唯一ID
+  commentsPrefix?: string; // 评论区前缀
 }>();
 
 const emit = defineEmits<{
@@ -538,7 +543,7 @@ const currentChildImageId = ref<string | undefined>(props.childImageId);
 
 // 当前显示的图像ID（可能是父图像或子图像）
 const currentDisplayImageId = computed(() => {
-  return currentChildImageId.value || props.imageId;
+  return currentChildImageId.value ?? props.imageId;
 });
 
 const currentIndex = computed(() => {

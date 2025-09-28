@@ -1,6 +1,7 @@
 <template>
   <div class="giscus-comments">
     <Giscus
+      :key="term"
       :repo="repo"
       :repo-id="repoId"
       :category="category"
@@ -55,7 +56,7 @@ const {
   },
 } = siteConfig;
 
-const term = computed(() => `${props.prefix || 'comment'}-${props.uniqueId}`);
+const term = computed(() => `${props.prefix ?? 'comment'}-${props.uniqueId}`);
 
 // Dynamic theme and language
 const theme = computed(() => appStore.isDarkMode ? 'dark' : 'light');

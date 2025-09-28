@@ -323,6 +323,8 @@ const openViewer = (event: CustomEvent): void => {
         childImageId: childImageId,
         imageList: createGalleryimageList(), // 画廊过滤后的图像列表
         viewerUIConfig: siteConfig.features.viewerUI,
+        commentsUniqueId: imageId, // 使用图像ID作为评论区唯一ID
+        commentsPrefix: 'gallery-comment', // 使用gallery-comment前缀
         onNavigate: handleViewerNavigate,
       },
       options: {
@@ -355,6 +357,8 @@ const openUrlViewer = (): void => {
       childImageId: props.childImageId,
       imageList: urlData.imageList,
       viewerUIConfig: urlData.viewerUIConfig,
+      commentsUniqueId: props.imageId ?? props.childImageId, // 使用图像ID或子图像ID作为评论区唯一ID
+      commentsPrefix: 'gallery-comment', // 使用gallery-comment前缀
       onNavigate: handleViewerNavigate,
     },
     options: {
@@ -442,10 +446,12 @@ const handleViewerNavigate = (imageId: string, childImageId?: string): void => {
   if (imageViewerModalId.value) {
     const modal = modalManager.getModal(imageViewerModalId.value);
     if (modal) {
+      const currentViewingImageId = childImageId ?? imageId;
       modal.props = {
         ...modal.props,
         imageId: imageId,
         childImageId: childImageId,
+        commentsUniqueId: currentViewingImageId,
       };
     }
   }
@@ -550,21 +556,27 @@ watch([() => props.imageId, () => props.childImageId, characterImages], () => {
       // 根据来源判断使用哪种逻辑
       if (isModalFromGallery.value) {
         // 画廊正常打开，使用画廊过滤后的图像列表
+        const currentViewingImageId = props.childImageId ?? props.imageId;
         modal.props = {
           imageId: props.imageId,
           childImageId: props.childImageId,
           imageList: createGalleryimageList(),
           viewerUIConfig: siteConfig.features.viewerUI,
+          commentsUniqueId: currentViewingImageId,
+          commentsPrefix: 'gallery-comment',
           onNavigate: handleViewerNavigate,
         };
       } else {
         // URL直接访问，使用URL处理逻辑
         const urlData = getUrlImageData();
+        const currentViewingImageId = props.childImageId ?? props.imageId;
         modal.props = {
           imageId: props.imageId,
           childImageId: props.childImageId,
           imageList: urlData.imageList,
           viewerUIConfig: urlData.viewerUIConfig,
+          commentsUniqueId: currentViewingImageId,
+          commentsPrefix: 'gallery-comment',
           onNavigate: handleViewerNavigate,
         };
       }

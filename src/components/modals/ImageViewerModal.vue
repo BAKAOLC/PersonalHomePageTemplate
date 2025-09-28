@@ -6,6 +6,8 @@
       :external-image="externalImage"
       :image-list="imageList"
       :viewer-u-i-config="effectiveConfig"
+      :comments-unique-id="commentsUniqueId"
+      :comments-prefix="commentsPrefix"
       @close="handleClose"
       @navigate="handleNavigate"
     />
@@ -27,6 +29,8 @@ interface Props {
   externalImage?: ExternalImageInfo;
   imageList?: any[];
   viewerUIConfig?: ViewerUIConfig;
+  commentsUniqueId?: string; // 评论区唯一ID
+  commentsPrefix?: string; // 评论区前缀
   onNavigate?: (imageId: string, childImageId?: string) => void;
   onClose?: () => void;
 }
@@ -37,6 +41,8 @@ const props = withDefaults(defineProps<Props>(), {
   externalImage: undefined,
   imageList: () => [],
   viewerUIConfig: undefined,
+  commentsUniqueId: undefined,
+  commentsPrefix: undefined,
   onNavigate: undefined,
   onClose: undefined,
 });

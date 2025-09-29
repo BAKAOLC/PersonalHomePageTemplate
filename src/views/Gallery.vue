@@ -167,7 +167,7 @@ import { useMobileDetection } from '@/composables/useScreenManager';
 import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
 import { useGalleryStore } from '@/stores/gallery';
-import type { CharacterImage, ExternalImageInfo, ImageBase } from '@/types';
+import type { ExternalImageInfo, GroupImage, ImageBase } from '@/types';
 import { getIconClass } from '@/utils/icons';
 
 // Props for route parameters
@@ -434,9 +434,10 @@ const openViewer = (event: CustomEvent): void => {
 
     // 检查是否为图像组，如果是则导航到第一个子图像
     const image = galleryStore.getImageById(imageId);
-    if (image && image.childImages && image.childImages.length > 0) {
+    if (image && 'childImages' in image) {
       // 图像组：设置子图像ID
-      const firstValidChildId = galleryStore.getFirstValidChildId(image);
+      const groupImage = image as GroupImage;
+      const firstValidChildId = galleryStore.getFirstValidChildId(groupImage);
       if (firstValidChildId) {
         childImageId = firstValidChildId;
         router.push({
@@ -469,7 +470,7 @@ const openViewer = (event: CustomEvent): void => {
       props: {
         imageId: imageId,
         childImageId: childImageId,
-        imageList: createGalleryImageList(), // 画廊过滤后的图像列表
+        imageList: characterImages.value, // 画廊过滤后的图像列表
         viewerUIConfig: siteConfig.features.viewerUI,
         commentsUniqueId: imageId, // 使用图像ID作为评论区唯一ID
         commentsPrefix: 'gallery-comment', // 使用gallery-comment前缀
@@ -555,27 +556,6 @@ const openExternalImageViewer = (externalImage: any): void => {
   });
 };
 
-// 创建画廊过滤后的图像列表（用于画廊正常打开）
-const createGalleryImageList = (): CharacterImage[] => {
-  // 为每个主图像创建包含过滤后子图像的版本
-  const result = characterImages.value.map((image: CharacterImage) => {
-    if (image.childImages && image.childImages.length > 0) {
-      // 过滤子图像，只保留通过过滤的子图像
-      const validChildImages = galleryStore.getValidImagesInGroup(image);
-
-      const resultImage: CharacterImage = {
-        ...image,
-        childImages: validChildImages as ImageBase[],
-      };
-      return resultImage;
-    }
-
-    // 普通图像直接返回
-    return image;
-  });
-  return result;
-};
-
 // 处理查看器导航事件
 const handleViewerNavigate = (imageId: string, childImageId?: string): void => {
   // 更新路由
@@ -640,7 +620,7 @@ const getUrlImageData = (): { imageList: ImageBase[]; viewerUIConfig: any } => {
 
   const childImage = galleryStore.getValidImagesInGroupWithoutFilter(image);
 
-  const resultImage: CharacterImage = {
+  const resultImage: GroupImage = {
     ...image,
     childImages: childImage as ImageBase[],
   };
@@ -673,7 +653,7 @@ watch([() => props.imageId, () => props.childImageId, characterImages], () => {
         // 画廊正常打开，使用画廊过滤后的图像列表
         modal.props = {
           ...targetProps,
-          imageList: createGalleryImageList(),
+          imageList: characterImages.value,
           viewerUIConfig: siteConfig.features.viewerUI,
         };
       } else {

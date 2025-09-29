@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
 import { siteConfig } from '@/config/site';
-import type { CharacterImage, ImageBase } from '@/types';
+import type { DisplayImage, GroupImage, ImageBase } from '@/types';
 
 export const useGalleryStore = defineStore('gallery', () => {
   // 搜索状态
@@ -35,27 +35,13 @@ export const useGalleryStore = defineStore('gallery', () => {
 
   // 当前角色的图像列表（支持图像组）
   const characterImages = computed(() => {
-    const resultImages: CharacterImage[] = [];
+    const resultImages: DisplayImage[] = [];
 
     for (const parentImage of siteConfig.images) {
-      // 检查父图像和子图像中是否有任何一个通过过滤
       const validImages = getValidImagesInGroup(parentImage);
-
       if (validImages.length > 0) {
-        // 获取要显示的图像（优先父图像，否则第一个有效子图像）
-        const displayImage = getDisplayImageForGroup(parentImage);
-
-        // 标记是否为图像组（有子图像且有多个有效图像）
-        const isGroup = parentImage.childImages && validImages.length > 1;
-
-        // 创建显示用的图像对象，保留组信息
-        const imageForDisplay = {
-          ...displayImage,
-          // 如果是组图的显示图像，保留原始的childImages信息
-          childImages: isGroup ? parentImage.childImages : displayImage.childImages,
-        };
-
-        resultImages.push(imageForDisplay);
+        const displayImage = getDisplayImageForGroup(parentImage, validImages);
+        resultImages.push(displayImage);
       }
     }
 
@@ -66,7 +52,7 @@ export const useGalleryStore = defineStore('gallery', () => {
   });
 
   // 图像排序函数
-  const sortImages = (images: CharacterImage[]): CharacterImage[] => {
+  const sortImages = (images: ImageBase[]): ImageBase[] => {
     return [...images].sort((a, b) => {
       let comparison = 0;
 
@@ -117,12 +103,15 @@ export const useGalleryStore = defineStore('gallery', () => {
     const counts: Record<string, number> = { all: 0 };
 
     // 计算有效的图像组数量
-    const validImageGroups: CharacterImage[] = [];
+    const validImageGroups: GroupImage[] = [];
     for (const parentImage of siteConfig.images) {
       const validImages = getValidImagesInGroup(parentImage);
-      if (validImages.length > 0) {
-        const displayImage = getDisplayImageForGroup(parentImage);
-        validImageGroups.push(displayImage);
+      const firstValidImage = validImages.shift();
+      if (firstValidImage) {
+        validImageGroups.push({
+          ...firstValidImage,
+          childImages: validImages,
+        });
       }
     }
 
@@ -140,26 +129,17 @@ export const useGalleryStore = defineStore('gallery', () => {
 
   // 获取每个角色的匹配图像数量（支持图像组）
   const getCharacterMatchCount = (characterId: string): number => {
-    // 计算有效的图像组数量
-    let validGroupCount = 0;
-
-    for (const parentImage of siteConfig.images) {
-      const validImages = getValidImagesInGroup(parentImage);
-      if (validImages.length > 0) {
-        const displayImage = getDisplayImageForGroup(parentImage);
-
-        // 如果是"全部"选项，或者显示图像包含该角色
-        if (characterId === 'all' || displayImage.characters?.includes(characterId)) {
-          validGroupCount++;
-        }
-      }
+    const validImageGroups = siteConfig.images.filter(getValidImagesInGroup);
+    if (characterId === 'all') {
+      return validImageGroups.length;
     }
 
-    return validGroupCount;
+    const validImages = validImageGroups.filter(image => image.characters?.includes(characterId));
+    return validImages.length;
   };
 
   // 获取单个图像（支持子图像ID）
-  const getImageById = (id: string): CharacterImage | undefined => {
+  const getImageById = (id: string): ImageBase | undefined => {
     // 首先查找父图像
     const parentImage = siteConfig.images.find(img => img.id === id);
     if (parentImage) {
@@ -169,21 +149,10 @@ export const useGalleryStore = defineStore('gallery', () => {
     // 如果没找到，查找子图像
     const groupInfo = getImageGroupByChildId(id);
     if (groupInfo) {
-      return getChildImageWithDefaults(groupInfo.parentImage, groupInfo.childImage) as CharacterImage;
+      return getChildImageWithDefaults(groupInfo.parentImage, groupInfo.childImage);
     }
 
     return undefined;
-  };
-
-  // 在当前筛选条件下获取图像的索引
-  const getImageIndexById = (id: string): number => {
-    return characterImages.value.findIndex(img => img.id === id);
-  };
-
-  // 根据索引获取图像
-  const getImageByIndex = (index: number): CharacterImage | undefined => {
-    if (index < 0 || index >= characterImages.value.length) return undefined;
-    return characterImages.value[index];
   };
 
   // 递归获取所有依赖某个标签的子标签
@@ -233,7 +202,7 @@ export const useGalleryStore = defineStore('gallery', () => {
   // 图像组相关辅助函数
 
   // 根据child image ID获取父图像和子图像
-  const getImageGroupByChildId = (childId: string): { parentImage: CharacterImage; childImage: ImageBase } | null => {
+  const getImageGroupByChildId = (childId: string): { parentImage: GroupImage; childImage: ImageBase } | null => {
     for (const image of siteConfig.images) {
       if (image.childImages) {
         const childImage = image.childImages.find(child => child.id === childId);
@@ -246,7 +215,7 @@ export const useGalleryStore = defineStore('gallery', () => {
   };
 
   // 获取子图像的完整信息（继承父图像属性）
-  const getChildImageWithDefaults = (parentImage: CharacterImage, childImage: ImageBase): ImageBase => {
+  const getChildImageWithDefaults = (parentImage: GroupImage, childImage: ImageBase): ImageBase => {
     const resultImage: ImageBase = {
       id: childImage.id,
       name: childImage.name ?? parentImage.name ?? '',
@@ -262,7 +231,7 @@ export const useGalleryStore = defineStore('gallery', () => {
     return resultImage;
   };
 
-  const doesImageValid = (image: CharacterImage | ImageBase): boolean => {
+  const doesImageValid = (image: ImageBase): boolean => {
     if (!image.src) {
       return false;
     }
@@ -270,7 +239,7 @@ export const useGalleryStore = defineStore('gallery', () => {
   };
 
   // 检查图像是否通过过滤器
-  const doesImagePassFilter = (image: CharacterImage | ImageBase): boolean => {
+  const doesImagePassFilter = (image: GroupImage | ImageBase): boolean => {
     if (!doesImageValid(image)) {
       return false;
     }
@@ -344,38 +313,19 @@ export const useGalleryStore = defineStore('gallery', () => {
     return true;
   };
 
-  // 获取图像组的显示图像（用于画廊显示）
-  const getDisplayImageForGroup = (parentImage: CharacterImage): CharacterImage => {
-    // 如果没有子图像，这是一个普通的单个图像，直接返回父图像
-    if (!parentImage.childImages) {
-      return parentImage;
-    }
-
-    // 对于图像组，永远不显示父图像本身，因为父图像不是合法的可选图像
-    // 先计算有效图像数量
-    let validCount = 0;
-    let firstValidChild: ImageBase | null = null;
-
-    for (const childImage of parentImage.childImages) {
-      const fullChildImage = getChildImageWithDefaults(parentImage, childImage);
-      if (doesImagePassFilter(fullChildImage)) {
-        firstValidChild ??= childImage;
-        validCount++;
-      }
-    }
-
-    if (firstValidChild) {
-      const fullFirstChild = getChildImageWithDefaults(parentImage, firstValidChild);
-      // 传递有效图像数量信息，避免重复计算
-      return getGroupDisplayInfo(parentImage, fullFirstChild, validCount > 1);
-    }
-
-    // 如果没有有效的子图像，返回父图像（用于标识这是个组图，但不可选）
-    return parentImage;
+  const getDisplayImageForGroup = (parentImage: GroupImage, validImages: ImageBase[]): DisplayImage => {
+    const childImages = validImages.filter(image => image.id !== parentImage.id);
+    const displaySrc = parentImage.src ?? validImages[0].src;
+    const displayImage: DisplayImage = {
+      ...parentImage,
+      childImages,
+      displaySrc,
+    };
+    return displayImage;
   };
 
   // 获取图像组中第一个通过过滤的子图像ID
-  const getFirstValidChildId = (parentImage: CharacterImage): string | null => {
+  const getFirstValidChildId = (parentImage: GroupImage): string | null => {
     if (doesImageValid(parentImage)) {
       return parentImage.id;
     }
@@ -394,62 +344,8 @@ export const useGalleryStore = defineStore('gallery', () => {
     return null;
   };
 
-  // 获取图像组的显示信息（根据有效图像数量决定优先级）
-  const getGroupDisplayInfo = (
-    parentImage: CharacterImage,
-    childImage: ImageBase,
-    hasMultipleValidImages?: boolean,
-  ): CharacterImage => {
-    // 如果没有提供有效图像数量信息，则计算
-    let hasMultiple = hasMultipleValidImages;
-    if (hasMultiple === undefined) {
-      // 计算有效图像数量，但避免循环调用
-      let validCount = 0;
-      if (parentImage.childImages) {
-        for (const child of parentImage.childImages) {
-          const fullChildImage = getChildImageWithDefaults(parentImage, child);
-          if (doesImagePassFilter(fullChildImage)) {
-            validCount++;
-            if (validCount > 1) break; // 只需要知道是否超过1个
-          }
-        }
-      }
-      hasMultiple = validCount > 1;
-    }
-
-    if (hasMultiple) {
-      // 有多个图像时，优先使用图像组信息
-      return {
-        id: parentImage.id, // 使用父图像ID用于组图标识
-        name: parentImage.name ?? '', // 优先显示父图像名称
-        description: parentImage.description ?? childImage.description ?? '',
-        artist: parentImage.artist ?? childImage.artist ?? 'N/A',
-        authorLinks: parentImage.authorLinks ?? childImage.authorLinks ?? [],
-        src: childImage.src, // 显示子图像的实际图片
-        tags: parentImage.tags ?? [], // 优先显示父图像标签
-        characters: parentImage.characters, // 优先显示父图像角色
-        date: parentImage.date ?? childImage.date, // 优先显示父图像日期
-        childImages: parentImage.childImages, // 保留子图像信息用于组图判断
-      };
-    } else {
-      // 只有一个图像时，优先使用该图像的信息
-      return {
-        id: childImage.id, // 使用子图像ID
-        name: childImage.name ?? parentImage.name ?? '', // 优先显示子图像名称
-        description: childImage.description ?? parentImage.description ?? '',
-        artist: childImage.artist ?? parentImage.artist ?? 'N/A',
-        authorLinks: childImage.authorLinks ?? parentImage.authorLinks ?? [],
-        src: childImage.src, // 显示子图像的实际图片
-        tags: childImage.tags ?? [], // 优先显示子图像标签
-        characters: childImage.characters ?? parentImage.characters, // 优先显示子图像角色
-        date: childImage.date ?? parentImage.date, // 优先显示子图像日期
-        childImages: undefined, // 单个图像时不保留子图像信息
-      };
-    }
-  };
-
   // 获取图像组的所有有效图像（通过过滤的）
-  const getValidImagesInGroup = (parentImage: CharacterImage): ImageBase[] => {
+  const getValidImagesInGroup = (parentImage: GroupImage): ImageBase[] => {
     const validImages: ImageBase[] = [];
 
     if (doesImagePassFilter(parentImage)) {
@@ -467,7 +363,7 @@ export const useGalleryStore = defineStore('gallery', () => {
     return validImages;
   };
 
-  const getValidImagesInGroupWithoutFilter = (parentImage: CharacterImage): ImageBase[] => {
+  const getValidImagesInGroupWithoutFilter = (parentImage: GroupImage): ImageBase[] => {
     const validImages: ImageBase[] = [];
     if (doesImageValid(parentImage)) {
       validImages.push(parentImage as ImageBase);
@@ -545,15 +441,12 @@ export const useGalleryStore = defineStore('gallery', () => {
 
     // 图像查询
     getImageById,
-    getImageIndexById,
-    getImageByIndex,
 
     // 图像组相关
     getImageGroupByChildId,
     getChildImageWithDefaults,
     getDisplayImageForGroup,
     getValidImagesInGroup,
-    getGroupDisplayInfo,
     getFirstValidChildId,
     getValidImagesInGroupWithoutFilter,
   };

@@ -8,14 +8,14 @@ import imagesConfig from './images.json';
 import personalConfig from './personal.json';
 import tagsConfig from './tags.json';
 
-import type { SiteConfig, AppConfig, PersonalInfo, Character, ImageTag, CharacterImage, GiscusConfig, FontAwesomeConfig, FeaturesConfig } from '@/types';
+import type { AppConfig, Character, FeaturesConfig, FontAwesomeConfig, GiscusConfig, GroupImage, ImageTag, PersonalInfo, SiteConfig } from '@/types';
 
 export const siteConfig: SiteConfig = {
   app: appConfig as AppConfig,
   personal: personalConfig as PersonalInfo,
   characters: charactersConfig as Character[],
   tags: tagsConfig as ImageTag[],
-  images: imagesConfig as CharacterImage[],
+  images: imagesConfig as GroupImage[],
   giscus: giscusConfig as GiscusConfig,
   fontawesome: fontawesomeConfig as FontAwesomeConfig,
   features: featuresConfig as FeaturesConfig,

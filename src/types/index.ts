@@ -92,8 +92,12 @@ export interface ImageBase {
   date?: string; // yyyy-MM-dd format
 }
 
-export interface CharacterImage extends ImageBase {
+export interface GroupImage extends ImageBase {
   childImages?: ImageBase[]; // child images for image groups
+}
+
+export interface DisplayImage extends GroupImage {
+  displaySrc?: string;
 }
 
 // 外部图像信息（用于查看任意URL图像）
@@ -186,7 +190,7 @@ export interface SiteConfig {
   personal: PersonalInfo;
   characters: Character[];
   tags: ImageTag[];
-  images: CharacterImage[];
+  images: GroupImage[];
   giscus: GiscusConfig;
   fontawesome: FontAwesomeConfig;
   features: FeaturesConfig;

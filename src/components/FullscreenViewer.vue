@@ -248,8 +248,8 @@
             class="thumbnail-button" :class="{ 'active': currentIndex === index }">
             <div class="thumbnail-container">
               <ProgressiveImage
-                v-if="image.src"
-                :src="image.src"
+                v-if="image.displaySrc"
+                :src="image.displaySrc"
                 :alt="t(image.name, currentLanguage)"
                 class="thumbnail-image"
                 object-fit="contain"
@@ -435,7 +435,7 @@ import { siteConfig } from '@/config/site';
 import { getImageCache, LoadPriority } from '@/services/imageCache';
 import { useGalleryStore } from '@/stores/gallery';
 import { useLanguageStore } from '@/stores/language';
-import type { CharacterImage, ExternalImageInfo, I18nText, ViewerUIConfig } from '@/types';
+import type { DisplayImage, ExternalImageInfo, GroupImage, I18nText, ViewerUIConfig } from '@/types';
 import { AnimationDurations } from '@/utils/animations';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
@@ -444,7 +444,7 @@ const props = defineProps<{
   imageId?: string;
   childImageId?: string;
   externalImage?: ExternalImageInfo; // 外部图像信息（包含URL和其他信息）
-  imageList?: CharacterImage[]; // 提供的图像列表
+  imageList?: DisplayImage[]; // 提供的图像列表
   viewerUIConfig?: ViewerUIConfig; // 结构化配置参数
   commentsUniqueId?: string; // 评论区唯一ID
   commentsPrefix?: string; // 评论区前缀
@@ -621,7 +621,7 @@ const currentImageGroup = computed(() => {
 
   // 如果当前图像有子图像，这是一个图像组
   if (currentImage.value && 'childImages' in currentImage.value) {
-    const image = currentImage.value as CharacterImage;
+    const image = currentImage.value as GroupImage;
     return {
       parentImage: image,
       validImages: image.childImages ?? [],
@@ -647,7 +647,7 @@ const currentImageGroup = computed(() => {
 const groupImageList = computed(() => {
   // 先判断是不是 CharacterImage
   if (currentImage.value && 'childImages' in currentImage.value) {
-    const image = currentImage.value as CharacterImage;
+    const image = currentImage.value as GroupImage;
     return image.childImages ?? [];
   }
 
@@ -752,8 +752,8 @@ const getTagsWithFallback = computed(() => {
 });
 
 // 检查图像是否有有效的子图像（用于显示组图标识）
-const hasValidChildImages = (image: CharacterImage): boolean => {
-  return !!(image.childImages && image.childImages.length > 0);
+const hasValidChildImages = (image: GroupImage): boolean => {
+  return !!(image.childImages && image.childImages.length > 1);
 };
 
 const prevImage = (): void => {

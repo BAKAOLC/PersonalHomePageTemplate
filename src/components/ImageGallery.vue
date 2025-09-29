@@ -29,8 +29,8 @@
         >
           <div class="image-container">
             <ProgressiveImage
-              v-if="image.src"
-              :src="image.src"
+              v-if="image.displaySrc"
+              :src="image.displaySrc"
               :alt="getImageAltText(image)"
               class="image"
               image-class="gallery-image"
@@ -108,11 +108,11 @@ import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
 import { useGalleryStore } from '@/stores/gallery';
 import { useLanguageStore } from '@/stores/language';
-import type { CharacterImage, I18nText } from '@/types';
+import type { DisplayImage, I18nText } from '@/types';
 import { getI18nText } from '@/utils/i18nText';
 
 const props = defineProps<{
-  images: CharacterImage[];
+  images: DisplayImage[];
   gridView: boolean;
 }>();
 
@@ -155,7 +155,7 @@ const { getSortedTags, getTagColor, getTagName } = useTags();
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 获取图像在当前过滤条件下的所有可见标签
-const getAllImageTags = (image: CharacterImage): string[] => {
+const getAllImageTags = (image: DisplayImage): string[] => {
   const allTags = new Set<string>();
 
   // 如果没有子图像，这是一个普通图像，直接返回其标签
@@ -187,7 +187,7 @@ const getAllImageTags = (image: CharacterImage): string[] => {
 };
 
 // 检查图像是否通过当前过滤条件（复制 app store 的逻辑）
-const doesImagePassCurrentFilter = (image: CharacterImage): boolean => {
+const doesImagePassCurrentFilter = (image: DisplayImage): boolean => {
   // 获取所有限制级标签
   const allRestrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
 
@@ -205,7 +205,7 @@ const doesImagePassCurrentFilter = (image: CharacterImage): boolean => {
 };
 
 // 检查图像是否为图像组（当过滤结果只有一张图像时隐藏指示器）
-const isImageGroup = (image: CharacterImage): boolean => {
+const isImageGroup = (image: DisplayImage): boolean => {
   // 获取原始图像信息
   let originalImage = image;
   if (image && image.id) {
@@ -233,7 +233,7 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 };
 
 // 获取图像的alt文本
-const getImageAltText = (image: CharacterImage): string => {
+const getImageAltText = (image: DisplayImage): string => {
   const name = t(image.name, currentLanguage.value);
   const tags = getAllImageTags(image).map(tagId => getTagName(tagId, currentLanguage.value)).join(', ');
   const isGroup = isImageGroup(image);
@@ -250,7 +250,7 @@ const getImageAltText = (image: CharacterImage): string => {
 };
 
 // 获取图像的ARIA标签
-const getImageAriaLabel = (image: CharacterImage): string => {
+const getImageAriaLabel = (image: DisplayImage): string => {
   const name = t(image.name, currentLanguage.value);
   const isGroup = isImageGroup(image);
   const groupText = isGroup ? `, ${$t('gallery.imageGroup')}` : '';
@@ -258,7 +258,7 @@ const getImageAriaLabel = (image: CharacterImage): string => {
 };
 
 // 获取图像的详细描述（用于屏幕阅读器）
-const getImageDescription = (image: CharacterImage): string => {
+const getImageDescription = (image: DisplayImage): string => {
   const name = t(image.name, currentLanguage.value);
   const tags = getAllImageTags(image).map(tagId => getTagName(tagId, currentLanguage.value));
   const isGroup = isImageGroup(image);
@@ -278,7 +278,7 @@ const getImageDescription = (image: CharacterImage): string => {
   return description;
 };
 
-const viewImage = (image: CharacterImage): void => {
+const viewImage = (image: DisplayImage): void => {
   if (!image || !image.id) {
     console.warn('Invalid image data, cannot view');
     return;

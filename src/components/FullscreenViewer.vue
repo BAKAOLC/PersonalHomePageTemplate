@@ -1595,7 +1595,13 @@ const handleThumbnailWheel = (event: WheelEvent): void => {
   isUserScrolling.value = true;
 
   const scrollSpeed = 40; // 滚动速度
-  const delta = event.deltaY > 0 ? -scrollSpeed : scrollSpeed;
+  let delta = 0;
+  if (event.deltaY !== 0) {
+    delta += event.deltaY > 0 ? -scrollSpeed : scrollSpeed;
+  }
+  if (event.deltaX !== 0) {
+    delta += event.deltaX > 0 ? -scrollSpeed : scrollSpeed;
+  }
   setManualThumbnailOffset(thumbnailsOffset.value + delta);
 
   // 1秒后重置用户滚动状态
@@ -2926,14 +2932,11 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 }
 
 .image-thumbnails-container {
-  @apply flex-1 mx-3;
+  @apply flex-1 overflow-hidden mx-3;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  /* 为键盘选择器提供额外空间，避免边框被裁剪 */
-  @apply py-1;
-  overflow: visible;
 }
 
 .image-thumbnails-container.dragging {
@@ -3412,9 +3415,6 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 .group-images-list {
   @apply flex-1 overflow-y-auto p-2;
   @apply space-y-2;
-  /* 为键盘选择器提供额外空间，避免边框被裁剪 */
-  @apply py-1;
-  overflow: visible;
 }
 
 .group-image-button {
@@ -3423,8 +3423,6 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   @apply transition-colors duration-200;
   @apply border border-transparent;
   @apply cursor-pointer;
-  /* 为键盘选择器边框提供额外空间 */
-  margin: 0.125rem 0;
 }
 
 .dark .group-image-button {
@@ -3647,9 +3645,6 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
-  /* 为键盘选择器提供额外空间，避免边框被裁剪 */
-  @apply py-1;
-  overflow: visible;
 }
 
 .mobile-group-images-grid {
@@ -3663,8 +3658,6 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   flex-direction: column;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 0.5rem;
-  /* 为键盘选择器边框提供额外空间 */
-  margin: 0.125rem;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease;

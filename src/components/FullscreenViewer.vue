@@ -5,7 +5,7 @@
   }" @keydown.esc="close" tabindex="0">
     <div class="viewer-header" :class="{ 'no-title': !effectiveViewerConfig.viewerTitle }">
       <div v-if="effectiveViewerConfig.viewerTitle" class="viewer-title">
-        {{ currentImage ? t(currentImage.name, currentLanguage) : '' }}
+        {{ t(getNameWithFallback, currentLanguage) }}
       </div>
 
       <div class="viewer-controls">
@@ -56,7 +56,7 @@
           @touchstart="handleImageTouchStart" @touchmove="handleImageTouchMove" @touchend="handleImageTouchEnd">
           <transition name="fade" mode="out-in">
             <ProgressiveImage v-if="currentImage && currentImage.src" :key="currentImage.id" :src="currentImage.src"
-              :alt="t(currentImage.name, currentLanguage)" class="image" image-class="fullscreen-image"
+              :alt="t(getNameWithFallback, currentLanguage)" class="image" image-class="fullscreen-image"
               object-fit="contain" show-loader display-type="original" priority="high" @load="onImageLoad"
               ref="imageElement" :style="{
                 transform: imageTransform,
@@ -70,7 +70,7 @@
                        M9 17l1.5-2L12 17h7V5H5v12z"
                   />
                 </svg>
-                <p class="no-image-text">{{ t(currentImage.name, currentLanguage) }}</p>
+                <p class="no-image-text">{{ t(getNameWithFallback, currentLanguage) }}</p>
               </div>
             </div>
           </transition>
@@ -79,7 +79,7 @@
           <div v-if="showMinimap" class="minimap-container" :class="{ 'dragging': isDraggingMinimap }"
             @mousedown="handleMinimapMouseDown" @touchstart="handleMinimapTouchStart">
             <div class="minimap-image-container">
-              <img :src="currentImage?.src" :alt="t(currentImage?.name, currentLanguage)" class="minimap-image"
+              <img :src="currentImage?.src" :alt="t(getNameWithFallback, currentLanguage)" class="minimap-image"
                 ref="minimapImage" />
               <div class="minimap-image-border" :style="imageBorderStyle"></div>
               <div class="minimap-viewport" :style="viewportStyle"></div>
@@ -95,11 +95,11 @@
           :class="{ 'resizing': isDraggingGroupResize }"
           :style="{ width: groupSelectorWidth ? `${groupSelectorWidth}px` : '200px' }">
           <div class="group-selector-header">
-            <h4 class="group-title">{{ $t('viewer.imageGroupWithCount', { count: groupimageList.length }) }}</h4>
+            <h4 class="group-title">{{ $t('viewer.imageGroupWithCount', { count: groupImageList.length }) }}</h4>
           </div>
           <div class="group-images-list" ref="groupImagesList">
             <button
-              v-for="image in groupimageList"
+              v-for="image in groupImageList"
               :key="image.id"
               @click="goToGroupImage(image.id)"
               class="group-image-button"
@@ -154,12 +154,12 @@
       <!-- 移动端图像组悬浮按钮 -->
       <transition name="mobile-group-button-fade">
         <button
-          v-if="effectiveViewerConfig.imageGroupList && showGroupSelector && isMobile && groupimageList.length > 1"
+          v-if="effectiveViewerConfig.imageGroupList && showGroupSelector && isMobile && groupImageList.length > 1"
           @click="toggleMobileGroupSelector"
           class="mobile-group-selector-toggle"
           :class="{ 'active': isMobileGroupSelectorOpen }">
           <i :class="getIconClass('th')"></i>
-          <span class="toggle-text">{{ $t('viewer.imageGroupWithCount', { count: groupimageList.length }) }}</span>
+          <span class="toggle-text">{{ $t('viewer.imageGroupWithCount', { count: groupImageList.length }) }}</span>
         </button>
       </transition>
 
@@ -180,7 +180,7 @@
               <div class="mobile-group-selector-body">
                 <div class="mobile-group-images-grid" ref="mobileGroupImagesGrid">
                   <div
-                    v-for="image in groupimageList"
+                    v-for="image in groupImageList"
                     :key="image.id"
                     class="mobile-group-image-item"
                     :class="{ 'active': image.id === currentDisplayImageId }"
@@ -293,7 +293,7 @@
             class="info-group">
             <h3
               v-if="effectiveViewerConfig.infoPanel.title"
-              class="info-title">{{ t(currentImage?.name, currentLanguage) }}</h3>
+              class="info-title">{{ t(getNameWithFallback, currentLanguage) }}</h3>
             <p
               v-if="effectiveViewerConfig.infoPanel.description"
               class="info-description">{{ t(getDescriptionWithFallback, currentLanguage) }}</p>
@@ -308,21 +308,20 @@
                 </span>
               </div>
               <AuthorLinks
-                :author-links="getAuthorLinksWithFallback.current"
-                :fallback-author-links="getAuthorLinksWithFallback.fallback"
+                :author-links="getAuthorLinksWithFallback"
               />
             </div>
           </div>
 
           <div v-if="effectiveViewerConfig.infoPanel.date" class="info-group">
             <h4 class="info-subtitle">{{ $t('gallery.date') }}</h4>
-            <p>{{ currentImage?.date ?? 'N/A' }}</p>
+            <p>{{ getDateWithFallback }}</p>
           </div>
 
           <div v-if="effectiveViewerConfig.infoPanel.tags" class="info-group">
             <h4 class="info-subtitle">{{ $t('gallery.tags') }}</h4>
             <div class="tags-list">
-              <span v-for="tagId in getSortedTags(currentImage?.tags ?? [])" :key="tagId" class="tag"
+              <span v-for="tagId in getSortedTags(getTagsWithFallback)" :key="tagId" class="tag"
                 :style="{ backgroundColor: getTagColor(tagId) }">
                 {{ getTagName(tagId, currentLanguage) }}
               </span>
@@ -350,7 +349,7 @@
                 class="info-group">
                 <h3
                   v-if="effectiveViewerConfig.infoPanel.title"
-                  class="info-title">{{ t(currentImage?.name, currentLanguage) }}</h3>
+                  class="info-title">{{ t(getNameWithFallback, currentLanguage) }}</h3>
                 <p
                   v-if="effectiveViewerConfig.infoPanel.description"
                   class="info-description">{{ t(getDescriptionWithFallback, currentLanguage) }}</p>
@@ -365,21 +364,20 @@
                     </span>
                   </div>
                   <AuthorLinks
-                    :author-links="getAuthorLinksWithFallback.current"
-                    :fallback-author-links="getAuthorLinksWithFallback.fallback"
+                    :author-links="getAuthorLinksWithFallback"
                   />
                 </div>
               </div>
 
               <div v-if="effectiveViewerConfig.infoPanel.date" class="info-group">
                 <h4 class="info-subtitle">{{ $t('gallery.date') }}</h4>
-                <p>{{ currentImage?.date ?? 'N/A' }}</p>
+                <p>{{ getDateWithFallback }}</p>
               </div>
 
               <div v-if="effectiveViewerConfig.infoPanel.tags" class="info-group">
                 <h4 class="info-subtitle">{{ $t('gallery.tags') }}</h4>
                 <div class="tags-list">
-                  <span v-for="tagId in getSortedTags(currentImage?.tags ?? [])" :key="tagId" class="tag"
+                  <span v-for="tagId in getSortedTags(getTagsWithFallback)" :key="tagId" class="tag"
                     :style="{ backgroundColor: getTagColor(tagId) }">
                     {{ getTagName(tagId, currentLanguage) }}
                   </span>
@@ -435,7 +433,8 @@ import { useTags } from '@/composables/useTags';
 import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
 import { getImageCache, LoadPriority } from '@/services/imageCache';
-import { useAppStore } from '@/stores/app';
+import { useGalleryStore } from '@/stores/gallery';
+import { useLanguageStore } from '@/stores/language';
 import type { CharacterImage, ExternalImageInfo, I18nText, ViewerUIConfig } from '@/types';
 import { AnimationDurations } from '@/utils/animations';
 import { getI18nText } from '@/utils/i18nText';
@@ -456,14 +455,15 @@ const emit = defineEmits<{
 }>();
 
 const { t: $t } = useI18n();
-const appStore = useAppStore();
+const galleryStore = useGalleryStore();
+const languageStore = useLanguageStore();
 const { setTimeout, clearTimeout } = useTimers();
 const eventManager = useEventManager();
 const { addEventListener, removeEventListener } = useEventManager();
 const { isMobile, onScreenChange } = useMobileDetection();
 const { getSortedTags, getTagColor, getTagName } = useTags();
 
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 合并默认配置和传入的配置
 const effectiveViewerConfig = computed((): ViewerUIConfig => {
@@ -555,7 +555,7 @@ const currentIndex = computed(() => {
   // 如果没找到，可能是因为当前显示的是子图像，而列表中是父图像
   if (index === -1) {
     // 检查当前显示的是否是子图像
-    const groupInfo = appStore.getImageGroupByChildId(currentDisplayImageId.value);
+    const groupInfo = galleryStore.getImageGroupByChildId(currentDisplayImageId.value);
     if (groupInfo) {
       // 如果是子图像，查找父图像在列表中的位置
       index = imageList.value.findIndex(img => {
@@ -591,9 +591,9 @@ const currentImage = computed(() => {
   // 如果有子图像ID，优先获取子图像的具体信息
   if (currentChildImageId.value) {
     // 首先尝试在列表中直接查找子图像
-    const childimage = imageList.value.find(img => img.id === currentChildImageId.value);
-    if (childimage) {
-      return childimage;
+    const childImage = imageList.value.find(img => img.id === currentChildImageId.value);
+    if (childImage) {
+      return childImage;
     }
 
     // 如果没找到，可能是子图像在父图像的childImages中
@@ -620,22 +620,22 @@ const currentImageGroup = computed(() => {
   if (!currentImage.value) return null;
 
   // 如果当前图像有子图像，这是一个图像组
-  if (currentImage.value && 'childImages' in currentImage.value
-   && currentImage.value.childImages && currentImage.value.childImages.length > 0) {
+  if (currentImage.value && 'childImages' in currentImage.value) {
+    const image = currentImage.value as CharacterImage;
     return {
-      parentImage: currentImage.value,
-      validImages: currentImage.value.childImages,
+      parentImage: image,
+      validImages: image.childImages ?? [],
       isParent: true,
     };
   }
 
   // 如果当前图像是子图像，需要找到父图像
-  const groupInfo = appStore.getImageGroupByChildId(currentImage.value.id);
+  const groupInfo = galleryStore.getImageGroupByChildId(currentImage.value.id);
   const parentImage = imageList.value.find(img => img.id === groupInfo?.parentImage.id);
   if (parentImage) {
     return {
       parentImage: parentImage,
-      validImages: parentImage.childImages,
+      validImages: parentImage.childImages ?? [],
       isParent: false,
     };
   }
@@ -644,20 +644,20 @@ const currentImageGroup = computed(() => {
 });
 
 // 图像组内的图像列表（用于选择器）
-const groupimageList = computed(() => {
+const groupImageList = computed(() => {
   // 先判断是不是 CharacterImage
-  if (currentImage.value && 'childImages' in currentImage.value
-    && currentImage.value.childImages && currentImage.value.childImages.length > 0) {
-    return currentImage.value.childImages;
+  if (currentImage.value && 'childImages' in currentImage.value) {
+    const image = currentImage.value as CharacterImage;
+    return image.childImages ?? [];
   }
 
   // 如果当前图像是子图像，需要找到父图像的childImages
   if (currentImage.value) {
-    const groupInfo = appStore.getImageGroupByChildId(currentImage.value.id);
+    const groupInfo = galleryStore.getImageGroupByChildId(currentImage.value.id);
     if (groupInfo) {
       const parentImage = imageList.value.find(img => img.id === groupInfo.parentImage.id);
       if (parentImage && parentImage.childImages) {
-        return parentImage.childImages;
+        return parentImage.childImages ?? [];
       }
     }
   }
@@ -669,7 +669,7 @@ const groupimageList = computed(() => {
 // 是否显示图像组选择器
 const showGroupSelector = computed(() => {
   // 如果有多个图像则显示选择器
-  return groupimageList.value.length > 1;
+  return groupImageList.value.length > 1;
 });
 
 // 主图像区域的动态样式
@@ -686,68 +686,69 @@ const mainImageAreaStyle = computed(() => {
 const hasPrevImage = computed(() => currentIndex.value > 0);
 const hasNextImage = computed(() => currentIndex.value < imageList.value.length - 1);
 
-// 获取作者列表
-const getArtistListWithFallback = computed(() => {
-  if (!currentImage.value) return ['N/A'];
+// 获取带有默认值的图像信息
+const getImageWithDefaults = computed(() => {
+  if (!currentImage.value) return null;
 
-  // 优先级：子图像 -> 父图像 -> fallback
   const currentGroup = currentImageGroup.value;
   if (currentGroup && !currentGroup.isParent) {
-    // 当前是子图像
+    // 当前是子图像，使用getChildImageWithDefaults获取完整信息
     const childImage = currentImage.value;
     const { parentImage } = currentGroup;
-
-    // 子图像有artist则用子图像的，否则用父图像的，最后fallback
-    const artist = childImage.artist ?? parentImage.artist ?? 'N/A';
-    return Array.isArray(artist) ? artist : [artist];
+    return galleryStore.getChildImageWithDefaults(parentImage, childImage);
   }
 
-  // 当前是父图像或普通图像
-  const artist = currentImage.value.artist ?? 'N/A';
+  // 当前是父图像或普通图像，直接返回
+  return currentImage.value;
+});
+
+// 获取作者列表
+const getArtistListWithFallback = computed(() => {
+  const imageWithDefaults = getImageWithDefaults.value;
+  if (!imageWithDefaults) return ['N/A'];
+
+  const artist = imageWithDefaults.artist ?? 'N/A';
   return Array.isArray(artist) ? artist : [artist];
 });
 
 // 获取作者链接（支持继承）
 const getAuthorLinksWithFallback = computed(() => {
-  if (!currentImage.value) return { current: [], fallback: [] };
+  const imageWithDefaults = getImageWithDefaults.value;
+  if (!imageWithDefaults) return [];
 
-  // 优先级：子图像 -> 父图像
-  const currentGroup = currentImageGroup.value;
-  if (currentGroup && !currentGroup.isParent) {
-    // 当前是子图像
-    const childImage = currentImage.value;
-    const { parentImage } = currentGroup;
-
-    return {
-      current: childImage.authorLinks ?? [],
-      fallback: parentImage.authorLinks ?? [],
-    };
-  }
-
-  // 当前是父图像或普通图像
-  return {
-    current: currentImage.value.authorLinks ?? [],
-    fallback: [],
-  };
+  return imageWithDefaults.authorLinks ?? [];
 });
 
 // 获取描述
 const getDescriptionWithFallback = computed(() => {
-  if (!currentImage.value) return '';
+  const imageWithDefaults = getImageWithDefaults.value;
+  if (!imageWithDefaults) return '';
 
-  // 优先级：子图像 -> 父图像 -> fallback
-  const currentGroup = currentImageGroup.value;
-  if (currentGroup && !currentGroup.isParent) {
-    // 当前是子图像
-    const childImage = currentImage.value;
-    const { parentImage } = currentGroup;
+  return imageWithDefaults.description ?? '';
+});
 
-    // 子图像有description则用子图像的，否则用父图像的，最后fallback
-    return childImage.description ?? parentImage.description ?? '';
-  }
+// 获取名称（支持fallback）
+const getNameWithFallback = computed(() => {
+  const imageWithDefaults = getImageWithDefaults.value;
+  if (!imageWithDefaults) return '';
 
-  // 当前是父图像或普通图像
-  return currentImage.value.description ?? '';
+  return imageWithDefaults.name ?? '';
+});
+
+// 获取日期（支持fallback）
+const getDateWithFallback = computed(() => {
+  const imageWithDefaults = getImageWithDefaults.value;
+  if (!imageWithDefaults) return 'N/A';
+
+  return imageWithDefaults.date ?? 'N/A';
+});
+
+// 获取标签（支持fallback）
+const getTagsWithFallback = computed(() => {
+  const imageWithDefaults = getImageWithDefaults.value;
+  if (!imageWithDefaults) return [];
+
+  return imageWithDefaults.tags ?? [];
 });
 
 // 检查图像是否有有效的子图像（用于显示组图标识）
@@ -780,15 +781,15 @@ const goToImage = (index: number): void => {
     currentChildImageId.value = undefined;
 
     // 检查目标图像是否是图像组的一部分
-    const groupInfo = appStore.getImageGroupByChildId(targetImage.id);
+    const groupInfo = galleryStore.getImageGroupByChildId(targetImage.id);
     if (groupInfo) {
       // 如果是子图像，设置正确的子图像ID
       const parentImageId = groupInfo.parentImage.id;
       currentChildImageId.value = targetImage.id;
       navigateToImage(parentImageId, targetImage.id);
-    } else if (targetImage.childImages && targetImage.childImages.length > 0) {
+    } else if (targetImage.childImages) {
       // 如果是父图像，导航到其第一个有效子图像
-      const firstValidChildId = appStore.getFirstValidChildId(targetImage);
+      const firstValidChildId = galleryStore.getFirstValidChildId(targetImage);
       if (firstValidChildId) {
         currentChildImageId.value = firstValidChildId;
         navigateToImage(targetImage.id, firstValidChildId);
@@ -807,7 +808,7 @@ const goToGroupImage = (imageId: string): void => {
   if (!currentImageGroup.value) return;
 
   const parentImageId = currentImageGroup.value.parentImage.id;
-  const targetImage = groupimageList.value.find(img => img.id === imageId);
+  const targetImage = groupImageList.value.find(img => img.id === imageId);
 
   if (!targetImage) return;
 
@@ -1725,7 +1726,7 @@ const handleThumbnailClick = (index: number, event: MouseEvent): void => {
   const targetImage = imageList.value[index];
   if (targetImage) {
     // 检查目标图像是否是子图像
-    const groupInfo = appStore.getImageGroupByChildId(targetImage.id);
+    const groupInfo = galleryStore.getImageGroupByChildId(targetImage.id);
     if (groupInfo) {
       // 如果是子图像，找到父图像在当前列表中的索引
       const parentIndex = imageList.value.findIndex(img => {
@@ -2716,7 +2717,7 @@ const getChildImageTags = (image: any): string[] => {
 const t = (text: I18nText | undefined, lang?: string): string => {
   if (!text) return '';
   if (typeof text === 'string') return text;
-  const currentLang = lang ?? appStore.currentLanguage;
+  const currentLang = lang ?? languageStore.currentLanguage;
   return getI18nText(text, currentLang);
 };
 </script>
@@ -2925,11 +2926,14 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 }
 
 .image-thumbnails-container {
-  @apply flex-1 overflow-hidden mx-3;
+  @apply flex-1 mx-3;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  /* 为键盘选择器提供额外空间，避免边框被裁剪 */
+  @apply py-1;
+  overflow: visible;
 }
 
 .image-thumbnails-container.dragging {
@@ -2956,6 +2960,8 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  /* 为键盘选择器边框提供额外空间 */
+  margin: 0.125rem;
 }
 
 .thumbnail-container {
@@ -3406,6 +3412,9 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 .group-images-list {
   @apply flex-1 overflow-y-auto p-2;
   @apply space-y-2;
+  /* 为键盘选择器提供额外空间，避免边框被裁剪 */
+  @apply py-1;
+  overflow: visible;
 }
 
 .group-image-button {
@@ -3414,6 +3423,8 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   @apply transition-colors duration-200;
   @apply border border-transparent;
   @apply cursor-pointer;
+  /* 为键盘选择器边框提供额外空间 */
+  margin: 0.125rem 0;
 }
 
 .dark .group-image-button {
@@ -3636,6 +3647,9 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
+  /* 为键盘选择器提供额外空间，避免边框被裁剪 */
+  @apply py-1;
+  overflow: visible;
 }
 
 .mobile-group-images-grid {
@@ -3649,6 +3663,8 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   flex-direction: column;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 0.5rem;
+  /* 为键盘选择器边框提供额外空间 */
+  margin: 0.125rem;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease;

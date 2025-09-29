@@ -128,7 +128,7 @@ import ProgressiveImage from '@/components/ProgressiveImage.vue';
 import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
 import { useModalManager } from '@/composables/useModalManager';
 import characterProfilesData from '@/config/character-profiles.json';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import type { CharacterProfile, CharacterVariant, CharacterVariantImage } from '@/types';
 import { getI18nText } from '@/utils/i18nText';
 
@@ -136,11 +136,11 @@ import { getI18nText } from '@/utils/i18nText';
 
 // 不需要使用 useI18n 的返回值
 useI18n();
-const appStore = useAppStore();
+const languageStore = useLanguageStore();
 const modalManager = useModalManager();
 
 // 获取当前语言
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 计算显示的信息卡片（子info优先，如果没有就显示父info）
 const displayInfoCards = computed(() => {
@@ -298,12 +298,14 @@ onMounted(() => {
 
 .selector-scroll-container {
   @apply flex gap-2 overflow-x-auto;
-  padding: 0.25rem 0.25rem 0.75rem 0.25rem; /* 底部增加更多空间给滚动条 */
+  padding: 0.5rem 0.5rem 0.75rem 0.5rem; /* 增加四周padding，为键盘选择器提供空间 */
   scrollbar-width: thin;
   scrollbar-color: #cbd5e0 #f7fafc;
   scroll-behavior: smooth;
   width: 100%;
   min-width: 0;
+  /* 确保容器不会裁剪子元素的边框 */
+  overflow: visible;
 }
 
 .selector-scroll-container::-webkit-scrollbar {
@@ -330,6 +332,8 @@ onMounted(() => {
   @apply border border-transparent;
   flex-shrink: 0;
   min-width: fit-content;
+  /* 为键盘选择器边框提供额外空间 */
+  margin: 0.125rem;
 }
 
 .selector-button.active {
@@ -464,6 +468,10 @@ onMounted(() => {
   @apply flex flex-col gap-2 h-full overflow-y-auto;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e0 #f7fafc;
+  /* 为键盘选择器提供额外空间 */
+  padding: 0.25rem;
+  /* 确保容器不会裁剪子元素的边框 */
+  overflow: visible;
 }
 
 .image-list::-webkit-scrollbar {
@@ -490,6 +498,8 @@ onMounted(() => {
   cursor: pointer;
   flex-shrink: 0;
   @apply bg-gray-50 dark:bg-gray-800;
+  /* 为键盘选择器边框提供额外空间 */
+  margin: 0.125rem;
 }
 
 .image-item.active {
@@ -675,6 +685,9 @@ onMounted(() => {
   .image-list {
     @apply flex-row gap-3 overflow-x-auto;
     @apply h-24;
+    /* 为移动端键盘选择器提供额外空间 */
+    padding: 0.25rem;
+    overflow: visible;
   }
 
   .image-item {
@@ -735,6 +748,9 @@ onMounted(() => {
     @apply flex-row gap-3 overflow-x-auto;
     @apply h-24;
     @apply justify-start;
+    /* 为中等屏幕键盘选择器提供额外空间 */
+    padding: 0.25rem;
+    overflow: visible;
   }
 
   .image-item {
@@ -791,6 +807,9 @@ onMounted(() => {
     @apply flex flex-col gap-3 h-full overflow-y-auto;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e0 #f7fafc;
+    /* 为桌面端键盘选择器提供额外空间 */
+    padding: 0.25rem;
+    overflow: visible;
   }
 
   .image-list::-webkit-scrollbar {

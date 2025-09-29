@@ -28,19 +28,18 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import siteNames from '@/config/sites.json';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import type { AuthorLink, SitesConfig } from '@/types';
 import { getI18nText } from '@/utils/i18nText';
 
 const props = defineProps<{
-  authorLinks?: AuthorLink[]; // 当前图像的作者链接
-  fallbackAuthorLinks?: AuthorLink[]; // 备用作者链接（如父图像的链接）
+  authorLinks?: AuthorLink[]; // 作者链接
 }>();
 
 const { t: $t } = useI18n();
-const appStore = useAppStore();
+const languageStore = useLanguageStore();
 
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 智能匹配域名，支持子域名和多种变体
 const isMatchingDomain = (hostname: string, configDomain: string): boolean => {
@@ -119,12 +118,9 @@ const extractMainDomain = (hostname: string): string => {
   return withoutWww;
 };
 
-// 有效的作者链接（优先使用当前图像的，如果没有则使用备用的）
+// 有效的作者链接
 const effectiveAuthorLinks = computed(() => {
-  if (props.authorLinks && props.authorLinks.length > 0) {
-    return props.authorLinks;
-  }
-  return props.fallbackAuthorLinks ?? [];
+  return props.authorLinks ?? [];
 });
 
 // 获取链接名称

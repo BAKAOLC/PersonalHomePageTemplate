@@ -4,13 +4,14 @@
     <img
       v-if="preloadThumbnailSrc && showThumbnail && !thumbnailHidden"
       :src="preloadThumbnailSrc"
-      :alt="alt"
+      :alt="alt || $t('common.imagePlaceholder')"
       class="thumbnail"
       :class="{
         'fade-out': imageLoaded,
         'loaded': thumbnailLoaded
       }"
       draggable="false"
+      role="img"
       @load="onThumbnailLoad"
       @error="onThumbnailError"
     />
@@ -19,9 +20,10 @@
     <img
       v-if="displayImageSrc && shouldShowMainImage && !useProgressLoading"
       :src="displayImageSrc"
-      :alt="alt"
+      :alt="alt || $t('common.imagePlaceholder')"
       :class="[imageClass, { 'fade-in': imageLoaded }]"
       draggable="false"
+      role="img"
       @load="onImageLoad"
       @error="onImageError"
     />
@@ -30,24 +32,25 @@
     <img
       v-if="progressImageUrl && useProgressLoading"
       :src="progressImageUrl"
-      :alt="alt"
+      :alt="alt || $t('common.imagePlaceholder')"
       :class="[imageClass, { 'fade-in': imageLoaded }]"
       draggable="false"
+      role="img"
       @load="onProgressImageLoad"
       @error="onImageError"
     />
 
     <!-- 加载指示器和进度条 -->
-    <div v-if="isLoading && showLoader" class="loading-container">
+    <div v-if="isLoading && showLoader" class="loading-container" role="status" :aria-label="$t('common.loadingImage')">
       <div class="loading-spinner">
-        <div class="spinner"></div>
+        <div class="spinner" aria-hidden="true"></div>
       </div>
       <!-- 加载进度条 - 只有在显示加载器且启用进度显示时才显示 -->
       <div v-if="showProgress && loadingProgress < 100 && showLoader" class="progress-container">
-        <div class="progress-bar">
+        <div class="progress-bar" role="progressbar" :aria-valuenow="Math.round(loadingProgress)" aria-valuemin="0" aria-valuemax="100" :aria-label="$t('common.loadingProgress', { progress: Math.round(loadingProgress) })">
           <div class="progress-fill" :style="{ width: `${loadingProgress}%` }"></div>
         </div>
-        <div class="progress-text">{{ Math.round(loadingProgress) }}%</div>
+        <div class="progress-text" :aria-label="$t('common.loadingProgress', { progress: Math.round(loadingProgress) })">{{ Math.round(loadingProgress) }}%</div>
       </div>
     </div>
   </div>
@@ -55,28 +58,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import thumbnailMap from '@/assets/thumbnail-map.json';
 import { useTimers } from '@/composables/useTimers';
 import { getImageCache, LoadPriority } from '@/services/imageCache';
 import { AnimationDurations } from '@/utils/animations';
-
-interface Props {
-  src: string;
-  alt?: string;
-  imageClass?: string;
-  showLoader?: boolean;
-  showProgress?: boolean;
-  priority?: 'low' | 'normal' | 'high'; // 加载优先级
-  objectFit?: 'contain' | 'cover' | 'fill' | 'scale-down' | 'none';
-  // 预加载缩略图的尺寸
-  preloadSize?: 'tiny' | 'small' | 'medium';
-  // 实际显示的图像类型和尺寸
-  displayType?: 'original' | 'thumbnail';
-  displaySize?: 'tiny' | 'small' | 'medium';
-  // 延迟加载主图的时间（毫秒）
-  delayMainImage?: number;
-}
 
 const props = withDefaults(defineProps<Props>(), {
   alt: '',
@@ -95,6 +82,25 @@ const emit = defineEmits<{
   load: [];
   error: [];
 }>();
+
+const { t: $t } = useI18n();
+
+interface Props {
+  src: string;
+  alt?: string;
+  imageClass?: string;
+  showLoader?: boolean;
+  showProgress?: boolean;
+  priority?: 'low' | 'normal' | 'high'; // 加载优先级
+  objectFit?: 'contain' | 'cover' | 'fill' | 'scale-down' | 'none';
+  // 预加载缩略图的尺寸
+  preloadSize?: 'tiny' | 'small' | 'medium';
+  // 实际显示的图像类型和尺寸
+  displayType?: 'original' | 'thumbnail';
+  displaySize?: 'tiny' | 'small' | 'medium';
+  // 延迟加载主图的时间（毫秒）
+  delayMainImage?: number;
+}
 
 const imageLoaded = ref(false);
 const isLoading = ref(true);

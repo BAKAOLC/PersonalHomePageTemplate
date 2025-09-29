@@ -11,9 +11,11 @@
             class="nav-item"
             :class="{ 'nav-item-active': isActiveRoute(item.path) }"
             :style="{ 'animation-delay': `${index * 20}ms` }"
+            :title="t(item.label)"
+            :aria-label="t(item.label)"
             @click="handleNavClick(item)"
           >
-            <i v-if="item.icon" :class="item.icon" class="nav-icon"></i>
+            <i v-if="item.icon" :class="item.icon" class="nav-icon" :aria-hidden="true"></i>
             <span class="nav-text">{{ t(item.label) }}</span>
           </router-link>
         </div>
@@ -24,11 +26,21 @@
             class="mobile-nav-current"
             :class="{ 'mobile-nav-current-active': isMobileMenuOpen }"
             @click="toggleMobileMenu"
-            :aria-label="t('nav.toggleMenu')"
+            :aria-label="currentNavItem ? `${t('nav.toggleMenu')} - ${t(currentNavItem.label)}` : t('nav.toggleMenu')"
+            :aria-expanded="isMobileMenuOpen"
           >
-            <i v-if="currentNavItem?.icon" :class="currentNavItem.icon" class="current-nav-icon"></i>
+            <i
+              v-if="currentNavItem?.icon"
+              :class="currentNavItem.icon"
+              class="current-nav-icon"
+              :aria-hidden="true"
+            ></i>
             <span class="current-nav-text">{{ currentNavItem ? t(currentNavItem.label) : t('nav.menu') }}</span>
-            <i class="fas fa-chevron-down nav-arrow" :class="{ 'nav-arrow-up': isMobileMenuOpen }"></i>
+            <i
+              class="fas fa-chevron-down nav-arrow"
+              :class="{ 'nav-arrow-up': isMobileMenuOpen }"
+              :aria-hidden="true"
+            ></i>
           </button>
 
           <!-- 移动端下拉菜单 -->
@@ -40,9 +52,11 @@
                 :to="item.path"
                 class="mobile-dropdown-item"
                 :class="{ 'mobile-dropdown-item-active': isActiveRoute(item.path) }"
+                :title="t(item.label)"
+                :aria-label="t(item.label)"
                 @click="handleMobileNavClick(item)"
               >
-                <i v-if="item.icon" :class="item.icon" class="mobile-dropdown-icon"></i>
+                <i v-if="item.icon" :class="item.icon" class="mobile-dropdown-icon" :aria-hidden="true"></i>
                 <span class="mobile-dropdown-text">{{ t(item.label) }}</span>
               </router-link>
             </div>
@@ -247,6 +261,10 @@ onBeforeUnmount(() => {
   @apply w-full max-w-6xl;
   @apply transition-all duration-100;
   @apply px-4;
+  /* 为键盘选择器提供额外的空间，避免边框被裁剪 */
+  @apply py-1;
+  /* 移除overflow限制，允许元素超出容器边界 */
+  overflow: visible;
 }
 
 /* 通用导航项样式 */
@@ -254,7 +272,8 @@ onBeforeUnmount(() => {
   @apply flex items-center justify-center;
   @apply gap-1;
   @apply transition-all duration-100;
-  @apply overflow-hidden;
+  /* 移除overflow-hidden，允许键盘选择器边框显示 */
+  overflow: visible;
   @apply flex-shrink;
   @apply min-w-0;
   @apply flex-wrap;
@@ -297,6 +316,9 @@ onBeforeUnmount(() => {
   @apply relative;
   @apply flex items-center justify-center;
   @apply w-full;
+  /* 为移动端键盘选择器提供额外空间 */
+  @apply py-1;
+  overflow: visible;
 }
 
 .mobile-nav-current {
@@ -341,7 +363,8 @@ onBeforeUnmount(() => {
   @apply border border-gray-200 dark:border-gray-700;
   @apply rounded-lg shadow-xl;
   @apply mt-1;
-  @apply overflow-hidden;
+  /* 移除overflow-hidden，允许键盘选择器边框显示 */
+  overflow: visible;
   @apply w-full max-w-xs;
   @apply min-w-0;
 }

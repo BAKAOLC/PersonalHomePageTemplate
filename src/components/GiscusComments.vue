@@ -24,7 +24,8 @@ import Giscus from '@giscus/vue';
 import { computed } from 'vue';
 
 import { siteConfig } from '@/config/site';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
+import { useThemeStore } from '@/stores/theme';
 import { getGiscusLanguage } from '@/utils/language';
 
 const props = withDefaults(defineProps<Props>(), {
@@ -32,7 +33,8 @@ const props = withDefaults(defineProps<Props>(), {
   prefix: undefined,
 });
 
-const appStore = useAppStore();
+const languageStore = useLanguageStore();
+const themeStore = useThemeStore();
 
 // Props for dynamic configuration
 interface Props {
@@ -59,8 +61,8 @@ const {
 const term = computed(() => `${props.prefix ?? 'comment'}-${props.uniqueId}`);
 
 // Dynamic theme and language
-const theme = computed(() => appStore.isDarkMode ? 'dark' : 'light');
-const lang = computed(() => getGiscusLanguage(appStore.currentLanguage));
+const theme = computed(() => themeStore.isDarkMode ? 'dark' : 'light');
+const lang = computed(() => getGiscusLanguage(languageStore.currentLanguage));
 </script>
 
 <style scoped>

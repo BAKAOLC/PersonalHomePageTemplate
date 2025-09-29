@@ -7,16 +7,26 @@
           <p class="links-subtitle">{{ $t('links.subtitle') }}</p>
         </div>
         <!-- 统一搜索栏 -->
-        <div class="unified-search-bar">
+        <div class="unified-search-bar" role="search" :aria-label="$t('links.searchResults')">
           <div class="search-input-container">
+            <label for="links-search-input" class="sr-only">{{ $t('links.searchPlaceholder') }}</label>
             <input
+              id="links-search-input"
               type="text"
               :value="searchQuery"
               @input="e => updateSearchQuery((e.target as HTMLInputElement).value)"
               :placeholder="$t('links.searchPlaceholder')"
               class="search-input"
+              :aria-describedby="searchQuery ? 'search-results-info' : undefined"
+              autocomplete="off"
             />
-            <button v-if="searchQuery" @click="clearSearch" class="search-clear">
+            <button
+              v-if="searchQuery"
+              @click="clearSearch"
+              class="search-clear"
+              :aria-label="$t('links.clearSearch')"
+              type="button"
+            >
               <i :class="getIconClass('times')" aria-hidden="true"></i>
             </button>
           </div>
@@ -27,8 +37,10 @@
               @click="generateFriendLinkInfo"
               class="generate-button group"
               :title="$t('links.generateFriendLinkDesc')"
+              :aria-label="$t('links.generateFriendLinkDesc')"
+              type="button"
             >
-              <i :class="getIconClass('code')" class="icon"></i>
+              <i :class="getIconClass('code')" class="icon" aria-hidden="true"></i>
               <span class="button-text">{{ $t('links.generateFriendLink') }}</span>
             </button>
           </div>
@@ -37,21 +49,41 @@
 
       <div class="links-content">
         <!-- 分类筛选 -->
-        <aside class="links-sidebar">
-          <div class="sidebar-toggle md:hidden" @click="toggleMobileSidebar">
-            <i :class="getIconClass('filter')" class="icon"></i>
+        <aside class="links-sidebar" role="complementary" :aria-label="$t('links.categories')">
+          <button
+            class="sidebar-toggle md:hidden"
+            @click="toggleMobileSidebar"
+            :aria-expanded="isSidebarOpen"
+            aria-controls="category-filter-panel"
+            :aria-label="$t('links.categories')"
+            type="button"
+          >
+            <i :class="getIconClass('filter')" class="icon" aria-hidden="true"></i>
             {{ $t('links.categories') }}
-          </div>
-          <div class="sidebar-content" :class="{ 'active': isSidebarOpen }">
+          </button>
+          <div
+            id="category-filter-panel"
+            class="sidebar-content"
+            :class="{ 'active': isSidebarOpen }"
+            role="region"
+            :aria-label="$t('links.categories')"
+            :aria-hidden="!isSidebarOpen"
+          >
             <div class="category-selector">
-              <div class="category-list">
+              <div class="category-list" role="listbox" :aria-label="$t('links.categories')">
                 <button
                   @click="selectCategory('')"
                   class="category-button"
                   :class="{ 'active': selectedCategory === '' }"
+                  role="option"
+                  :aria-selected="selectedCategory === ''"
+                  :aria-label="`${$t('links.allCategories')}, ${categoryCounts['']} ${$t('links.linkCount', {
+                    count: categoryCounts['']
+                  })}`"
+                  type="button"
                 >
                   <span class="category-name">{{ $t('links.allCategories') }}</span>
-                  <span class="category-count">{{ categoryCounts[''] }}</span>
+                  <span class="category-count" aria-hidden="true">{{ categoryCounts[''] }}</span>
                 </button>
                 <button
                   v-for="category in visibleCategories"
@@ -59,9 +91,17 @@
                   @click="selectCategory(category.id)"
                   class="category-button"
                   :class="{ 'active': selectedCategory === category.id }"
+                  role="option"
+                  :aria-selected="selectedCategory === category.id"
+                  :aria-label="`${t(category.name, currentLanguage)}, ${
+                    categoryCounts[category.id]
+                  } ${$t('links.linkCount', {
+                    count: categoryCounts[category.id]
+                  })}`"
+                  type="button"
                 >
                   <span class="category-name">{{ t(category.name, currentLanguage) }}</span>
-                  <span class="category-count">{{ categoryCounts[category.id] }}</span>
+                  <span class="category-count" aria-hidden="true">{{ categoryCounts[category.id] }}</span>
                 </button>
               </div>
             </div>
@@ -69,39 +109,57 @@
         </aside>
 
         <!-- 友链列表 -->
-        <div class="links-main" ref="linksMain" @scroll="handleScroll">
-          <div v-if="filteredLinks.length === 0" class="no-links">
-            <i :class="getIconClass('link')" class="no-links-icon"></i>
+        <main class="links-main" ref="linksMain" @scroll="handleScroll" role="main" :aria-label="$t('links.title')">
+          <!-- 搜索结果信息 -->
+          <div v-if="searchQuery" id="search-results-info" class="sr-only" aria-live="polite">
+            {{ $t('links.searchResults') }}: {{ filteredLinks.length }}
+            {{ $t('links.linkCount', { count: filteredLinks.length }) }}
+          </div>
+
+          <div v-if="filteredLinks.length === 0" class="no-links" role="status" aria-live="polite">
+            <i :class="getIconClass('link')" class="no-links-icon" aria-hidden="true"></i>
             <p class="no-links-text">
               {{ searchQuery ? $t('links.noSearchResults') : $t('links.noLinks') }}
             </p>
           </div>
 
           <div v-else class="links-grid">
-            <div
+            <section
               v-for="category in filteredCategories"
               :key="category.id"
               class="category-section"
+              :aria-labelledby="`category-${category.id}-title`"
             >
-              <h2 class="category-section-title">
+              <h2 :id="`category-${category.id}-title`" class="category-section-title">
                 {{ t(category.name, currentLanguage) }}
-                <span class="category-count">({{ category.links.length }})</span>
+                <span class="category-count" :aria-label="`包含 ${category.links.length} 个友链`">
+                  ({{ category.links.length }})
+                </span>
               </h2>
               <p class="category-section-description">
                 {{ t(category.description, currentLanguage) }}
               </p>
 
-              <div class="links-cards">
-                <div
+              <div
+                class="links-cards"
+                role="list"
+                :aria-label="`${t(category.name, currentLanguage)} 友链列表`"
+              >
+                <article
                   v-for="link in category.links"
                   :key="link.id"
                   class="link-card"
                   @click="visitLink(link.url)"
+                  @keydown.enter="visitLink(link.url)"
+                  @keydown.space.prevent="visitLink(link.url)"
+                  role="listitem"
+                  tabindex="0"
+                  :aria-label="`访问 ${link.name} 的网站`"
                 >
                   <div class="link-avatar" v-if="linksConfig.settings.showAvatar">
                     <ProgressiveImage
                       :src="link.avatar ?? linksConfig.settings.defaultAvatar"
-                      :alt="link.name"
+                      :alt="`${link.name} 的头像`"
                       class="avatar-img"
                       object-fit="cover"
                       :show-loader="false"
@@ -116,43 +174,67 @@
                       </p>
                     </div>
 
-                    <div v-if="linksConfig.settings.showTags && link.tags && link.tags.length > 0" class="link-tags">
-                      <span v-for="tag in link.tags" :key="tag" class="link-tag">
+                    <div
+                      v-if="linksConfig.settings.showTags && link.tags && link.tags.length > 0"
+                      class="link-tags"
+                      role="list"
+                      aria-label="标签"
+                    >
+                      <span v-for="tag in link.tags" :key="tag" class="link-tag" role="listitem">
                         {{ getTagText(tag, currentLanguage) }}
                       </span>
                     </div>
                   </div>
 
-                  <div class="link-action">
+                  <div class="link-action" aria-hidden="true">
                     <i :class="getIconClass('external-link-alt')" class="external-icon"></i>
                   </div>
-                </div>
+                </article>
               </div>
-            </div>
+            </section>
           </div>
-        </div>
+        </main>
       </div>
     </div>
 
     <!-- 移动端分类筛选弹窗 -->
-    <div v-if="isMobileSidebarOpen" class="mobile-filter-overlay" @click="closeMobileSidebar">
+    <div
+      v-if="isMobileSidebarOpen"
+      class="mobile-filter-overlay"
+      @click="closeMobileSidebar"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobile-filter-title"
+      aria-describedby="mobile-filter-description"
+    >
       <div class="mobile-filter-content" @click.stop>
         <div class="mobile-filter-header">
-          <h3>{{ $t('links.categories') }}</h3>
-          <button @click="closeMobileSidebar" class="close-button">
-            <i :class="getIconClass('times')"></i>
+          <h3 id="mobile-filter-title">{{ $t('links.categories') }}</h3>
+          <button
+            @click="closeMobileSidebar"
+            class="close-button"
+            :aria-label="$t('common.close')"
+            type="button"
+          >
+            <i :class="getIconClass('times')" aria-hidden="true"></i>
           </button>
         </div>
-        <div class="mobile-filter-body">
+        <div class="mobile-filter-body" id="mobile-filter-description">
           <div class="category-selector">
-            <div class="category-list">
+            <div class="category-list" role="listbox" :aria-label="$t('links.categories')">
               <button
                 @click="selectCategory(''); closeMobileSidebar()"
                 class="category-button"
                 :class="{ 'active': selectedCategory === '' }"
+                role="option"
+                :aria-selected="selectedCategory === ''"
+                :aria-label="`${$t('links.allCategories')}, ${categoryCounts['']} ${$t('links.linkCount', {
+                  count: categoryCounts['']
+                })}`"
+                type="button"
               >
                 <span class="category-name">{{ $t('links.allCategories') }}</span>
-                <span class="category-count">{{ categoryCounts[''] }}</span>
+                <span class="category-count" aria-hidden="true">{{ categoryCounts[''] }}</span>
               </button>
               <button
                 v-for="category in visibleCategories"
@@ -160,9 +242,17 @@
                 @click="selectCategory(category.id); closeMobileSidebar()"
                 class="category-button"
                 :class="{ 'active': selectedCategory === category.id }"
+                role="option"
+                :aria-selected="selectedCategory === category.id"
+                :aria-label="`${t(category.name, currentLanguage)}, ${
+                  categoryCounts[category.id]
+                } ${$t('links.linkCount', {
+                  count: categoryCounts[category.id]
+                })}`"
+                type="button"
               >
                 <span class="category-name">{{ t(category.name, currentLanguage) }}</span>
-                <span class="category-count">{{ categoryCounts[category.id] }}</span>
+                <span class="category-count" aria-hidden="true">{{ categoryCounts[category.id] }}</span>
               </button>
             </div>
           </div>
@@ -171,9 +261,15 @@
     </div>
 
     <!-- 返回顶部按钮 -->
-    <button v-if="showScrollToTop" @click="scrollToTop" class="scroll-to-top-button"
-      :style="{ bottom: scrollToTopBottom + 'px' }">
-      <i :class="getIconClass('chevron-up')"></i>
+    <button
+      v-if="showScrollToTop"
+      @click="scrollToTop"
+      class="scroll-to-top-button"
+      :style="{ bottom: scrollToTopBottom + 'px' }"
+      :aria-label="$t('common.scrollToTop')"
+      type="button"
+    >
+      <i :class="getIconClass('chevron-up')" aria-hidden="true"></i>
     </button>
   </div>
 </template>
@@ -191,7 +287,7 @@ import { useTimers } from '@/composables/useTimers';
 import htmlConfig from '@/config/html.json';
 import linksConfigData from '@/config/links.json';
 import personalConfig from '@/config/personal.json';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import type { I18nText, LinksConfig } from '@/types';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
@@ -200,7 +296,7 @@ import { toAbsoluteUrl } from '@/utils/url';
 // 导入友链配置
 
 const { t: $t } = useI18n();
-const appStore = useAppStore();
+const languageStore = useLanguageStore();
 const { setTimeout, clearTimeout } = useTimers();
 const modalManager = useModalManager();
 const notificationManager = useNotificationManager();
@@ -220,7 +316,7 @@ const showScrollToTop = ref(false);
 const scrollToTopBottom = ref(80);
 
 // 当前语言
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 本地化辅助函数
 const t = (text: I18nText, lang: string): string => {
@@ -747,11 +843,13 @@ onBeforeUnmount(() => {
 }
 
 .sidebar-toggle {
-  @apply flex items-center justify-between gap-2 py-3 px-4 mb-3 rounded-lg;
+  @apply w-full flex items-center justify-between gap-2 py-3 px-4 mb-3 rounded-lg;
   @apply bg-white dark:bg-gray-800;
   @apply border border-gray-200 dark:border-gray-700;
   @apply text-gray-700 dark:text-gray-300;
-  @apply font-medium shadow-sm cursor-pointer;
+  @apply font-medium;
+  @apply shadow-sm;
+  @apply cursor-pointer;
 }
 
 .sidebar-content {
@@ -1305,5 +1403,50 @@ onBeforeUnmount(() => {
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* 屏幕阅读器专用样式 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 确保焦点可见性 */
+.link-card:focus {
+  outline: 2px solid rgb(59, 130, 246);
+  outline-offset: 2px;
+}
+
+.category-button:focus {
+  outline: 2px solid rgb(59, 130, 246);
+  outline-offset: 2px;
+}
+
+.generate-button:focus,
+.search-clear:focus,
+.close-button:focus,
+.scroll-to-top-button:focus {
+  outline: 2px solid rgb(59, 130, 246);
+  outline-offset: 2px;
+}
+
+/* 为减少动画偏好的用户禁用过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .link-card:focus,
+  .category-button:focus,
+  .generate-button:focus,
+  .search-clear:focus,
+  .close-button:focus,
+  .scroll-to-top-button:focus {
+    outline: 2px solid rgb(59, 130, 246);
+    outline-offset: 2px;
+  }
 }
 </style>

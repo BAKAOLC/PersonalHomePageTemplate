@@ -1,46 +1,90 @@
 <template>
-  <section class="personal-section" :style="backgroundStyle">
+  <main
+    class="personal-section"
+    :style="backgroundStyle"
+    role="main"
+    :aria-label="$t('personal.mainPage')"
+  >
 
     <div class="container mx-auto px-4 py-8">
-      <div class="content-card" :class="{ 'glass-effect': hasBackgroundImage }">
-        <div class="text-center mb-8">
-        <div class="avatar-container">
-          <ProgressiveImage
-            :src="personal.avatar"
-            :alt="getI18nText(personal.name, currentLanguage)"
-            class="avatar"
-            image-class="avatar-img"
-            object-fit="cover"
-            :show-loader="false"
-          />
-        </div>
+      <article
+        class="content-card"
+        :class="{ 'glass-effect': hasBackgroundImage }"
+        role="article"
+        aria-labelledby="personal-name"
+        aria-describedby="personal-description"
+      >
+        <header class="text-center mb-8">
+          <div class="avatar-container">
+            <ProgressiveImage
+              :src="personal.avatar"
+              :alt="$t('personal.avatarAlt', { name: getI18nText(personal.name, currentLanguage) })"
+              class="avatar"
+              image-class="avatar-img"
+              object-fit="cover"
+              :show-loader="false"
+              role="img"
+              :aria-label="$t('personal.personalAvatar')"
+            />
+          </div>
 
-        <h1 class="name">
-          {{ getI18nText(personal.name, currentLanguage) }}
-        </h1>
+          <h1
+            id="personal-name"
+            class="name"
+            tabindex="-1"
+          >
+            {{ getI18nText(personal.name, currentLanguage) }}
+          </h1>
 
-        <div class="description">
-          <p v-for="(line, index) in personal.description" :key="index" class="description-line">
-            {{ getI18nText(line, currentLanguage) }}
-          </p>
-        </div>
+          <div
+            id="personal-description"
+            class="description"
+            role="region"
+            :aria-label="$t('personal.personalDescription')"
+          >
+            <p
+              v-for="(line, index) in personal.description"
+              :key="index"
+              class="description-line"
+            >
+              {{ getI18nText(line, currentLanguage) }}
+            </p>
+          </div>
+        </header>
 
-        <div class="social-links">
-          <template v-for="(link, index) in personal.links" :key="link.url || index">
-            <a v-if="link.url && link.name"
+        <nav
+          class="social-links"
+          role="navigation"
+          :aria-label="$t('personal.socialMediaLinks')"
+        >
+          <template v-for="(link, index) in personal.links" :key="link.url ?? index">
+            <a
+              v-if="link.url && link.name"
               :href="link.url"
               target="_blank"
               rel="noopener noreferrer"
               class="social-link"
-              :style="{ '--link-color': link.color || '#333' }"
-              :title="getI18nText(link.name, currentLanguage)">
-              <i :class="getIconClass(link.icon || 'link')" class="icon"></i>
+              :style="{ '--link-color': link.color ?? '#333' }"
+              :aria-label="$t('personal.visitLink', { name: getI18nText(link.name, currentLanguage) })"
+              :title="$t('personal.openInNewWindow', { name: getI18nText(link.name, currentLanguage) })"
+              role="link"
+            >
+              <i
+                :class="getIconClass(link.icon ?? 'link')"
+                class="icon"
+                :aria-hidden="true"
+              ></i>
               <span class="link-name">{{ getI18nText(link.name, currentLanguage) }}</span>
             </a>
           </template>
-        </div>
+        </nav>
 
-        <div v-if="enabledActionButtons.length > 0" class="action-buttons">
+        <nav
+          v-if="enabledActionButtons.length > 0"
+          class="action-buttons"
+          role="navigation"
+          :aria-label="$t('personal.pageNavigation')"
+        >
           <component
             v-for="button in enabledActionButtons"
             :key="button.id"
@@ -50,32 +94,44 @@
             :target="button.type === 'external' ? '_blank' : undefined"
             :rel="button.type === 'external' ? 'noopener noreferrer' : undefined"
             class="action-button"
-            :style="{ '--button-color': button.color || '#667eea' }"
+            :style="{ '--button-color': button.color ?? '#667eea' }"
+            :aria-label="getI18nText(button.text, currentLanguage)"
+            :title="button.type === 'external'
+              ? $t('personal.openInNewWindow', { name: getI18nText(button.text, currentLanguage) })
+              : getI18nText(button.text, currentLanguage)"
+            role="button"
+            tabindex="0"
           >
-            <i v-if="button.icon" :class="getIconClass(button.icon)" class="button-icon"></i>
-            {{ getI18nText(button.text, currentLanguage) }}
+            <i
+              v-if="button.icon"
+              :class="getIconClass(button.icon)"
+              class="button-icon"
+              :aria-hidden="true"
+            ></i>
+            <span class="button-text">{{ getI18nText(button.text, currentLanguage) }}</span>
           </component>
-        </div>
-        </div>
-      </div>
+        </nav>
+      </article>
     </div>
-  </section>
+  </main>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import ProgressiveImage from './ProgressiveImage.vue';
 
 import { siteConfig } from '@/config/site';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
-const appStore = useAppStore();
+const languageStore = useLanguageStore();
+const { t: $t } = useI18n();
 
 const { personal } = siteConfig;
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 启用的操作按钮
 const enabledActionButtons = computed(() => {
@@ -119,6 +175,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
 .personal-section {
   @apply h-full flex flex-col justify-center;
   @apply bg-gradient-to-b from-white to-gray-100;
@@ -251,6 +308,11 @@ onMounted(() => {
   min-width: 120px;
   width: 120px;
   position: relative;
+  /* 焦点管理 */
+  @apply focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50;
+  @apply focus:ring-offset-2 focus:ring-offset-gray-800;
+  /* 键盘导航支持 */
+  cursor: pointer;
 }
 
 .social-link .icon {
@@ -306,6 +368,11 @@ onMounted(() => {
   animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: both;
   animation-delay: 0.7s;
+  /* 焦点管理 */
+  @apply focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50;
+  @apply focus:ring-offset-2 focus:ring-offset-gray-800;
+  /* 键盘导航支持 */
+  text-decoration: none;
 }
 
 .action-button:hover {
@@ -319,6 +386,10 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.button-text {
+  @apply flex-1;
 }
 
 .glass-effect .action-button {

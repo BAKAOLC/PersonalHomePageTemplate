@@ -79,7 +79,7 @@ export interface ImageTag {
   prerequisiteTags?: string[]; // 前置标签ID数组，只有当这些标签被选中时，当前标签才会显示
 }
 
-export interface ChildImage {
+export interface ImageBase {
   id: string;
   name?: I18nText;
   listName?: I18nText; // Optional - name displayed in child image list viewer
@@ -92,18 +92,8 @@ export interface ChildImage {
   date?: string; // yyyy-MM-dd format
 }
 
-export interface CharacterImage {
-  id: string;
-  name: I18nText;
-  listName?: I18nText; // Optional - name displayed in child image list viewer
-  description?: I18nText; // Optional - fallback to empty string
-  artist?: I18nText | I18nText[]; // 支持单个或多个作者
-  authorLinks?: AuthorLink[]; // 作者链接数组
-  src?: string; // Optional for image groups where src is only in childImages
-  tags: string[]; // tag IDs
-  characters: string[]; // character IDs
-  date?: string; // yyyy-MM-dd format
-  childImages?: ChildImage[]; // child images for image groups
+export interface CharacterImage extends ImageBase {
+  childImages?: ImageBase[]; // child images for image groups
 }
 
 // 外部图像信息（用于查看任意URL图像）

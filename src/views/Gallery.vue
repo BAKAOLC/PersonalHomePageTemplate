@@ -1,66 +1,133 @@
 <template>
-  <div class="gallery-page">
+  <main class="gallery-page" role="main" :aria-label="$t('gallery.galleryTitle')">
     <div class="container mx-auto px-4 py-4 flex-1 h-full overflow-hidden">
-      <div class="gallery-header">
+      <header class="gallery-header">
         <h1 class="gallery-title">{{ $t('gallery.title') }}</h1>
         <!-- 统一搜索栏 -->
-        <div class="unified-search-bar">
+        <div class="unified-search-bar" role="search" :aria-label="$t('gallery.searchImages')">
           <div class="search-input-container">
-            <input type="text" :value="searchQuery"
-              @input="e => updateSearchQuery((e.target as HTMLInputElement).value)"
-              :placeholder="$t('gallery.searchPlaceholder')" class="search-input" />
-            <button v-if="searchQuery" @click="clearSearch" class="search-clear">
+            <label for="gallery-search" class="sr-only">{{ $t('gallery.searchPlaceholder') }}</label>
+            <input
+              id="gallery-search"
+              type="text"
+              :value="searchQuery"
+              @input="(e: Event) => updateSearchQuery((e.target as HTMLInputElement).value)"
+              :placeholder="$t('gallery.searchPlaceholder')"
+              class="search-input"
+              :aria-describedby="searchQuery ? 'search-results-info' : undefined"
+              autocomplete="off"
+            />
+            <button
+              v-if="searchQuery"
+              @click="clearSearch"
+              class="search-clear"
+              :aria-label="$t('gallery.clearSearch')"
+              type="button"
+            >
               <i :class="getIconClass('times')" aria-hidden="true"></i>
             </button>
           </div>
 
-          <div class="control-buttons-group">
+          <div class="control-buttons-group" role="group" :aria-label="$t('gallery.galleryControls')">
             <SortSelector />
-            <button @click="toggleSortOrder" class="sort-order-button"
-              :title="$t(sortOrder === 'asc' ? 'gallery.sortAsc' : 'gallery.sortDesc')">
-              <i :class="getIconClass(sortOrder === 'asc' ? 'sort-alpha-down' : 'sort-alpha-up')"></i>
+            <button
+              @click="toggleSortOrder"
+              class="sort-order-button"
+              :title="$t(sortOrder === 'asc' ? 'gallery.sortAsc' : 'gallery.sortDesc')"
+              :aria-label="$t(sortOrder === 'asc' ? 'gallery.sortAsc' : 'gallery.sortDesc')"
+              type="button"
+            >
+              <i
+                :class="getIconClass(sortOrder === 'asc' ? 'sort-alpha-down' : 'sort-alpha-up')"
+                aria-hidden="true"
+              ></i>
               <span class="sort-order-text">{{ $t(sortOrder === 'asc' ? 'gallery.sortAsc' :
                 'gallery.sortDesc')
                 }}</span>
             </button>
-            <button class="grid-view-toggle" @click="toggleGridView">
-              <i :class="getIconClass(isGridView ? 'th' : 'list')"></i>
+            <button
+              class="grid-view-toggle"
+              @click="toggleGridView"
+              :aria-label="$t(isGridView ? 'gallery.listView' : 'gallery.gridView')"
+              :aria-pressed="isGridView"
+              type="button"
+            >
+              <i :class="getIconClass(isGridView ? 'th' : 'list')" aria-hidden="true"></i>
               <span class="grid-view-text">{{ $t(isGridView ? 'gallery.listView' : 'gallery.gridView')
                 }}</span>
             </button>
           </div>
         </div>
-      </div>
+
+        <!-- 搜索结果信息 -->
+        <div
+          v-if="searchQuery"
+          id="search-results-info"
+          class="search-results-info"
+          aria-live="polite"
+        >
+          {{ $t('gallery.searchResults') }}: {{ characterImages.length }}
+          {{ $t('gallery.imageCount', { count: characterImages.length }) }}
+        </div>
+      </header>
 
       <div class="gallery-content">
-        <aside class="gallery-sidebar">
-          <div class="sidebar-toggle md:hidden" @click="toggleMobileSidebar">
-            <i :class="getIconClass('filter')" class="icon"></i>
+        <aside class="gallery-sidebar" role="complementary" :aria-label="$t('gallery.filters')">
+          <button
+            class="sidebar-toggle md:hidden"
+            @click="toggleMobileSidebar"
+            :aria-expanded="isMobileSidebarOpen"
+            :aria-controls="isMobileSidebarOpen ? 'mobile-filter-content' : undefined"
+            type="button"
+          >
+            <i :class="getIconClass('filter')" class="icon" aria-hidden="true"></i>
             {{ $t('gallery.filters') }}
-          </div>
-          <div class="sidebar-content" :class="{ 'active': isSidebarOpen }">
+          </button>
+          <div
+            class="sidebar-content"
+            :class="{ 'active': isSidebarOpen }"
+            :aria-hidden="!isSidebarOpen"
+          >
             <CharacterSelector />
             <TagSelector />
             <RestrictedTagSelector />
           </div>
         </aside>
 
-        <div class="gallery-main" ref="galleryMain" @scroll="handleScroll">
+        <section
+          class="gallery-main"
+          ref="galleryMain"
+          @scroll="handleScroll"
+          role="region"
+          :aria-label="$t('gallery.imageDisplayArea')"
+        >
           <ImageGallery :images="characterImages" :grid-view="isGridView" />
-        </div>
+        </section>
       </div>
     </div>
 
     <!-- 移动端全屏筛选弹窗 -->
-    <div v-if="isMobileSidebarOpen" class="mobile-filter-overlay" @click="closeMobileSidebar">
-      <div class="mobile-filter-content" @click.stop>
-        <div class="mobile-filter-header">
-          <h3>{{ $t('gallery.filters') }}</h3>
-          <button @click="closeMobileSidebar" class="close-button">
-            <i :class="getIconClass('times')"></i>
+    <div
+      v-if="isMobileSidebarOpen"
+      class="mobile-filter-overlay"
+      @click="closeMobileSidebar"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobile-filter-title"
+    >
+      <div class="mobile-filter-content" @click.stop id="mobile-filter-content">
+        <header class="mobile-filter-header">
+          <h3 id="mobile-filter-title">{{ $t('gallery.filters') }}</h3>
+          <button
+            @click="closeMobileSidebar"
+            class="close-button"
+            :aria-label="$t('gallery.closeFilters')"
+            type="button"
+          >
+            <i :class="getIconClass('times')" aria-hidden="true"></i>
           </button>
-        </div>
-        <div class="mobile-filter-body">
+        </header>
+        <div class="mobile-filter-body" role="region" :aria-label="$t('gallery.filters')">
           <CharacterSelector />
           <TagSelector />
           <RestrictedTagSelector />
@@ -69,12 +136,18 @@
     </div>
 
     <!-- 返回顶部按钮 -->
-    <button v-if="showScrollToTop" @click="scrollToTop" class="scroll-to-top-button"
-      :style="{ bottom: scrollToTopBottom + 'px' }">
-      <i :class="getIconClass('chevron-up')"></i>
+    <button
+      v-if="showScrollToTop"
+      @click="scrollToTop"
+      class="scroll-to-top-button"
+      :style="{ bottom: scrollToTopBottom + 'px' }"
+      :aria-label="$t('gallery.scrollToTop')"
+      type="button"
+    >
+      <i :class="getIconClass('chevron-up')" aria-hidden="true"></i>
     </button>
 
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">
@@ -93,8 +166,8 @@ import { useModalManager } from '@/composables/useModalManager';
 import { useMobileDetection } from '@/composables/useScreenManager';
 import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
-import { useAppStore } from '@/stores/app';
-import type { ExternalImageInfo } from '@/types';
+import { useGalleryStore } from '@/stores/gallery';
+import type { CharacterImage, ExternalImageInfo, ImageBase } from '@/types';
 import { getIconClass } from '@/utils/icons';
 
 // Props for route parameters
@@ -112,7 +185,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { t: $t } = useI18n();
 const router = useRouter();
-const appStore = useAppStore();
+const galleryStore = useGalleryStore();
 const { setTimeout, clearTimeout } = useTimers();
 const { addEventListener } = useEventManager();
 const { onScreenChange } = useMobileDetection();
@@ -147,14 +220,14 @@ const showScrollToTop = ref(false);
 const scrollToTopBottom = ref(80); // 默认距离底部80px
 const lastScrollTop = ref(0);
 
-// 将搜索查询绑定到 appStore
+// 将搜索查询绑定到 galleryStore
 const searchQuery = computed({
-  get: () => appStore.searchQuery,
-  set: (value) => appStore.setSearchQuery(value),
+  get: () => galleryStore.searchQuery,
+  set: (value: string) => galleryStore.setSearchQuery(value),
 });
 
-// 搜索结果图片直接使用 appStore 中的过滤结果
-const characterImages = computed(() => appStore.characterImages);
+// 搜索结果图片直接使用 galleryStore 中的过滤结果
+const characterImages = computed(() => galleryStore.characterImages);
 
 // 模态框ID
 const imageViewerModalId = ref<string | null>(null);
@@ -245,6 +318,81 @@ const handleScreenChange = (info: any): void => {
   });
 };
 
+// 键盘导航支持
+const handleKeydown = (event: KeyboardEvent): void => {
+  // ESC键关闭移动端筛选弹窗
+  if (event.key === 'Escape' && isMobileSidebarOpen.value) {
+    closeMobileSidebar();
+    return;
+  }
+
+  // 快捷键支持
+  if (event.ctrlKey || event.metaKey) {
+    switch (event.key) {
+      case 'f':
+      case 'F': {
+        // Ctrl/Cmd + F 聚焦搜索框
+        event.preventDefault();
+        const searchInput = document.getElementById('gallery-search') as HTMLInputElement;
+        if (searchInput) {
+          searchInput.focus();
+        }
+        break;
+      }
+      case 'g':
+      case 'G': {
+        // Ctrl/Cmd + G 切换网格/列表视图
+        event.preventDefault();
+        toggleGridView();
+        break;
+      }
+    }
+  }
+
+  // 方向键导航（在网格视图中）
+  if (isGridView.value && (event.key === 'ArrowUp' || event.key === 'ArrowDown'
+      || event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+    handleGridNavigation(event);
+  }
+};
+
+// 网格导航处理
+const handleGridNavigation = (event: KeyboardEvent): void => {
+  const currentElement = event.target as HTMLElement;
+  if (!currentElement || !currentElement.closest('.image-card')) return;
+
+  const gridContainer = currentElement.closest('.image-grid');
+  if (!gridContainer) return;
+
+  const cards = Array.from(gridContainer.querySelectorAll('.image-card')) as HTMLElement[];
+  const currentIndex = cards.indexOf(currentElement);
+
+  if (currentIndex === -1) return;
+
+  let nextIndex = currentIndex;
+  const cols = getComputedStyle(gridContainer).gridTemplateColumns.split(' ').length;
+
+  switch (event.key) {
+    case 'ArrowUp':
+      nextIndex = Math.max(0, currentIndex - cols);
+      break;
+    case 'ArrowDown':
+      nextIndex = Math.min(cards.length - 1, currentIndex + cols);
+      break;
+    case 'ArrowLeft':
+      nextIndex = Math.max(0, currentIndex - 1);
+      break;
+    case 'ArrowRight':
+      nextIndex = Math.min(cards.length - 1, currentIndex + 1);
+      break;
+  }
+
+  if (nextIndex !== currentIndex) {
+    event.preventDefault();
+    cards[nextIndex]?.focus();
+  }
+};
+
 // 更新搜索查询并触发搜索
 const updateSearchQuery = (value: string): void => {
   // 防抖处理
@@ -254,7 +402,7 @@ const updateSearchQuery = (value: string): void => {
 
   searchDebounceTimeout.value = setTimeout(() => {
     // 使用 store 的方法更新搜索查询
-    appStore.setSearchQuery(value);
+    galleryStore.setSearchQuery(value);
 
     // 搜索处理完成
     searchDebounceTimeout.value = null;
@@ -264,13 +412,13 @@ const updateSearchQuery = (value: string): void => {
 // 清除搜索
 const clearSearch = (): void => {
   // 使用Store的清空搜索方法
-  appStore.clearSearch();
+  galleryStore.clearSearch();
 };
 
 // 排序相关
 const sortOrder = computed({
-  get: () => appStore.sortOrder,
-  set: (value) => appStore.sortOrder = value,
+  get: () => galleryStore.sortOrder,
+  set: (value: 'asc' | 'desc') => galleryStore.sortOrder = value,
 });
 
 // 切换排序顺序
@@ -285,10 +433,10 @@ const openViewer = (event: CustomEvent): void => {
     let childImageId: string | undefined;
 
     // 检查是否为图像组，如果是则导航到第一个子图像
-    const image = appStore.getImageById(imageId);
+    const image = galleryStore.getImageById(imageId);
     if (image && image.childImages && image.childImages.length > 0) {
       // 图像组：设置子图像ID
-      const firstValidChildId = appStore.getFirstValidChildId(image);
+      const firstValidChildId = galleryStore.getFirstValidChildId(image);
       if (firstValidChildId) {
         childImageId = firstValidChildId;
         router.push({
@@ -321,7 +469,7 @@ const openViewer = (event: CustomEvent): void => {
       props: {
         imageId: imageId,
         childImageId: childImageId,
-        imageList: createGalleryimageList(), // 画廊过滤后的图像列表
+        imageList: createGalleryImageList(), // 画廊过滤后的图像列表
         viewerUIConfig: siteConfig.features.viewerUI,
         commentsUniqueId: imageId, // 使用图像ID作为评论区唯一ID
         commentsPrefix: 'gallery-comment', // 使用gallery-comment前缀
@@ -408,17 +556,18 @@ const openExternalImageViewer = (externalImage: any): void => {
 };
 
 // 创建画廊过滤后的图像列表（用于画廊正常打开）
-const createGalleryimageList = (): any[] => {
+const createGalleryImageList = (): CharacterImage[] => {
   // 为每个主图像创建包含过滤后子图像的版本
-  const result = characterImages.value.map(image => {
+  const result = characterImages.value.map((image: CharacterImage) => {
     if (image.childImages && image.childImages.length > 0) {
       // 过滤子图像，只保留通过过滤的子图像
-      const validChildImages = appStore.getValidImagesInGroup(image);
+      const validChildImages = galleryStore.getValidImagesInGroup(image);
 
-      return {
+      const resultImage: CharacterImage = {
         ...image,
-        childImages: validChildImages,
+        childImages: validChildImages as ImageBase[],
       };
+      return resultImage;
     }
 
     // 普通图像直接返回
@@ -472,7 +621,7 @@ const closeViewer = (): void => {
 let unsubscribeScreenChange: (() => void) | null = null;
 
 // 处理URL直接访问的图像数据
-const getUrlImageData = (): { imageList: any[]; viewerUIConfig: any } => {
+const getUrlImageData = (): { imageList: ImageBase[]; viewerUIConfig: any } => {
   // URL直接访问的配置：隐藏图像列表，显示子图像列表
   const urlViewerConfig = {
     ...siteConfig.features.viewerUI,
@@ -480,68 +629,27 @@ const getUrlImageData = (): { imageList: any[]; viewerUIConfig: any } => {
     imageGroupList: true,
   };
 
-  // 情况1: /:imageId/:childImageId - 给出 [ imageId ] 图像数组，包含不被过滤的 childImages，并跳转到对应的 childImage
-  if (props.imageId && props.childImageId) {
-    const image = appStore.getImageById(props.imageId);
-    if (!image) {
-      return { imageList: [], viewerUIConfig: urlViewerConfig };
-    }
-
-    // 创建包含所有子图像的图像对象（不被过滤）
-    const imageWithAllChildren = {
-      ...image,
-      childImages: image.childImages ?? [],
-    };
-
-    const result = {
-      imageList: [imageWithAllChildren],
-      viewerUIConfig: urlViewerConfig,
-    };
-    return result;
+  if (!props.imageId) {
+    return { imageList: [], viewerUIConfig: urlViewerConfig };
   }
 
-  // 情况2: /:imageId - 给出 [ imageId ] 图像数组，包含不被过滤的 childImages，如果有 childImages，跳转到第一张
-  if (props.imageId && !props.childImageId) {
-    const image = appStore.getImageById(props.imageId);
-    if (!image) {
-      return { imageList: [], viewerUIConfig: urlViewerConfig };
-    }
-
-    // 创建包含所有子图像的图像对象（不被过滤）
-    const imageWithAllChildren = {
-      ...image,
-      childImages: image.childImages ?? [],
-    };
-
-    return {
-      imageList: [imageWithAllChildren],
-      viewerUIConfig: urlViewerConfig,
-    };
+  const image = galleryStore.getImageById(props.imageId);
+  if (!image) {
+    return { imageList: [], viewerUIConfig: urlViewerConfig };
   }
 
-  // 情况3: /:childImageId - 给出 [ childImageId ] 图像数组，因为是子图像，所以它只显示这一张图
-  if (!props.imageId && props.childImageId) {
-    // 检查childImageId是否是子图像ID
-    const groupInfo = appStore.getImageGroupByChildId(props.childImageId);
-    if (groupInfo) {
-      const childImage = appStore.getChildImageWithDefaults(groupInfo.parentImage, groupInfo.childImage);
-      return {
-        imageList: [childImage],
-        viewerUIConfig: urlViewerConfig,
-      };
-    } else {
-      // 如果不是子图像，尝试作为普通图像处理
-      const image = appStore.getImageById(props.childImageId);
-      if (image) {
-        return {
-          imageList: [image],
-          viewerUIConfig: urlViewerConfig,
-        };
-      }
-    }
-  }
+  const childImage = galleryStore.getValidImagesInGroupWithoutFilter(image);
 
-  return { imageList: [], viewerUIConfig: urlViewerConfig };
+  const resultImage: CharacterImage = {
+    ...image,
+    childImages: childImage as ImageBase[],
+  };
+
+  const result = {
+    imageList: [resultImage],
+    viewerUIConfig: urlViewerConfig,
+  };
+  return result;
 };
 
 // 跟踪当前模态框的来源
@@ -551,33 +659,30 @@ const isModalFromGallery = ref(false);
 watch([() => props.imageId, () => props.childImageId, characterImages], () => {
   // 如果模态框已打开，更新其props
   if (imageViewerModalId.value) {
+    const targetProps = {
+      imageId: props.imageId,
+      childImageId: props.childImageId,
+      commentsUniqueId: props.childImageId ?? props.imageId,
+      commentsPrefix: 'gallery-comment',
+      onNavigate: handleViewerNavigate,
+    };
     const modal = modalManager.getModal(imageViewerModalId.value);
     if (modal) {
       // 根据来源判断使用哪种逻辑
       if (isModalFromGallery.value) {
         // 画廊正常打开，使用画廊过滤后的图像列表
-        const currentViewingImageId = props.childImageId ?? props.imageId;
         modal.props = {
-          imageId: props.imageId,
-          childImageId: props.childImageId,
-          imageList: createGalleryimageList(),
+          ...targetProps,
+          imageList: createGalleryImageList(),
           viewerUIConfig: siteConfig.features.viewerUI,
-          commentsUniqueId: currentViewingImageId,
-          commentsPrefix: 'gallery-comment',
-          onNavigate: handleViewerNavigate,
         };
       } else {
         // URL直接访问，使用URL处理逻辑
         const urlData = getUrlImageData();
-        const currentViewingImageId = props.childImageId ?? props.imageId;
         modal.props = {
-          imageId: props.imageId,
-          childImageId: props.childImageId,
+          ...targetProps,
           imageList: urlData.imageList,
           viewerUIConfig: urlData.viewerUIConfig,
-          commentsUniqueId: currentViewingImageId,
-          commentsPrefix: 'gallery-comment',
-          onNavigate: handleViewerNavigate,
         };
       }
     }
@@ -589,6 +694,9 @@ onMounted(() => {
 
   // 注册屏幕变化监听器
   unsubscribeScreenChange = onScreenChange(handleScreenChange);
+
+  // 添加键盘事件监听器
+  addEventListener('keydown', handleKeydown);
 
   // 初始化返回顶部按钮位置
   updateScrollToTopPosition();
@@ -616,6 +724,8 @@ onBeforeUnmount(() => {
     unsubscribeScreenChange();
     unsubscribeScreenChange = null;
   }
+
+  // 键盘事件监听器会通过eventManager自动清理
 
   // 清理body样式
   document.body.style.overflow = '';
@@ -877,7 +987,7 @@ onBeforeUnmount(() => {
 }
 
 .sidebar-toggle {
-  @apply flex items-center justify-between gap-2 py-3 px-4 mb-3 rounded-lg;
+  @apply w-full flex items-center justify-between gap-2 py-3 px-4 mb-3 rounded-lg;
   @apply bg-white dark:bg-gray-800;
   @apply border border-gray-200 dark:border-gray-700;
   @apply text-gray-700 dark:text-gray-300;
@@ -1195,6 +1305,25 @@ onBeforeUnmount(() => {
 .unified-search-bar .sort-order-button:active,
 .unified-search-bar .sort-select:active {
   transform: scale(0.98);
+}
+
+/* 屏幕阅读器专用样式 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 搜索结果信息样式 */
+.search-results-info {
+  @apply text-sm text-gray-600 dark:text-gray-400 mt-2;
+  @apply text-center;
 }
 
 /* 删除了gallery-info相关样式 */

@@ -41,12 +41,12 @@
 import { computed } from 'vue';
 
 import { useTimers } from '@/composables/useTimers';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import { useNotificationStore } from '@/stores/notification';
 import { getI18nText } from '@/utils/i18nText';
 
 const notificationStore = useNotificationStore();
-const appStore = useAppStore();
+const languageStore = useLanguageStore();
 const { requestAnimationFrame } = useTimers();
 
 // 获取可见通知，新的在前（反转数组顺序）
@@ -61,7 +61,7 @@ const getMessage = (notification: any): string => {
   if (typeof notification.message === 'string') {
     return notification.message;
   }
-  return getI18nText(notification.message, appStore.currentLanguage);
+  return getI18nText(notification.message, languageStore.currentLanguage);
 };
 
 const getIconClass = (type: string): string => {

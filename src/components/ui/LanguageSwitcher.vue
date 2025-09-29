@@ -23,12 +23,12 @@ import { useI18n } from 'vue-i18n';
 
 import { useEventManager } from '@/composables/useEventManager';
 import { useTimers } from '@/composables/useTimers';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import type { Language } from '@/types';
 import { getEnabledLanguages, getLanguageNativeName } from '@/utils/language';
 
 const { locale } = useI18n();
-const appStore = useAppStore();
+const languageStore = useLanguageStore();
 const { setTimeout } = useTimers();
 const { addEventListener, removeEventListener } = useEventManager();
 
@@ -46,7 +46,7 @@ const languages = computed(() => {
   }));
 });
 
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 const displayLanguage = computed(() => {
   return getLanguageNativeName(currentLanguage.value);
@@ -66,7 +66,7 @@ const toggleLanguageMenu = (): void => {
 };
 
 const changeLanguage = (lang: Language): void => {
-  appStore.setLanguage(lang);
+  languageStore.setLanguage(lang);
   locale.value = lang;
   isOpen.value = false;
 };

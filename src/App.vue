@@ -66,15 +66,19 @@ import { getScreenManagerService } from '@/services/screenManagerService';
 import { getTimerService } from '@/services/timerService';
 import { titleManager } from '@/services/titleManager';
 import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
+import { useThemeStore } from '@/stores/theme';
 import { getAppCopyright, getAppTitle } from '@/utils/appConfig';
 
 const { locale, t } = useI18n();
 const appStore = useAppStore();
+const languageStore = useLanguageStore();
+const themeStore = useThemeStore();
 const { setTimeout } = useTimers();
 
 // 应用配置的计算属性
-const appTitle = computed(() => getAppTitle(appStore.currentLanguage));
-const appCopyright = computed(() => getAppCopyright(appStore.currentLanguage));
+const appTitle = computed(() => getAppTitle(languageStore.currentLanguage));
+const appCopyright = computed(() => getAppCopyright(languageStore.currentLanguage));
 
 // 存储预加载的图片引用，用于清理
 const preloadedImages = ref<HTMLImageElement[]>([]);
@@ -158,10 +162,10 @@ onMounted(() => {
   getScreenManagerService().initialize();
 
   // 设置初始主题
-  appStore.applyTheme();
+  themeStore.applyTheme();
 
   // 设置系统主题监听器
-  cleanupSystemThemeListener = appStore.setupSystemThemeListener();
+  cleanupSystemThemeListener = themeStore.setupSystemThemeListener();
 
   // 开始预加载图像
   preloadImages();
@@ -232,6 +236,9 @@ onBeforeUnmount(() => {
   @apply transition-all duration-500;
   @apply flex items-center;
   min-height: 40px;
+  /* 为键盘选择器提供额外空间，避免边框被裁剪 */
+  @apply py-1;
+  overflow: visible;
 }
 
 /* 优化 768-1024px 级别的容器宽度 */

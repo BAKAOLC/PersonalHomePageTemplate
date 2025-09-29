@@ -1,7 +1,7 @@
 import type { RouteLocationNormalized } from 'vue-router';
 
 import i18n from '@/i18n';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import { getAppTitle } from '@/utils/appConfig';
 
 /**
@@ -35,8 +35,8 @@ export class TitleManager {
    */
   public updateTitle(route: RouteLocationNormalized): void {
     const { t } = i18n.global as any;
-    const appStore = useAppStore();
-    const siteTitle = getAppTitle(appStore.currentLanguage);
+    const languageStore = useLanguageStore();
+    const siteTitle = getAppTitle(languageStore.currentLanguage);
 
     // 从路由元数据获取标题键
     const titleKey = route.meta?.titleKey as string | null;

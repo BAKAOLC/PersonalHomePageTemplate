@@ -17,17 +17,22 @@
           class="character-button" :class="{ 'active': selectedCharacterId === 'all' }"
           style="--character-color: #667eea; --character-hover-color: #667eea80;">
           {{ $t('common.all') }}
-          <span class="character-count">{{ appStore.getCharacterMatchCount('all') }}</span>
+          <span class="character-count">{{ galleryStore.getCharacterMatchCount('all') }}</span>
         </button>
 
         <!-- 其他角色 -->
         <button v-for="character in filteredCharacters" :key="character.id" @click="selectCharacter(character.id)"
           class="character-button" :class="{ 'active': selectedCharacterId === character.id }" :style="{
-            '--character-color': character.color || '#667eea',
+            '--character-color': character.color ?? '#667eea',
             '--character-hover-color': character.color ? `${character.color}80` : '#667eea80'
           }">
-          {{ getI18nText(character.name, currentLanguage) || character.id }}
-          <span v-if="isSearching" class="character-count">{{ appStore.getCharacterMatchCount(character.id) }}</span>
+          {{ getI18nText(character.name, currentLanguage) ?? character.id }}
+          <span
+            v-if="isSearching"
+            class="character-count"
+          >
+            {{ galleryStore.getCharacterMatchCount(character.id) }}
+          </span>
         </button>
       </div>
     </Transition>
@@ -39,15 +44,17 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { siteConfig } from '@/config/site';
-import { useAppStore } from '@/stores/app';
+import { useGalleryStore } from '@/stores/gallery';
+import { useLanguageStore } from '@/stores/language';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
 const { t: $t } = useI18n();
-const appStore = useAppStore();
+const galleryStore = useGalleryStore();
+const languageStore = useLanguageStore();
 
 // 判断是否在搜索
-const isSearching = computed(() => appStore.isSearching);
+const isSearching = computed(() => galleryStore.isSearching);
 
 // 根据搜索过滤要显示的角色
 const filteredCharacters = computed(() => {
@@ -58,16 +65,16 @@ const filteredCharacters = computed(() => {
 
   // 如果正在搜索，只显示有匹配图像的角色
   return siteConfig.characters.filter(char => {
-    const count = appStore.getCharacterMatchCount(char.id);
+    const count = galleryStore.getCharacterMatchCount(char.id);
     return count > 0;
   });
 });
 
 const selectedCharacterId = computed({
-  get: () => appStore.selectedCharacterId,
-  set: (value) => appStore.selectedCharacterId = value,
+  get: () => galleryStore.selectedCharacterId,
+  set: (value) => galleryStore.selectedCharacterId = value,
 });
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 删除未使用的getCharacterCount函数
 

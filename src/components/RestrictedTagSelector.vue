@@ -55,12 +55,14 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { siteConfig } from '@/config/site';
-import { useAppStore } from '@/stores/app';
+import { useGalleryStore } from '@/stores/gallery';
+import { useLanguageStore } from '@/stores/language';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
 const { t: $t } = useI18n();
-const appStore = useAppStore();
+const galleryStore = useGalleryStore();
+const languageStore = useLanguageStore();
 
 // 检查标签是否可以显示（需要前置标签被选中）
 const canTagBeVisible = (tagId: string, visited = new Set<string>()): boolean => {
@@ -90,7 +92,7 @@ const canTagBeVisible = (tagId: string, visited = new Set<string>()): boolean =>
     }
 
     // 前置标签必须被选中
-    const isSelected = appStore.getRestrictedTagState(prerequisiteTagId);
+    const isSelected = galleryStore.getRestrictedTagState(prerequisiteTagId);
     if (!isSelected) {
       return false;
     }
@@ -141,7 +143,7 @@ const doesImagePassFilter = (image: any, ignoreTagId?: string): boolean => {
       continue;
     }
     const imageHasTag = image.tags.includes(restrictedTag.id);
-    const tagIsEnabled = appStore.getRestrictedTagState(restrictedTag.id);
+    const tagIsEnabled = galleryStore.getRestrictedTagState(restrictedTag.id);
 
     // 如果图片有这个特殊标签，但是这个标签没有被启用，则过滤掉
     if (imageHasTag && !tagIsEnabled) {
@@ -150,8 +152,8 @@ const doesImagePassFilter = (image: any, ignoreTagId?: string): boolean => {
   }
 
   // 应用搜索过滤
-  if (appStore.searchQuery.trim()) {
-    const query = appStore.searchQuery.trim().toLowerCase();
+  if (galleryStore.searchQuery.trim()) {
+    const query = galleryStore.searchQuery.trim().toLowerCase();
 
     // 搜索图片名称
     const name = getSearchableText(image.name);
@@ -169,7 +171,7 @@ const doesImagePassFilter = (image: any, ignoreTagId?: string): boolean => {
 
       const tagName = getSearchableText(tag.name);
       return tagName.includes(query);
-    }) || false;
+    }) ?? false;
 
     const matchesSearch = name.includes(query)
                        || description.includes(query)
@@ -182,15 +184,15 @@ const doesImagePassFilter = (image: any, ignoreTagId?: string): boolean => {
   }
 
   // 应用角色过滤
-  if (appStore.selectedCharacterId !== 'all') {
-    if (!image.characters.includes(appStore.selectedCharacterId)) {
+  if (galleryStore.selectedCharacterId !== 'all') {
+    if (!image.characters.includes(galleryStore.selectedCharacterId)) {
       return false;
     }
   }
 
   // 应用标签过滤
-  if (appStore.selectedTag !== 'all') {
-    if (!image.tags.includes(appStore.selectedTag)) {
+  if (galleryStore.selectedTag !== 'all') {
+    if (!image.tags.includes(galleryStore.selectedTag)) {
       return false;
     }
   }
@@ -238,9 +240,9 @@ const restrictedTagCounts = computed(() => {
     // 应用搜索过滤
     let imagesToCountForTag = siteConfig.images;
 
-    if (appStore.searchQuery.trim()) {
+    if (galleryStore.searchQuery.trim()) {
       imagesToCountForTag = imagesToCountForTag.filter(image => {
-        const lowerQuery = appStore.searchQuery.toLowerCase();
+        const lowerQuery = galleryStore.searchQuery.toLowerCase();
         const name = getSearchableText(image.name);
         const description = image.description ? getSearchableText(image.description) : '';
         const tagsMatch = image.tags?.some(tagId => {
@@ -248,7 +250,7 @@ const restrictedTagCounts = computed(() => {
           if (!tagObj) return false;
           const tagName = getSearchableText(tagObj.name);
           return tagName.includes(lowerQuery);
-        }) || false;
+        }) ?? false;
         const artist = image.artist ? getSearchableText(image.artist) : '';
 
         return name.includes(lowerQuery)
@@ -259,16 +261,16 @@ const restrictedTagCounts = computed(() => {
     }
 
     // 应用角色过滤
-    if (appStore.selectedCharacterId !== 'all') {
+    if (galleryStore.selectedCharacterId !== 'all') {
       imagesToCountForTag = imagesToCountForTag.filter(
-        image => image.characters.includes(appStore.selectedCharacterId),
+        image => image.characters?.includes(galleryStore.selectedCharacterId),
       );
     }
 
     // 应用普通标签过滤
-    if (appStore.selectedTag !== 'all') {
+    if (galleryStore.selectedTag !== 'all') {
       imagesToCountForTag = imagesToCountForTag.filter(
-        image => image.tags.includes(appStore.selectedTag),
+        image => image.tags?.includes(galleryStore.selectedTag),
       );
     }
 
@@ -302,8 +304,8 @@ const visibleRestrictedTags = computed(() => {
 
   // 按当前语言的名称排序
   restrictedTags.sort((a, b) => {
-    const aName = getI18nText(a.name, appStore.currentLanguage) ?? a.id;
-    const bName = getI18nText(b.name, appStore.currentLanguage) ?? b.id;
+    const aName = getI18nText(a.name, languageStore.currentLanguage) ?? a.id;
+    const bName = getI18nText(b.name, languageStore.currentLanguage) ?? b.id;
     return aName.localeCompare(bName);
   });
 
@@ -339,14 +341,14 @@ const getSearchableText = (text: any): string => {
     .toLowerCase();
 };
 
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 const getRestrictedTagState = (tagId: string): boolean => {
-  return appStore.getRestrictedTagState(tagId);
+  return galleryStore.getRestrictedTagState(tagId);
 };
 
 const toggleRestrictedTag = (tagId: string, enabled: boolean): void => {
-  appStore.setRestrictedTagState(tagId, enabled);
+  galleryStore.setRestrictedTagState(tagId, enabled);
 };
 
 // 处理标签点击

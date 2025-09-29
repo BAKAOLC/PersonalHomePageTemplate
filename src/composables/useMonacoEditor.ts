@@ -2,7 +2,7 @@ import * as monaco from 'monaco-editor';
 import { getCurrentInstance, onBeforeUnmount, ref, type Ref } from 'vue';
 
 import monacoConfig from '@/config/monaco-editor.json';
-import { useAppStore } from '@/stores/app';
+import { useThemeStore } from '@/stores/theme';
 
 // 类型定义
 type AbortControllerType = {
@@ -88,9 +88,6 @@ export function useMonacoEditor(): MonacoEditorInstance {
   const isReady = ref(false);
   const isDisposed = ref(false);
 
-  // 使用现有的主题系统
-  const appStore = useAppStore();
-
   // 获取语言配置
   const getLanguageConfig = (language: keyof typeof monacoConfig.languageConfigs): any => {
     return monacoConfig.languageConfigs[language] ?? monacoConfig.languageConfigs.json;
@@ -103,9 +100,10 @@ export function useMonacoEditor(): MonacoEditorInstance {
     }
 
     // 使用应用的主题
-    const appTheme = appStore.themeMode;
+    const themeStore = useThemeStore();
+    const appTheme = themeStore.themeMode;
     if (appTheme === 'auto') {
-      return appStore.isDarkMode ? 'vs-dark' : 'vs-light';
+      return themeStore.isDarkMode ? 'vs-dark' : 'vs-light';
     }
     return monacoConfig.themeMapping[appTheme] ?? 'vs-dark';
   };
@@ -324,7 +322,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
   const toggleLineNumbers = (): void => {
     if (editor.value && !isDisposed.value) {
       const current = editor.value.getOption(monaco.editor.EditorOption.lineNumbers);
-      const isEnabled = current?.renderType === monaco.editor.RenderLineNumbersType.On || false;
+      const isEnabled = current?.renderType === monaco.editor.RenderLineNumbersType.On;
       const newValue: monaco.editor.LineNumbersType = isEnabled ? 'off' : 'on';
       editor.value.updateOptions({ lineNumbers: newValue });
     }
@@ -378,7 +376,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
   // 获取行号状态
   const getLineNumbersEnabled = (): boolean => {
     const lineNumbers = editor.value?.getOption(monaco.editor.EditorOption.lineNumbers);
-    return lineNumbers?.renderType === monaco.editor.RenderLineNumbersType.On || false;
+    return lineNumbers?.renderType === monaco.editor.RenderLineNumbersType.On;
   };
 
   // 组件销毁时自动清理

@@ -2,7 +2,7 @@ import { createRouter, createWebHashHistory, type NavigationGuardNext, type Rout
 
 import { siteConfig } from '@/config/site';
 import { titleManager } from '@/services/titleManager';
-import { useAppStore } from '@/stores/app';
+import { useGalleryStore } from '@/stores/gallery';
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -144,29 +144,19 @@ router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized, 
     const image = siteConfig.images.find(img => img.id === imageId);
 
     // 如果是图像组（有childImages），自动重定向到第一个可用子图像
-    if (image?.childImages && image.childImages.length > 0) {
-      // 获取第一个可用的子图像ID（考虑过滤）
-      let firstChildId = image.childImages[0].id;
+    if (image?.childImages) {
+      const galleryStore = useGalleryStore();
+      const firstValidChildId = galleryStore.getFirstValidChildId(image);
 
-      // 尝试获取第一个通过过滤的子图像
-      try {
-        const appStore = useAppStore();
-        const firstValidChildId = appStore.getFirstValidChildId(image);
-        if (firstValidChildId) {
-          firstChildId = firstValidChildId;
-        }
-      } catch (error) {
-        // 如果store不可用，使用默认的第一个子图像
-        console.warn('Cannot get filtered child images, using default first', error);
+      if (firstValidChildId && firstValidChildId !== imageId) {
+        console.log(`Redirect image group to child image: ${imageId} -> ${firstValidChildId}`);
       }
-
-      console.log(`Redirect image group to child image: ${imageId} -> ${firstChildId}`);
 
       return next({
         name: 'image-viewer-child',
         params: {
           imageId: imageId,
-          childImageId: firstChildId,
+          childImageId: firstValidChildId,
         },
         replace: true, // 使用replace避免在历史记录中留下无效的路由
       });

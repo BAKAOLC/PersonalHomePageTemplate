@@ -13,9 +13,9 @@ import type { I18nReference, I18nText } from '@/types';
  * @param t - i18n翻译函数
  * @returns 解析后的参数值
  */
-const resolveParamI18nReference = (param: string, t: any): string => {
+const resolveParamI18nReference = (param: string, t: any, params?: Record<string, any>): string => {
   if (param.startsWith('$t:')) {
-    return resolveI18nReference(param, t);
+    return resolveI18nReference(param, t, params);
   }
   return param;
 };
@@ -24,9 +24,10 @@ const resolveParamI18nReference = (param: string, t: any): string => {
  * 解析i18n引用字符串，支持参数列表和键值对参数
  * @param value - 可能包含i18n引用的字符串
  * @param t - i18n翻译函数
+ * @param params - 可选的参数对象，用于参数替换
  * @returns 解析后的字符串
  */
-const resolveI18nReference = (value: string, t: any): string => {
+const resolveI18nReference = (value: string, t: any, params?: Record<string, any>): string => {
   if (value.startsWith('$t:')) {
     const content = value.substring(3);
 
@@ -53,7 +54,7 @@ const resolveI18nReference = (value: string, t: any): string => {
       const key = content;
       if (t && typeof t === 'function') {
         try {
-          return t(key);
+          return params ? t(key, params) : t(key);
         } catch (error) {
           console.warn(`Failed to resolve i18n reference: ${key}`, error);
           return key;
@@ -71,19 +72,21 @@ const resolveI18nReference = (value: string, t: any): string => {
         try {
           if (isKeyValueFormat) {
             // 解析键值对参数
-            const params = parseKeyValueParams(paramsString);
+            const parsedParams = parseKeyValueParams(paramsString);
             // 递归解析参数值中的i18n引用
             const resolvedParams = Object.fromEntries(
-              Object.entries(params).map(([k, v]) => [k, resolveParamI18nReference(v, t)]),
+              Object.entries(parsedParams).map(([k, v]) => [k, resolveParamI18nReference(v, t, params)]),
             );
-            return t(key, resolvedParams);
+            // 合并传入的参数和解析的参数
+            const finalParams = { ...params, ...resolvedParams };
+            return t(key, finalParams);
           } else {
             // 解析数组参数
-            const params = parseParameterArray(paramsString).map(param => {
+            const parsedParams = parseParameterArray(paramsString).map(param => {
               // 递归解析参数中的i18n引用
-              return resolveParamI18nReference(param, t);
+              return resolveParamI18nReference(param, t, params);
             });
-            return t(key, ...params);
+            return t(key, ...parsedParams);
           }
         } catch (error) {
           console.warn(`Failed to resolve i18n reference with params: ${key}`, error);
@@ -121,7 +124,7 @@ const parseParameterArray = (paramsString: string): string[] => {
 };
 
 /**
- * 解析键值对参数字符串 {key:"value",...} 或 {key:'value',...}
+ * 解析键值对参数字符串 {key:"value",...} 或 ['value',...]
  * @param paramsString - 键值对参数字符串
  * @returns 解析后的参数对象
  */
@@ -148,11 +151,13 @@ const parseKeyValueParams = (paramsString: string): Record<string, string> => {
  * 获取多语言文本，支持fallback，也支持直接传入字符串和i18n引用
  * @param text - 多语言文本对象、字符串或i18n引用
  * @param currentLang - 当前语言
+ * @param params - 可选的参数对象，用于i18n文本中的参数替换
  * @returns 对应语言的文本
  */
 export const getI18nText = (
   text: I18nText | I18nReference | undefined,
   currentLang: string,
+  params?: Record<string, any>,
 ): string => {
   const { t } = i18n.global as any;
 
@@ -160,7 +165,7 @@ export const getI18nText = (
   if (typeof text === 'string') {
     // 检查是否为i18n引用格式：$t:key.path
     if (text.startsWith('$t:')) {
-      return resolveI18nReference(text, t);
+      return resolveI18nReference(text, t, params);
     }
     // 普通字符串直接返回
     return text;
@@ -173,25 +178,25 @@ export const getI18nText = (
 
   // 优先返回当前语言的文本
   if (text[currentLang]) {
-    return resolveI18nReference(text[currentLang], t);
+    return resolveI18nReference(text[currentLang], t, params);
   }
 
   // 尝试fallback语言
   const fallbackLang = getFallbackLanguage();
   if (text[fallbackLang]) {
-    return resolveI18nReference(text[fallbackLang], t);
+    return resolveI18nReference(text[fallbackLang], t, params);
   }
 
   // 尝试默认语言
   const defaultLang = getDefaultLanguage();
   if (text[defaultLang]) {
-    return resolveI18nReference(text[defaultLang], t);
+    return resolveI18nReference(text[defaultLang], t, params);
   }
 
   // 返回第一个可用的文本
   const availableKeys = Object.keys(text);
   if (availableKeys.length > 0) {
-    return resolveI18nReference(text[availableKeys[0]], t);
+    return resolveI18nReference(text[availableKeys[0]], t, params);
   }
 
   return '';

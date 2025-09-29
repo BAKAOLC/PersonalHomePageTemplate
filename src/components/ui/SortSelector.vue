@@ -21,11 +21,11 @@ import { useI18n } from 'vue-i18n';
 
 import { useEventManager } from '@/composables/useEventManager';
 import { useTimers } from '@/composables/useTimers';
-import { useAppStore } from '@/stores/app';
+import { useGalleryStore } from '@/stores/gallery';
 import { getIconClass } from '@/utils/icons';
 
 const { t } = useI18n();
-const appStore = useAppStore();
+const galleryStore = useGalleryStore();
 const { setTimeout } = useTimers();
 const { addEventListener, removeEventListener } = useEventManager();
 
@@ -39,7 +39,7 @@ const sortOptions = computed(() => [
   { label: t('gallery.sortDate'), value: 'date' },
 ]);
 
-const currentSort = computed(() => appStore.sortBy);
+const currentSort = computed(() => galleryStore.sortBy);
 
 const displaySort = computed(() => {
   const option = sortOptions.value.find(o => o.value === currentSort.value);
@@ -60,7 +60,7 @@ const toggleSortMenu = (): void => {
 };
 
 const changeSort = (sort: string): void => {
-  appStore.sortBy = sort as 'name' | 'artist' | 'date';
+  galleryStore.sortBy = sort as 'name' | 'artist' | 'date';
   isOpen.value = false;
 };
 

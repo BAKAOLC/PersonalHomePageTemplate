@@ -1,39 +1,59 @@
 <template>
   <div class="articles-page">
     <div class="container mx-auto px-4 py-4 flex-1 h-full overflow-hidden">
-      <div class="articles-header">
+      <header class="articles-header" role="banner">
         <div class="header-title-section">
           <h1 class="articles-title">{{ $t('articles.title') }}</h1>
           <p class="articles-subtitle">{{ $t('articles.subtitle') }}</p>
         </div>
         <!-- 统一搜索栏 -->
-        <div class="unified-search-bar">
+        <div class="unified-search-bar" role="search" :aria-label="$t('articles.searchArticles')">
           <div class="search-input-container">
+            <label for="article-search" class="sr-only">{{ $t('articles.searchPlaceholder') }}</label>
             <input
+              id="article-search"
               type="text"
               v-model="searchQuery"
               :placeholder="$t('articles.searchPlaceholder')"
               class="search-input"
+              :aria-describedby="searchQuery ? 'search-results-info' : undefined"
+              autocomplete="off"
             />
-            <button v-if="searchQuery" @click="clearSearch" class="search-clear">
+            <button
+              v-if="searchQuery"
+              @click="clearSearch"
+              class="search-clear"
+              :aria-label="$t('articles.clearSearch')"
+              type="button"
+            >
               <i :class="getIconClass('times')" aria-hidden="true"></i>
             </button>
           </div>
 
-          <div class="control-buttons-group">
+          <div class="control-buttons-group" role="group" :aria-label="$t('articles.sortAndFilterControls')">
             <!-- 排序按钮 -->
-            <button @click="toggleSortOrder" class="sort-order-button"
-              :title="$t(sortOrder === 'asc' ? 'articles.sortAsc' : 'articles.sortDesc')">
-              <i :class="getIconClass(sortOrder === 'asc' ? 'sort-alpha-down' : 'sort-alpha-up')"></i>
+            <button
+              @click="toggleSortOrder"
+              class="sort-order-button"
+              :aria-label="$t(sortOrder === 'asc' ? 'articles.sortAsc' : 'articles.sortDesc')"
+              :aria-pressed="sortOrder === 'asc'"
+              type="button"
+            >
+              <i :class="getIconClass(sortOrder === 'asc' ? 'sort-alpha-down' : 'sort-alpha-up')" aria-hidden="true"></i>
               <span class="sort-order-text">{{
                 $t(sortOrder === 'asc' ? 'articles.sortAsc' : 'articles.sortDesc')
               }}</span>
             </button>
 
             <!-- 排序方式按钮 -->
-            <button @click="toggleSortBy" class="sort-by-button"
-              :title="sortBy.includes('date') ? $t('articles.sortDate') : $t('articles.sortTitle')">
-              <i :class="getIconClass(sortBy.includes('date') ? 'calendar' : 'font')"></i>
+            <button
+              @click="toggleSortBy"
+              class="sort-by-button"
+              :aria-label="sortBy.includes('date') ? $t('articles.sortDate') : $t('articles.sortTitle')"
+              :aria-pressed="sortBy.includes('date')"
+              type="button"
+            >
+              <i :class="getIconClass(sortBy.includes('date') ? 'calendar' : 'font')" aria-hidden="true"></i>
               <span class="button-text">{{
                 sortBy.includes('date') ? $t('articles.sortDate') : $t('articles.sortTitle')
               }}</span>
@@ -41,78 +61,109 @@
 
             <!-- 每页显示数量 -->
             <div class="page-size-selector">
-              <button @click="togglePageSizeMenu" class="page-size-button"
-               :aria-expanded="isPageSizeMenuOpen" aria-haspopup="true">
-                <i :class="getIconClass('list-ol')" class="page-size-icon"></i>
+              <button
+                @click="togglePageSizeMenu"
+                class="page-size-button"
+                :aria-expanded="isPageSizeMenuOpen"
+                aria-haspopup="listbox"
+                :aria-label="$t('articles.selectPageSize')"
+                type="button"
+              >
+                <i :class="getIconClass('list-ol')" class="page-size-icon" aria-hidden="true"></i>
                 <span class="page-size-text">{{ displayPageSize }}</span>
-                <i class="arrow-icon" :class="[getIconClass('chevron-down'), { 'rotate-180': isPageSizeMenuOpen }]"></i>
+                <i class="arrow-icon" :class="[getIconClass('chevron-down'), { 'rotate-180': isPageSizeMenuOpen }]" aria-hidden="true"></i>
               </button>
 
-              <div v-show="isPageSizeMenuOpen" class="page-size-menu" :class="{ 'menu-open': isPageSizeMenuOpen }">
-                <button v-for="option in pageSizeOptions" :key="option.value"
-                 @click="changePageSize(option.value)" class="page-size-option"
-                  :class="{ 'active': pageSize === option.value }">
+              <div
+                v-show="isPageSizeMenuOpen"
+                class="page-size-menu"
+                :class="{ 'menu-open': isPageSizeMenuOpen }"
+                role="listbox"
+                :aria-label="$t('articles.pageSizeOptions')"
+              >
+                <button
+                  v-for="option in pageSizeOptions"
+                  :key="option.value"
+                  @click="changePageSize(option.value)"
+                  class="page-size-option"
+                  :class="{ 'active': pageSize === option.value }"
+                  role="option"
+                  :aria-selected="pageSize === option.value"
+                  type="button"
+                >
                   {{ option.label }}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       <div class="articles-content" ref="articlesMain" @scroll="handleScroll">
         <!-- 左侧边栏 -->
-        <aside class="articles-sidebar">
+        <aside class="articles-sidebar" role="complementary" :aria-label="$t('articles.sidebar')">
           <!-- 个人信息框 - 始终显示 -->
-          <div class="personal-info-card">
+          <section class="personal-info-card" :aria-label="$t('articles.authorInfo')">
             <div class="avatar-container">
               <img
                 :src="personalInfo.avatar"
                 :alt="getI18nText(personalInfo.name, currentLanguage)"
                 class="avatar"
+                role="img"
               />
             </div>
-            <div class="social-links">
+            <div class="social-links" role="list" :aria-label="$t('articles.socialLinks')">
               <a
                 v-for="link in personalInfo.links"
                 :key="link.url"
                 :href="link.url"
                 :title="getI18nText(link.name, currentLanguage)"
+                :aria-label="getI18nText(link.name, currentLanguage)"
                 class="social-link"
                 :style="{ '--icon-color': link.color ?? '#333' }"
                 target="_blank"
                 rel="noopener noreferrer"
+                role="listitem"
               >
-                <i :class="getIconClass(link.icon)"></i>
+                <i :class="getIconClass(link.icon)" aria-hidden="true"></i>
               </a>
             </div>
-          </div>
+          </section>
 
           <!-- 桌面端分类筛选 - 可折叠样式 -->
-          <div class="category-selector hidden md:block">
+          <section class="category-selector hidden md:block" :aria-label="$t('articles.categories')">
             <button
               class="section-title-button"
               @click="toggleCategoriesExpansion"
+              :aria-expanded="isCategoriesExpanded"
+              aria-controls="categories-list"
+              :aria-label="$t('articles.toggleCategories')"
+              type="button"
             >
               <h3 class="selector-title">{{ $t('articles.categories') }}</h3>
               <i
                 class="fa expand-icon"
                 :class="getIconClass(isCategoriesExpanded ? 'chevron-up' : 'chevron-down')"
+                aria-hidden="true"
               ></i>
             </button>
             <Transition name="category-list">
-              <div v-if="isCategoriesExpanded" class="categories-list">
+              <div v-if="isCategoriesExpanded" class="categories-list" id="categories-list" role="listbox" :aria-label="$t('articles.selectCategory')">
                 <!-- All 选项 -->
                 <button
                   class="category-button"
                   :class="{ 'active': selectedCategory === '' }"
                   @click="clearCategoryFilter"
+                  role="option"
+                  :aria-selected="selectedCategory === ''"
+                  :aria-label="$t('articles.showAllCategories')"
+                  type="button"
                 >
                   <div class="category-left">
-                    <i :class="getIconClass('th')" class="category-icon"></i>
+                    <i :class="getIconClass('th')" class="category-icon" aria-hidden="true"></i>
                     <span class="category-name">{{ $t('common.all') }}</span>
                   </div>
-                  <span class="category-count">{{
+                  <span class="category-count" :aria-label="$t('articles.articleCount', { count: searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount })">{{
                     searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
                   }}</span>
                 </button>
@@ -128,15 +179,19 @@
                     '--category-color': category.color ?? '#8b5cf6',
                     '--category-hover-color': category.color ? `${category.color}20` : '#8b5cf620'
                   }"
+                  role="option"
+                  :aria-selected="selectedCategory === String(categoryId)"
+                  :aria-label="`${getI18nText(category.name, currentLanguage)}, ${$t('articles.articleCount', { count: categoryCounts[String(categoryId)] ?? 0 })}`"
+                  type="button"
                 >
                   <div class="category-left">
                     <span class="category-name">{{ getI18nText(category.name, currentLanguage) }}</span>
                   </div>
-                  <span class="category-count">{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
+                  <span class="category-count" :aria-label="$t('articles.articleCount', { count: categoryCounts[String(categoryId)] ?? 0 })">{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
                 </button>
               </div>
             </Transition>
-          </div>
+          </section>
 
           <!-- 额外的信息卡片列表 - 在分类下面 -->
           <div v-if="infoCards && infoCards.length > 0" class="info-cards-section">
@@ -193,7 +248,7 @@
                 >
                   {{ getI18nText(category.name, currentLanguage) }}
                 </span>
-                <span class="category-count">{{ categoryCounts[String(categoryId)] || 0 }}</span>
+                <span class="category-count">{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
               </button>
               </div>
             </div>
@@ -201,11 +256,16 @@
         </aside>
 
         <!-- 主内容区域 -->
-        <div class="articles-main">
+        <main class="articles-main" role="main" :aria-label="$t('articles.articlesList')">
+          <!-- 搜索结果信息 -->
+          <div v-if="searchQuery" id="search-results-info" class="sr-only" aria-live="polite">
+            {{ $t('articles.searchResults', { count: filteredArticles.length, query: searchQuery }) }}
+          </div>
+
           <!-- 文章列表 -->
-          <div class="articles-list">
-            <div v-if="paginatedArticles.length === 0" class="no-articles">
-              <i :class="getIconClass('newspaper')" class="no-articles-icon"></i>
+          <div class="articles-list" role="list" :aria-label="$t('articles.articlesList')">
+            <div v-if="paginatedArticles.length === 0" class="no-articles" role="status" aria-live="polite">
+              <i :class="getIconClass('newspaper')" class="no-articles-icon" aria-hidden="true"></i>
               <p class="no-articles-text">
                 {{ searchQuery ? $t('articles.noSearchResults') : $t('articles.noArticles') }}
               </p>
@@ -216,6 +276,11 @@
               :key="article.id"
               class="article-card"
               @click="openArticle(article)"
+              @keydown.enter="openArticle(article)"
+              @keydown.space.prevent="openArticle(article)"
+              role="listitem"
+              :tabindex="0"
+              :aria-label="$t('articles.readArticle', { title: getI18nText(article.title, currentLanguage) })"
             >
               <!-- 文章封面 -->
               <div v-if="getArticleCover(article.cover, currentLanguage)" class="article-cover">
@@ -223,6 +288,7 @@
                   :src="getArticleCover(article.cover, currentLanguage)"
                   :alt="getI18nText(article.title, currentLanguage)"
                   class="cover-image"
+                  role="img"
                 />
               </div>
 
@@ -231,12 +297,12 @@
                 <h2 class="article-title">{{ getI18nText(article.title, currentLanguage) }}</h2>
 
                 <div class="article-meta">
-                  <span class="article-date">
-                    <i :class="getIconClass('calendar')" class="meta-icon"></i>
+                  <time class="article-date" :datetime="article.date" :aria-label="$t('articles.publishedDate', { date: formatDate(article.date) })">
+                    <i :class="getIconClass('calendar')" class="meta-icon" aria-hidden="true"></i>
                     {{ formatDate(article.date) }}
-                  </span>
+                  </time>
 
-                  <div class="article-categories">
+                  <div class="article-categories" role="list" :aria-label="$t('articles.articleCategories')">
                     <span
                       v-for="categoryId in article.categories"
                       :key="categoryId"
@@ -245,6 +311,8 @@
                         backgroundColor: (articleCategories as any)[categoryId]?.color + '20',
                         color: (articleCategories as any)[categoryId]?.color
                       }"
+                      role="listitem"
+                      :aria-label="$t('articles.category', { name: getI18nText((articleCategories as any)[categoryId]?.name ?? categoryId, currentLanguage) })"
                     >
                       {{
                         getI18nText(
@@ -259,9 +327,14 @@
                 <p class="article-summary">{{ generateArticleSummary(article.content, currentLanguage) }}</p>
 
                 <div class="article-actions">
-                  <button class="read-more-btn" @click.stop="openArticle(article)">
+                  <button
+                    class="read-more-btn"
+                    @click.stop="openArticle(article)"
+                    :aria-label="$t('articles.readMoreAbout', { title: getI18nText(article.title, currentLanguage) })"
+                    type="button"
+                  >
                     {{ $t('articles.readMore') }}
-                    <i :class="getIconClass('arrow-right')" class="btn-icon"></i>
+                    <i :class="getIconClass('arrow-right')" class="btn-icon" aria-hidden="true"></i>
                   </button>
                 </div>
               </div>
@@ -269,28 +342,40 @@
           </div>
 
           <!-- 分页器 -->
-          <div v-if="pagination.totalPages > 1" class="pagination">
+          <nav v-if="pagination.totalPages > 1" class="pagination" role="navigation" :aria-label="$t('articles.pagination')">
             <button
               class="pagination-btn"
               :disabled="!pagination.hasPrev"
               @click="goToPage(pagination.currentPage - 1)"
+              :aria-label="$t('articles.goToPreviousPage')"
+              type="button"
             >
-              <i :class="getIconClass('chevron-left')"></i>
+              <i :class="getIconClass('chevron-left')" aria-hidden="true"></i>
               {{ $t('articles.prevArticle') }}
             </button>
 
             <div class="pagination-info">
-              <span>{{ $t('articles.page', { current: pagination.currentPage, total: pagination.totalPages }) }}</span>
+              <span :aria-label="$t('articles.currentPageInfo', { current: pagination.currentPage, total: pagination.totalPages })">
+                {{ $t('articles.page', { current: pagination.currentPage, total: pagination.totalPages }) }}
+              </span>
 
               <div class="page-jump">
+                <label for="page-jump-input" class="sr-only">{{ $t('articles.jumpToPage') }}</label>
                 <input
+                  id="page-jump-input"
                   type="number"
                   v-model.number="jumpToPageNumber"
                   :min="1"
                   :max="pagination.totalPages"
                   class="page-input"
+                  :aria-label="$t('articles.pageNumberInput')"
                 />
-                <button @click="jumpToPage" class="jump-btn">
+                <button
+                  @click="jumpToPage"
+                  class="jump-btn"
+                  :aria-label="$t('articles.goToPageNumber', { page: jumpToPageNumber })"
+                  type="button"
+                >
                   {{ $t('articles.goToPage') }}
                 </button>
               </div>
@@ -300,22 +385,29 @@
               class="pagination-btn"
               :disabled="!pagination.hasNext"
               @click="goToPage(pagination.currentPage + 1)"
+              :aria-label="$t('articles.goToNextPage')"
+              type="button"
             >
               {{ $t('articles.nextArticle') }}
-              <i :class="getIconClass('chevron-right')"></i>
+              <i :class="getIconClass('chevron-right')" aria-hidden="true"></i>
             </button>
-          </div>
-        </div>
+          </nav>
+        </main>
       </div>
     </div>
 
     <!-- 移动端全屏筛选弹窗 -->
-    <div v-if="isMobileSidebarOpen" class="mobile-filter-overlay" @click="closeMobileSidebar">
+    <div v-if="isMobileSidebarOpen" class="mobile-filter-overlay" @click="closeMobileSidebar" role="dialog" :aria-modal="true" aria-labelledby="mobile-filter-title">
       <div class="mobile-filter-content" @click.stop>
         <div class="mobile-filter-header">
-          <h3>{{ $t('articles.categories') }}</h3>
-          <button @click="closeMobileSidebar" class="close-button">
-            <i :class="getIconClass('times')"></i>
+          <h3 id="mobile-filter-title">{{ $t('articles.categories') }}</h3>
+          <button
+            @click="closeMobileSidebar"
+            class="close-button"
+            :aria-label="$t('common.close')"
+            type="button"
+          >
+            <i :class="getIconClass('times')" aria-hidden="true"></i>
           </button>
         </div>
         <div class="mobile-filter-body">
@@ -375,9 +467,15 @@
     </div>
 
     <!-- 返回顶部按钮 -->
-    <button v-if="showScrollToTop" @click="scrollToTop" class="scroll-to-top-button"
-      :style="{ bottom: scrollToTopBottom + 'px' }">
-      <i :class="getIconClass('chevron-up')"></i>
+    <button
+      v-if="showScrollToTop"
+      @click="scrollToTop"
+      class="scroll-to-top-button"
+      :style="{ bottom: scrollToTopBottom + 'px' }"
+      :aria-label="$t('articles.scrollToTop')"
+      type="button"
+    >
+      <i :class="getIconClass('chevron-up')" aria-hidden="true"></i>
     </button>
 
   </div>
@@ -396,8 +494,9 @@ import articleCategoriesConfig from '@/config/articles-categories.json';
 import articlesPageConfig from '@/config/articles-page.json';
 import articlesConfig from '@/config/articles.json';
 import { siteConfig } from '@/config/site';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import type { ModalConfig } from '@/stores/modal';
+import { useThemeStore } from '@/stores/theme';
 import type { Article, ArticleCategoriesConfig, ArticleFilterState, ArticlePagination } from '@/types';
 import {
   calculatePagination,
@@ -422,7 +521,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 // 导入配置
 const { t: $t } = useI18n();
-const appStore = useAppStore();
+const languageStore = useLanguageStore();
+const themeStore = useThemeStore();
 const { addEventListener, removeEventListener } = useEventManager();
 const { onScreenChange } = useMobileDetection();
 const route = useRoute();
@@ -449,12 +549,12 @@ const scrollToTopBottom = ref(80); // 默认距离底部80px
 // 模态框ID
 const articleViewerModalId = ref<string | null>(null);
 
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 获取卡片图片URL（支持亮色暗色）
 const getCardImage = (image: string | { light: string; dark: string }): string => {
   if (typeof image === 'string') return image;
-  return appStore.isDarkMode ? image.dark : image.light;
+  return themeStore.isDarkMode ? image.dark : image.light;
 };
 
 // 配置数据
@@ -1959,6 +2059,92 @@ onBeforeUnmount(() => {
     width: 2.5rem;
     height: 2.5rem;
     font-size: 0.875rem;
+  }
+}
+
+/* 屏幕阅读器专用样式 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 焦点样式优化 */
+.article-card:focus,
+.article-card:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.category-button:focus,
+.category-button:focus-visible,
+.sort-order-button:focus,
+.sort-by-button:focus,
+.page-size-button:focus,
+.page-size-button:focus-visible,
+.pagination-btn:focus,
+.pagination-btn:focus-visible,
+.read-more-btn:focus,
+.read-more-btn:focus-visible,
+.scroll-to-top-button:focus,
+.scroll-to-top-button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .article-card,
+  .category-button,
+  .sort-order-button,
+  .sort-by-button,
+  .page-size-button,
+  .pagination-btn,
+  .read-more-btn {
+    border: 2px solid;
+  }
+
+  .article-card:focus,
+  .category-button:focus,
+  .sort-order-button:focus,
+  .sort-by-button:focus,
+  .page-size-button:focus,
+  .pagination-btn:focus,
+  .read-more-btn:focus {
+    outline: 3px solid;
+    outline-offset: 1px;
+  }
+}
+
+/* 减少动画偏好支持 */
+@media (prefers-reduced-motion: reduce) {
+  .article-card,
+  .category-button,
+  .sort-order-button,
+  .sort-by-button,
+  .page-size-button,
+  .pagination-btn,
+  .read-more-btn,
+  .scroll-to-top-button {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .article-card:hover,
+  .category-button:hover,
+  .sort-order-button:hover,
+  .sort-by-button:hover,
+  .page-size-button:hover,
+  .pagination-btn:hover,
+  .read-more-btn:hover,
+  .scroll-to-top-button:hover {
+    transform: none !important;
   }
 }
 

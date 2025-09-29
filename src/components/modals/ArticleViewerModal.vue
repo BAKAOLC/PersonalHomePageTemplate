@@ -1,25 +1,25 @@
 <template>
   <div class="article-viewer-modal" :class="{
     'mobile': isMobile,
-  }">
+  }" role="dialog" :aria-modal="true" aria-labelledby="article-title">
     <!-- 遮罩层 -->
-    <div class="viewer-mask" @click="close"></div>
+    <div class="viewer-mask" @click="close" :aria-label="$t('common.closeModal')"></div>
 
     <!-- 主内容容器 -->
-    <div class="viewer-container" ref="viewerContainer" @click.stop>
+    <div class="viewer-container" ref="viewerContainer" @click.stop role="document">
       <!-- 头部控制栏 -->
       <div class="viewer-header">
         <div class="header-content">
         <!-- 文章标题和信息 -->
         <div class="article-header-info">
-          <h1 class="article-title">{{ getI18nText(article.title, currentLanguage) }}</h1>
+          <h1 id="article-title" class="article-title">{{ getI18nText(article.title, currentLanguage) }}</h1>
           <div class="article-meta">
-            <span class="article-date">
-              <i :class="getIconClass('calendar')" class="meta-icon"></i>
+            <time class="article-date" :datetime="article.date" :aria-label="$t('articles.publishedDate', { date: formatDate(article.date) })">
+              <i :class="getIconClass('calendar')" class="meta-icon" aria-hidden="true"></i>
               {{ formatDate(article.date) }}
-            </span>
+            </time>
 
-            <div class="article-categories">
+            <div class="article-categories" role="list" :aria-label="$t('articles.articleCategories')">
               <span
                 v-for="categoryId in article.categories"
                 :key="categoryId"
@@ -28,6 +28,8 @@
                   backgroundColor: getCategoryColor(categoryId) + '20',
                   color: getCategoryColor(categoryId)
                 }"
+                role="listitem"
+                :aria-label="$t('articles.category', { name: getCategoryName(categoryId) })"
               >
                 {{ getCategoryName(categoryId) }}
               </span>
@@ -36,46 +38,55 @@
         </div>
 
         <!-- 控制按钮 -->
-        <div class="viewer-controls">
+        <div class="viewer-controls" role="toolbar" :aria-label="$t('articles.articleActions')">
           <button
             v-if="showCopyButton && customLink"
             class="control-button copy-button"
             @click="copyArticleLink"
-            :title="$t('articles.copyLink')"
+            :aria-label="$t('articles.copyLink')"
+            type="button"
           >
-            <i :class="getIconClass('link')" class="icon"></i>
+            <i :class="getIconClass('link')" class="icon" aria-hidden="true"></i>
           </button>
-          <button class="control-button close-button" @click="close" :title="$t('common.close')">
-            <i :class="getIconClass('times')" class="icon"></i>
+          <button
+            class="control-button close-button"
+            @click="close"
+            :aria-label="$t('common.close')"
+            type="button"
+          >
+            <i :class="getIconClass('times')" class="icon" aria-hidden="true"></i>
           </button>
         </div>
       </div>
     </div>
 
     <!-- 内容区域 -->
-    <div class="viewer-content" ref="viewerContent">
+    <div class="viewer-content" ref="viewerContent" role="main" :aria-label="$t('articles.articleContent')">
       <!-- 文章封面 -->
       <div v-if="articleCover" class="article-cover-section">
         <img
           :src="articleCover"
           :alt="getI18nText(article.title, currentLanguage)"
           class="article-cover-image"
+          role="img"
         />
       </div>
 
       <!-- 文章内容 -->
-      <div class="article-content-section">
-        <div class="markdown-content" v-html="renderedContent"></div>
-      </div>
+      <article class="article-content-section" :aria-label="$t('articles.articleContent')">
+        <div class="markdown-content" v-html="renderedContent" role="article"></div>
+      </article>
 
       <!-- 上一篇、下一篇按钮 -->
-      <div v-if="showNavigation && (prevArticle || nextArticle)" class="article-navigation">
+      <nav v-if="showNavigation && (prevArticle || nextArticle)" class="article-navigation" role="navigation" :aria-label="$t('articles.articleNavigation')">
         <button
           v-if="prevArticle"
           class="nav-button prev-button"
           @click="navigateTo(prevArticle.id)"
+          :aria-label="$t('articles.goToPreviousArticle', { title: getI18nText(prevArticle.title, currentLanguage) })"
+          type="button"
         >
-          <i :class="getIconClass('chevron-left')" class="nav-icon"></i>
+          <i :class="getIconClass('chevron-left')" class="nav-icon" aria-hidden="true"></i>
           <div class="nav-content">
             <span class="nav-label">{{ $t('articles.prevArticle') }}</span>
             <span class="nav-title">{{ getI18nText(prevArticle.title, currentLanguage) }}</span>
@@ -86,24 +97,26 @@
           v-if="nextArticle"
           class="nav-button next-button"
           @click="navigateTo(nextArticle.id)"
+          :aria-label="$t('articles.goToNextArticle', { title: getI18nText(nextArticle.title, currentLanguage) })"
+          type="button"
         >
           <div class="nav-content">
             <span class="nav-label">{{ $t('articles.nextArticle') }}</span>
             <span class="nav-title">{{ getI18nText(nextArticle.title, currentLanguage) }}</span>
           </div>
-          <i :class="getIconClass('chevron-right')" class="nav-icon"></i>
+          <i :class="getIconClass('chevron-right')" class="nav-icon" aria-hidden="true"></i>
         </button>
-      </div>
+      </nav>
 
       <!-- 评论区 -->
-      <div v-if="showComments && shouldShowComments" class="comments-section">
+      <section v-if="showComments && shouldShowComments" class="comments-section" :aria-label="$t('articles.comments')">
         <div class="comments-header">
           <h3 class="comments-title">{{ $t('articles.comments') }}</h3>
         </div>
-        <div class="comments-container">
+        <div class="comments-container" role="region" :aria-label="$t('articles.commentsSection')">
           <GiscusComments :key="article.id" :unique-id="article.id" prefix="article" />
         </div>
-      </div>
+      </section>
       </div>
     </div>
   </div>
@@ -122,7 +135,7 @@ import { useNotificationManager } from '@/composables/useNotificationManager';
 import { useScreenManager } from '@/composables/useScreenManager';
 import articleCategoriesConfig from '@/config/articles-categories.json';
 import { siteConfig } from '@/config/site';
-import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import type { Article, ArticleCategoriesConfig } from '@/types';
 import { formatDate, getAdjacentArticles, getArticleCover } from '@/utils/articles';
 import { getI18nText } from '@/utils/i18nText';
@@ -160,7 +173,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-const appStore = useAppStore();
+const languageStore = useLanguageStore();
 const notificationManager = useNotificationManager();
 const { t: $t } = useI18n();
 const { isMobile } = useScreenManager();
@@ -169,7 +182,7 @@ const { isMobile } = useScreenManager();
 const viewerContainer = ref<HTMLElement>();
 const viewerContent = ref<HTMLElement>();
 
-const currentLanguage = computed(() => appStore.currentLanguage);
+const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 计算属性
 const articleCover = computed(() => {
@@ -297,12 +310,27 @@ watch(() => props.article, () => {
   }
 });
 
+// 键盘导航支持
+const handleKeydown = (event: KeyboardEvent): void => {
+  if (event.key === 'Escape') {
+    close();
+  }
+};
+
 // 生命周期
 onMounted(() => {
   show();
+  // 添加键盘事件监听
+  document.addEventListener('keydown', handleKeydown);
+  // 设置焦点到模态框
+  if (viewerContainer.value) {
+    viewerContainer.value.focus();
+  }
 });
 
 onBeforeUnmount(() => {
+  // 移除键盘事件监听
+  document.removeEventListener('keydown', handleKeydown);
   // 恢复背景滚动
   document.body.style.overflow = '';
 });
@@ -692,5 +720,64 @@ onBeforeUnmount(() => {
 
 .viewer-content::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-500 dark:bg-gray-500;
+}
+
+/* 屏幕阅读器专用样式 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 焦点样式优化 */
+.viewer-container:focus,
+.viewer-container:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.control-button:focus,
+.control-button:focus-visible,
+.nav-button:focus,
+.nav-button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .viewer-container,
+  .control-button,
+  .nav-button {
+    border: 2px solid;
+  }
+
+  .viewer-container:focus,
+  .control-button:focus,
+  .nav-button:focus {
+    outline: 3px solid;
+    outline-offset: 1px;
+  }
+}
+
+/* 减少动画偏好支持 */
+@media (prefers-reduced-motion: reduce) {
+  .viewer-container,
+  .control-button,
+  .nav-button {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .control-button:hover,
+  .nav-button:hover {
+    transform: none !important;
+  }
 }
 </style>

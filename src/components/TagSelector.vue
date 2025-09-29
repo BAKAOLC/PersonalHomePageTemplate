@@ -23,14 +23,14 @@
 
       <button v-for="tag in sortedNormalTags" :key="tag.id" class="tag-button"
         :class="{ 'active': selectedTag === tag.id }" @click="selectTag(tag.id)" :style="{
-          '--tag-color': tag.color || '#8b5cf6',
+          '--tag-color': tag.color ?? '#8b5cf6',
           '--tag-hover-color': tag.color ? `${tag.color}20` : '#8b5cf620'
         }">
         <div class="tag-left">
           <i v-if="tag.icon" :class="getIconClass(tag.icon)" class="tag-icon"></i>
-          <span class="tag-name">{{ getI18nText(tag.name, currentLanguage) || tag.id }}</span>
+          <span class="tag-name">{{ getI18nText(tag.name, currentLanguage) ?? tag.id }}</span>
         </div>
-        <span class="tag-count">{{ tagCounts[tag.id] || 0 }}</span>
+        <span class="tag-count">{{ tagCounts[tag.id] ?? 0 }}</span>
       </button>
       </div>
     </Transition>
@@ -42,12 +42,14 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { siteConfig } from '@/config/site';
-import { useAppStore } from '@/stores/app';
+import { useGalleryStore } from '@/stores/gallery';
+import { useLanguageStore } from '@/stores/language';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
 const { t: $t } = useI18n();
-const appStore = useAppStore();
+const galleryStore = useGalleryStore();
+const languageStore = useLanguageStore();
 
 // 按名称排序的普通标签列表（排除特殊标签）
 const sortedNormalTags = computed(() => {
@@ -55,14 +57,14 @@ const sortedNormalTags = computed(() => {
 
   // 过滤掉数量为0的标签
   tags = tags.filter(tag => {
-    const tagCount = appStore.tagCounts[tag.id];
+    const tagCount = galleryStore.tagCounts[tag.id];
     return tagCount > 0;
   });
 
   // 按当前语言的名称排序
   tags.sort((a, b) => {
-    const aName = getI18nText(a.name, appStore.currentLanguage) || a.id;
-    const bName = getI18nText(b.name, appStore.currentLanguage) || b.id;
+    const aName = getI18nText(a.name, languageStore.currentLanguage) ?? a.id;
+    const bName = getI18nText(b.name, languageStore.currentLanguage) ?? b.id;
     return aName.localeCompare(bName);
   });
 
@@ -78,12 +80,12 @@ const toggleNormalTagsExpansion = (): void => {
 };
 
 const selectedTag = computed({
-  get: () => appStore.selectedTag,
-  set: (value) => appStore.selectedTag = value,
+  get: () => galleryStore.selectedTag,
+  set: (value) => galleryStore.selectedTag = value,
 });
 
-const currentLanguage = computed(() => appStore.currentLanguage);
-const tagCounts = computed(() => appStore.tagCounts);
+const currentLanguage = computed(() => languageStore.currentLanguage);
+const tagCounts = computed(() => galleryStore.tagCounts);
 
 const selectTag = (id: string): void => {
   selectedTag.value = id;

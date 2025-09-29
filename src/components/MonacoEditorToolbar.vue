@@ -161,7 +161,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useTimers } from '@/composables/useTimers';
-import { useAppStore } from '@/stores/app';
+import { useThemeStore } from '@/stores/theme';
 import { getIconClass } from '@/utils/icons';
 
 interface Props {
@@ -251,7 +251,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { t: $t } = useI18n();
-const appStore = useAppStore();
+const themeStore = useThemeStore();
 const { setTimeout } = useTimers();
 
 // 响应式状态
@@ -262,7 +262,7 @@ const minimapEnabled = ref(props.getMinimapEnabled());
 const lineNumbersEnabled = ref(props.getLineNumbersEnabled());
 
 // 计算属性
-const isDarkMode = computed(() => appStore.isDarkMode);
+const isDarkMode = computed(() => themeStore.isDarkMode);
 
 // 监听状态变化
 watch(() => props.getFontSize(), (newSize) => {
@@ -283,7 +283,7 @@ watch(() => props.getLineNumbersEnabled(), (newEnabled) => {
 
 // 方法
 const toggleTheme = (): void => {
-  appStore.toggleThemeMode();
+  themeStore.toggleThemeMode();
 };
 
 // 实现工具栏方法

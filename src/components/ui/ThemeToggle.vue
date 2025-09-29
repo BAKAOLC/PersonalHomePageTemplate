@@ -6,19 +6,19 @@
 </template>
 
 <script setup lang="ts">
-import { SunIcon, MoonIcon, MonitorIcon } from 'lucide-vue-next';
+import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { useAppStore } from '@/stores/app';
+import { useThemeStore } from '@/stores/theme';
 
 const { t } = useI18n();
-const appStore = useAppStore();
+const themeStore = useThemeStore();
 
-const themeMode = computed(() => appStore.themeMode);
+const themeMode = computed(() => themeStore.themeMode);
 
 const toggleTheme = (): void => {
-  appStore.toggleThemeMode();
+  themeStore.toggleThemeMode();
 };
 
 // 获取当前主题图标

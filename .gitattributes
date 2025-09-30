@@ -1,0 +1,18 @@
+# Enforce UTF-8 encoding in the working tree and LF line endings for text
+* text=auto eol=lf working-tree-encoding=UTF-8
+
+# Treat common binary assets as binary to avoid line-ending normalization
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+
+# Keep lockfiles normalized as text with LF
+*.lock text eol=lf
+

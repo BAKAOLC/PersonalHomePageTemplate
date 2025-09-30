@@ -1,0 +1,20 @@
+# EditorConfig helps maintain consistent coding styles
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.{js,jsx,ts,tsx,vue,css,scss,md,json,yml,yaml,html,cjs,mjs}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{png,jpg,jpeg,gif,webp,ico,pdf,woff,woff2,ttf}]
+# binary files - EditorConfig ignores these patterns for text rules
+insert_final_newline = false
+end_of_line = lf
+charset = utf-8

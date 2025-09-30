@@ -38,7 +38,7 @@ export const useGalleryStore = defineStore('gallery', () => {
     const resultImages: DisplayImage[] = [];
 
     for (const parentImage of siteConfig.images) {
-      const validImages = getValidImagesInGroup(parentImage);
+      const validImages = getValidImagesInGroup(parentImage, false, false, false);
       if (validImages.length > 0) {
         const displayImage = getDisplayImageForGroup(parentImage, validImages);
         resultImages.push(displayImage);
@@ -103,17 +103,18 @@ export const useGalleryStore = defineStore('gallery', () => {
     const counts: Record<string, number> = { all: 0 };
 
     // 计算有效的图像组数量
-    const validImageGroups: GroupImage[] = [];
-    for (const parentImage of siteConfig.images) {
-      const validImages = getValidImagesInGroup(parentImage, false, true);
+    // const validImageGroups: GroupImage[] = [];
+    const validImageGroups = siteConfig.images.map(image => {
+      const validImages = getValidImagesInGroup(image, false, true, false);
       const firstValidImage = validImages.shift();
       if (firstValidImage) {
-        validImageGroups.push({
+        return {
           ...firstValidImage,
           childImages: validImages,
-        });
+        };
       }
-    }
+      return null;
+    }).filter(image => image !== null);
 
     // 计算每个标签的数量
     siteConfig.tags.forEach(tag => {
@@ -127,9 +128,64 @@ export const useGalleryStore = defineStore('gallery', () => {
     return counts;
   });
 
+  const restrictedTagCounts = computed(() => {
+    const counts: Record<string, number> = {};
+
+    const validImageGroups = siteConfig.images.map(image => {
+      const validImages = getValidImagesInGroup(image, false, false, true);
+      const firstValidImage = validImages.shift();
+      if (firstValidImage) {
+        return {
+          ...firstValidImage,
+          childImages: validImages,
+        };
+      }
+      return null;
+    }).filter(image => image !== null);
+
+    const restrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
+    for (const tag of restrictedTags) {
+      const count = validImageGroups.filter(image => {
+        const imageHasTag = image.tags?.includes(tag.id) ?? false;
+        const childHasTag = image.childImages?.some(child => child.tags?.includes(tag.id)) ?? false;
+        return imageHasTag || childHasTag;
+      }).filter(image => canBeCountIfRestrictedTagActive(image, tag.id)).length;
+
+      counts[tag.id] = count;
+    }
+
+    return counts;
+  });
+
+  const canBeCountIfRestrictedTagActive = (image: GroupImage, targetTagId: string): boolean => {
+    const restrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
+    const checkingTags = restrictedTags.filter(tag => tag.id !== targetTagId && !selectedRestrictedTags.value[tag.id]);
+
+    const checkingImages: ImageBase[] = [];
+    if (image.tags?.some(tagId => restrictedTags.find(restrictedTag => restrictedTag.id === tagId))) {
+      checkingImages.push(image as ImageBase);
+    }
+    if (image.childImages) {
+      for (const child of image.childImages) {
+        if (child.tags?.some(tagId => restrictedTags.find(restrictedTag => restrictedTag.id === tagId))) {
+          checkingImages.push(child);
+        }
+      }
+    }
+
+    for (const checkingImage of checkingImages) {
+      if (checkingImage.tags?.some(tagId => checkingTags.find(tag => tag.id === tagId))) {
+        continue;
+      }
+      return true;
+    }
+
+    return false;
+  };
+
   // 获取每个角色的匹配图像数量（支持图像组）
   const getCharacterMatchCount = (characterId: string): number => {
-    const validImageGroups = siteConfig.images.filter(image => getValidImagesInGroup(image, true, false));
+    const validImageGroups = siteConfig.images.filter(image => getValidImagesInGroup(image, true, false, false));
     if (characterId === 'all') {
       return validImageGroups.length;
     }
@@ -243,28 +299,31 @@ export const useGalleryStore = defineStore('gallery', () => {
     image: GroupImage | ImageBase,
     skipCharacterFilter = false,
     skipTagFilter = false,
+    skipRestrictedTagFilter = false,
   ): boolean => {
     if (!doesImageValid(image)) {
       return false;
     }
 
     // 应用限制级标签过滤
-    const restrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
+    if (!skipRestrictedTagFilter) {
+      const restrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
 
-    for (const restrictedTag of restrictedTags) {
-      // 检查父图像是否有该限制级标签
-      let imageHasTag = image.tags?.includes(restrictedTag.id) ?? false;
+      for (const restrictedTag of restrictedTags) {
+        // 检查父图像是否有该限制级标签
+        let imageHasTag = image.tags?.includes(restrictedTag.id) ?? false;
 
-      // 如果父图像没有，检查子图像是否有该限制级标签
-      if (!imageHasTag && 'childImages' in image && image.childImages) {
-        imageHasTag = image.childImages.some((child: ImageBase) => child.tags?.includes(restrictedTag.id));
-      }
+        // 如果父图像没有，检查子图像是否有该限制级标签
+        if (!imageHasTag && 'childImages' in image && image.childImages) {
+          imageHasTag = image.childImages.some((child: ImageBase) => child.tags?.includes(restrictedTag.id));
+        }
 
-      const tagIsEnabled = selectedRestrictedTags.value[restrictedTag.id] ?? false;
+        const tagIsEnabled = selectedRestrictedTags.value[restrictedTag.id] ?? false;
 
-      // 如果图片（或其子图像）有这个特殊标签，但是这个标签没有被启用，则过滤掉
-      if (imageHasTag && !tagIsEnabled) {
-        return false;
+        // 如果图片（或其子图像）有这个特殊标签，但是这个标签没有被启用，则过滤掉
+        if (imageHasTag && !tagIsEnabled) {
+          return false;
+        }
       }
     }
 
@@ -353,16 +412,17 @@ export const useGalleryStore = defineStore('gallery', () => {
     parentImage: GroupImage,
     skipCharacterFilter = false,
     skipTagFilter = false,
+    skipRestrictedTagFilter = false,
   ): ImageBase[] => {
     const validImages: ImageBase[] = [];
 
-    if (doesImagePassFilter(parentImage, skipCharacterFilter, skipTagFilter)) {
+    if (doesImagePassFilter(parentImage, skipCharacterFilter, skipTagFilter, skipRestrictedTagFilter)) {
       validImages.push(parentImage as ImageBase);
     }
     if (parentImage.childImages && parentImage.childImages.length > 0) {
       for (const childImage of parentImage.childImages) {
         const fullChildImage = getChildImageWithDefaults(parentImage, childImage);
-        if (doesImagePassFilter(fullChildImage, skipCharacterFilter, skipTagFilter)) {
+        if (doesImagePassFilter(fullChildImage, skipCharacterFilter, skipTagFilter, skipRestrictedTagFilter)) {
           validImages.push(fullChildImage);
         }
       }
@@ -436,6 +496,7 @@ export const useGalleryStore = defineStore('gallery', () => {
     selectedCharacter,
     characterImages,
     tagCounts,
+    restrictedTagCounts,
     getCharacterMatchCount,
 
     // 特殊标签相关
@@ -457,5 +518,6 @@ export const useGalleryStore = defineStore('gallery', () => {
     getValidImagesInGroup,
     getFirstValidChildId,
     getValidImagesInGroupWithoutFilter,
+    doesImagePassFilter,
   };
 });

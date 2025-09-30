@@ -41,7 +41,7 @@
             class="tag-count"
             :class="{ 'invisible': !getRestrictedTagState(tag.id) }"
           >
-                       {{ restrictedTagCounts[tag.id] ?? 0 }}
+          {{ galleryStore.restrictedTagCounts[tag.id] ?? 0 }}
         </span>
       </button>
         </div>
@@ -102,191 +102,6 @@ const canTagBeVisible = (tagId: string, visited = new Set<string>()): boolean =>
   });
 };
 
-// 获取图像组中包含特定标签的有效图像（复制 app store 的逻辑）
-const getValidImagesInGroupForTag = (parentImage: any, tagId: string, ignoreTagId?: string): any[] => {
-  const validImages: any[] = [];
-
-  // 如果没有子图像，这是一个普通的单个图像
-  if (!parentImage.childImages || parentImage.childImages.length === 0) {
-    // 检查父图像本身是否通过过滤且包含该标签
-    const passesFilter = doesImagePassFilter(parentImage, ignoreTagId);
-    const hasTag = parentImage.tags.includes(tagId);
-
-    if (passesFilter && hasTag) {
-      validImages.push(parentImage);
-    }
-  } else {
-    // 这是一个图像组，检查子图像
-
-    for (const childImage of parentImage.childImages) {
-      const fullChildImage = getChildImageWithDefaults(parentImage, childImage);
-      const passesFilter = doesImagePassFilter(fullChildImage, ignoreTagId);
-      const hasTag = fullChildImage.tags.includes(tagId);
-
-      if (passesFilter && hasTag) {
-        validImages.push(fullChildImage);
-      }
-    }
-  }
-
-  return validImages;
-};
-
-// 复制 app store 的 doesImagePassFilter 逻辑
-const doesImagePassFilter = (image: any, ignoreTagId?: string): boolean => {
-  // 应用限制级标签过滤
-  const restrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
-
-  for (const restrictedTag of restrictedTags) {
-    // 如果这是我们正在计算的标签，跳过它的过滤逻辑
-    if (ignoreTagId && restrictedTag.id === ignoreTagId) {
-      continue;
-    }
-    const imageHasTag = image.tags.includes(restrictedTag.id);
-    const tagIsEnabled = galleryStore.getRestrictedTagState(restrictedTag.id);
-
-    // 如果图片有这个特殊标签，但是这个标签没有被启用，则过滤掉
-    if (imageHasTag && !tagIsEnabled) {
-      return false;
-    }
-  }
-
-  // 应用搜索过滤
-  if (galleryStore.searchQuery.trim()) {
-    const query = galleryStore.searchQuery.trim().toLowerCase();
-
-    // 搜索图片名称
-    const name = getSearchableText(image.name);
-
-    // 搜索描述
-    const description = image.description ? getSearchableText(image.description) : '';
-
-    // 搜索艺术家名称
-    const artist = image.artist ? getSearchableText(image.artist) : '';
-
-    // 搜索标签
-    const tagsMatch = image.tags?.some((tagId: string) => {
-      const tag = siteConfig.tags.find(t => t.id === tagId);
-      if (!tag) return false;
-
-      const tagName = getSearchableText(tag.name);
-      return tagName.includes(query);
-    }) ?? false;
-
-    const matchesSearch = name.includes(query)
-                       || description.includes(query)
-                       || artist.includes(query)
-                       || tagsMatch;
-
-    if (!matchesSearch) {
-      return false;
-    }
-  }
-
-  // 应用角色过滤
-  if (galleryStore.selectedCharacterId !== 'all') {
-    if (!image.characters.includes(galleryStore.selectedCharacterId)) {
-      return false;
-    }
-  }
-
-  // 应用标签过滤
-  if (galleryStore.selectedTag !== 'all') {
-    if (!image.tags.includes(galleryStore.selectedTag)) {
-      return false;
-    }
-  }
-
-  return true;
-};
-
-// 复制 app store 的 getChildImageWithDefaults 逻辑
-const getChildImageWithDefaults = (parentImage: any, childImage: any): any => {
-  // Artist fallback logic: child.artist || parent.artist || "N/A"
-  const getArtistWithFallback = (): any => {
-    if (childImage.artist) return childImage.artist;
-    if (parentImage.artist) return parentImage.artist;
-    return 'N/A';
-  };
-
-  // Description fallback logic: child.description || parent.description || empty string
-  const getDescriptionWithFallback = (): any => {
-    if (childImage.description) return childImage.description;
-    if (parentImage.description) return parentImage.description;
-    return '';
-  };
-
-  return {
-    id: childImage.id,
-    name: childImage.name ?? parentImage.name,
-    description: getDescriptionWithFallback(),
-    artist: getArtistWithFallback(),
-    src: childImage.src,
-    tags: childImage.tags ?? parentImage.tags,
-    characters: childImage.characters ?? parentImage.characters,
-    date: childImage.date ?? parentImage.date,
-    // 子图像不会有自己的子图像
-    childImages: undefined,
-  };
-};
-
-// 可见的特殊标签列表
-// 计算限制级标签的正确计数（避免循环依赖）
-const restrictedTagCounts = computed(() => {
-  const counts: Record<string, number> = {};
-
-  const restrictedTags = siteConfig.tags.filter(tag => tag.isRestricted && canTagBeVisible(tag.id));
-  for (const tag of restrictedTags) {
-    // 应用搜索过滤
-    let imagesToCountForTag = siteConfig.images;
-
-    if (galleryStore.searchQuery.trim()) {
-      imagesToCountForTag = imagesToCountForTag.filter(image => {
-        const lowerQuery = galleryStore.searchQuery.toLowerCase();
-        const name = getSearchableText(image.name);
-        const description = image.description ? getSearchableText(image.description) : '';
-        const tagsMatch = image.tags?.some(tagId => {
-          const tagObj = siteConfig.tags.find(t => t.id === tagId);
-          if (!tagObj) return false;
-          const tagName = getSearchableText(tagObj.name);
-          return tagName.includes(lowerQuery);
-        }) ?? false;
-        const artist = image.artist ? getSearchableText(image.artist) : '';
-
-        return name.includes(lowerQuery)
-               || description.includes(lowerQuery)
-               || artist.includes(lowerQuery)
-               || tagsMatch;
-      });
-    }
-
-    // 应用角色过滤
-    if (galleryStore.selectedCharacterId !== 'all') {
-      imagesToCountForTag = imagesToCountForTag.filter(
-        image => image.characters?.includes(galleryStore.selectedCharacterId),
-      );
-    }
-
-    // 应用普通标签过滤
-    if (galleryStore.selectedTag !== 'all') {
-      imagesToCountForTag = imagesToCountForTag.filter(
-        image => image.tags?.includes(galleryStore.selectedTag),
-      );
-    }
-
-    // 计算在当前过滤条件下，有多少个图像组会显示该标签
-    // 注意：在计算时要忽略当前标签本身的过滤逻辑，避免循环依赖
-    const count = imagesToCountForTag.filter(parentImage => {
-      // 使用与 app store 相同的逻辑：检查图像组中是否有有效的图像包含该标签
-      const validImages = getValidImagesInGroupForTag(parentImage, tag.id, tag.id);
-      return validImages.length > 0;
-    }).length;
-
-    counts[tag.id] = count;
-  }
-  return counts;
-});
-
 const visibleRestrictedTags = computed(() => {
   let restrictedTags = [...siteConfig.tags].filter(tag => tag.isRestricted);
 
@@ -298,7 +113,7 @@ const visibleRestrictedTags = computed(() => {
 
   // 过滤掉在当前筛选条件下没有图像的特殊标签
   restrictedTags = restrictedTags.filter(tag => {
-    const count = restrictedTagCounts.value[tag.id] ?? 0;
+    const count = galleryStore.restrictedTagCounts[tag.id] ?? 0;
     return count > 0;
   });
 
@@ -323,22 +138,6 @@ const isRestrictedTagsExpanded = ref(false);
 // 切换限制级标签列表的展开状态
 const toggleRestrictedTagsExpansion = (): void => {
   isRestrictedTagsExpanded.value = !isRestrictedTagsExpanded.value;
-};
-
-// 从I18nText或字符串中提取可搜索文本
-const getSearchableText = (text: any): string => {
-  if (typeof text === 'string') {
-    return text.toLowerCase();
-  }
-
-  // 确保是对象
-  if (!text || typeof text !== 'object') return '';
-
-  // 将所有语言版本组合成一个字符串
-  return Object.values(text)
-    .filter(value => typeof value === 'string')
-    .join(' ')
-    .toLowerCase();
 };
 
 const currentLanguage = computed(() => languageStore.currentLanguage);

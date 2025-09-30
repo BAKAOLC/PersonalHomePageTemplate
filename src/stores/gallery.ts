@@ -105,7 +105,7 @@ export const useGalleryStore = defineStore('gallery', () => {
     // 计算有效的图像组数量
     const validImageGroups: GroupImage[] = [];
     for (const parentImage of siteConfig.images) {
-      const validImages = getValidImagesInGroup(parentImage);
+      const validImages = getValidImagesInGroup(parentImage, false, true);
       const firstValidImage = validImages.shift();
       if (firstValidImage) {
         validImageGroups.push({
@@ -129,7 +129,7 @@ export const useGalleryStore = defineStore('gallery', () => {
 
   // 获取每个角色的匹配图像数量（支持图像组）
   const getCharacterMatchCount = (characterId: string): number => {
-    const validImageGroups = siteConfig.images.filter(getValidImagesInGroup);
+    const validImageGroups = siteConfig.images.filter(image => getValidImagesInGroup(image, true, false));
     if (characterId === 'all') {
       return validImageGroups.length;
     }
@@ -239,7 +239,11 @@ export const useGalleryStore = defineStore('gallery', () => {
   };
 
   // 检查图像是否通过过滤器
-  const doesImagePassFilter = (image: GroupImage | ImageBase): boolean => {
+  const doesImagePassFilter = (
+    image: GroupImage | ImageBase,
+    skipCharacterFilter = false,
+    skipTagFilter = false,
+  ): boolean => {
     if (!doesImageValid(image)) {
       return false;
     }
@@ -297,14 +301,14 @@ export const useGalleryStore = defineStore('gallery', () => {
     }
 
     // 应用角色过滤
-    if (selectedCharacterId.value !== 'all') {
+    if (selectedCharacterId.value !== 'all' && !skipCharacterFilter) {
       if (!image.characters?.includes(selectedCharacterId.value)) {
         return false;
       }
     }
 
     // 应用标签过滤
-    if (selectedTag.value !== 'all') {
+    if (selectedTag.value !== 'all' && !skipTagFilter) {
       if (!image.tags?.includes(selectedTag.value)) {
         return false;
       }
@@ -345,16 +349,20 @@ export const useGalleryStore = defineStore('gallery', () => {
   };
 
   // 获取图像组的所有有效图像（通过过滤的）
-  const getValidImagesInGroup = (parentImage: GroupImage): ImageBase[] => {
+  const getValidImagesInGroup = (
+    parentImage: GroupImage,
+    skipCharacterFilter = false,
+    skipTagFilter = false,
+  ): ImageBase[] => {
     const validImages: ImageBase[] = [];
 
-    if (doesImagePassFilter(parentImage)) {
+    if (doesImagePassFilter(parentImage, skipCharacterFilter, skipTagFilter)) {
       validImages.push(parentImage as ImageBase);
     }
     if (parentImage.childImages && parentImage.childImages.length > 0) {
       for (const childImage of parentImage.childImages) {
         const fullChildImage = getChildImageWithDefaults(parentImage, childImage);
-        if (doesImagePassFilter(fullChildImage)) {
+        if (doesImagePassFilter(fullChildImage, skipCharacterFilter, skipTagFilter)) {
           validImages.push(fullChildImage);
         }
       }

@@ -11,63 +11,195 @@ function characterProfilesConfigPlugin() {
   };
 
   /**
-   * 验证角色配置对象是否有效
+   * 验证I18nText字段
+   * @param {any} value - 要验证的值
+   * @param {string} fieldName - 字段名称
+   * @param {string} context - 上下文信息
+   * @param {boolean} required - 是否必需
+   * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
    */
-  function isValidCharacterProfileObject(obj) {
-    if (!obj || typeof obj !== 'object') return false;
+  function validateI18nText(value, fieldName, context, required = false) {
+    const errors = [];
+    const warnings = [];
 
-    // 必须有 id
-    if (!obj.id || typeof obj.id !== 'string') return false;
-
-    // 必须有 name
-    if (!obj.name || typeof obj.name !== 'object') return false;
-
-    // name 必须有至少一个语言版本
-    const hasValidName = Object.values(obj.name).some(value => 
-      typeof value === 'string' && value.trim().length > 0
-    );
-    if (!hasValidName) return false;
-
-    // 必须有 variants 数组
-    if (!Array.isArray(obj.variants) || obj.variants.length === 0) return false;
-
-    // 验证每个 variant
-    for (const variant of obj.variants) {
-      if (!variant.id || typeof variant.id !== 'string') return false;
-      if (!variant.name || typeof variant.name !== 'object') return false;
-      
-      // variant name 必须有至少一个语言版本
-      const hasValidVariantName = Object.values(variant.name).some(value => 
-        typeof value === 'string' && value.trim().length > 0
-      );
-      if (!hasValidVariantName) return false;
-
-      // images 必须是数组（可以为空）
-      if (variant.images && !Array.isArray(variant.images)) return false;
-
-      // infoCards 必须是数组（可以为空）
-      if (variant.infoCards && !Array.isArray(variant.infoCards)) return false;
+    if (!value) {
+      if (required) {
+        errors.push(`${context}: 必须有 ${fieldName} 字段`);
+      }
+      return { valid: errors.length === 0, errors, warnings };
     }
 
-    return true;
+    if (typeof value === 'string') {
+      // 字符串类型：通用于所有语言或i18n引用
+      if (value.trim().length === 0) {
+        errors.push(`${context}: ${fieldName} 字段不能是空字符串`);
+      }
+    } else if (typeof value === 'object' && value !== null) {
+      // 对象类型：各语言的键值对
+      const hasValidContent = Object.values(value).some(val => typeof val === 'string' && val.trim().length > 0);
+      if (!hasValidContent) {
+        errors.push(`${context}: ${fieldName} 对象必须包含至少一个有效的语言版本`);
+      }
+    } else {
+      errors.push(`${context}: ${fieldName} 字段必须是字符串或对象`);
+    }
+
+    return { valid: errors.length === 0, errors, warnings };
   }
 
   /**
-   * 处理角色配置对象，设置默认值
+   * 验证角色配置对象是否有效
    */
-  function processCharacterProfile(profile) {
-    const processed = { ...profile };
+  function isValidCharacterProfileObject(obj) {
+    if (!obj || typeof obj !== 'object') return { valid: false, errors: ['配置对象无效'], warnings: [] };
 
-    // 确保每个 variant 都有 images 和 infoCards 数组
-    if (processed.variants) {
-      processed.variants = processed.variants.map(variant => ({
-        ...variant,
-        images: variant.images || [],
-        infoCards: variant.infoCards || []
-      }));
+    const errors = [];
+    const warnings = [];
+
+    // 必须有 id
+    if (!obj.id || typeof obj.id !== 'string') {
+      errors.push('角色配置必须有字符串类型的 id 字段');
+      return { valid: false, errors, warnings };
     }
 
-    return processed;
+    // 验证 name 字段 (I18nText)
+    const nameValidation = validateI18nText(obj.name, 'name', `角色 ${obj.id}`, true);
+    errors.push(...nameValidation.errors);
+    warnings.push(...nameValidation.warnings);
+
+    // 必须有 variants 数组
+    if (!Array.isArray(obj.variants) || obj.variants.length === 0) {
+      errors.push(`角色 ${obj.id}: 必须有非空的 variants 数组`);
+      return { valid: false, errors, warnings };
+    }
+
+    // 验证信息卡片模板
+    const templateIds = new Set();
+    if (obj.infoCardTemplates) {
+      if (!Array.isArray(obj.infoCardTemplates)) {
+        errors.push(`角色 ${obj.id}: infoCardTemplates 必须是数组`);
+      } else {
+        for (const template of obj.infoCardTemplates) {
+          if (!template.id || typeof template.id !== 'string') {
+            errors.push(`角色 ${obj.id}: 模板必须有字符串类型的 id`);
+            continue;
+          }
+          if (templateIds.has(template.id)) {
+            errors.push(`角色 ${obj.id}: 发现重复的模板 ID: ${template.id}`);
+          }
+          templateIds.add(template.id);
+
+          // 验证模板字段
+          const titleValidation = validateI18nText(template.title, 'title', `角色 ${obj.id}, 模板 ${template.id}`, false);
+          warnings.push(...titleValidation.warnings);
+          errors.push(...titleValidation.errors);
+
+          const contentValidation = validateI18nText(template.content, 'content', `角色 ${obj.id}, 模板 ${template.id}`, false);
+          warnings.push(...contentValidation.warnings);
+          errors.push(...contentValidation.errors);
+        }
+      }
+    }
+
+    // 验证信息卡片
+    function validateInfoCards(cards, context) {
+      if (!cards) return;
+      if (!Array.isArray(cards)) {
+        errors.push(`${context}: infoCards 必须是数组`);
+        return;
+      }
+
+      const cardIds = new Set();
+      for (const card of cards) {
+        if (!card.id || typeof card.id !== 'string') {
+          errors.push(`${context}: 卡片必须有字符串类型的 id`);
+          continue;
+        }
+
+        if (cardIds.has(card.id)) {
+          errors.push(`${context}: 发现重复的卡片 ID: ${card.id}`);
+        }
+        cardIds.add(card.id);
+
+        // 验证 template 引用
+        if (card.template) {
+          if (typeof card.template !== 'string') {
+            errors.push(`${context}, 卡片 ${card.id}: template 必须是字符串`);
+          } else if (!templateIds.has(card.template)) {
+            errors.push(`${context}, 卡片 ${card.id}: 引用了不存在的模板: ${card.template}`);
+          }
+        }
+
+        // 验证 from 引用（这里只能简单检查类型，实际的引用有效性需要在运行时验证）
+        if (card.from && typeof card.from !== 'string') {
+          warnings.push(`${context}, 卡片 ${card.id}: from 应该是字符串`);
+        }
+
+        // 验证 variables
+        if (card.variables && typeof card.variables !== 'object') {
+          warnings.push(`${context}, 卡片 ${card.id}: variables 应该是对象`);
+        }
+
+        // 验证基本字段类型
+        const titleValidation = validateI18nText(card.title, 'title', `${context}, 卡片 ${card.id}`, false);
+        warnings.push(...titleValidation.warnings);
+        errors.push(...titleValidation.errors);
+
+        const contentValidation = validateI18nText(card.content, 'content', `${context}, 卡片 ${card.id}`, false);
+        warnings.push(...contentValidation.warnings);
+        errors.push(...contentValidation.errors);
+      }
+    }
+
+    // 验证角色级信息卡片
+    validateInfoCards(obj.infoCards, `角色 ${obj.id}`);
+
+    // 验证每个 variant
+    for (const variant of obj.variants) {
+      if (!variant.id || typeof variant.id !== 'string') {
+        errors.push(`角色 ${obj.id}: variant 必须有字符串类型的 id`);
+        continue;
+      }
+      // 验证变体名称
+      const variantNameValidation = validateI18nText(variant.name, 'name', `角色 ${obj.id}, 变体 ${variant.id}`, true);
+      errors.push(...variantNameValidation.errors);
+      warnings.push(...variantNameValidation.warnings);
+
+      // images 必须是数组（可以为空）
+      if (variant.images && !Array.isArray(variant.images)) {
+        errors.push(`角色 ${obj.id}, 变体 ${variant.id}: images 必须是数组`);
+        continue;
+      }
+
+      // 验证变体级信息卡片
+      validateInfoCards(variant.infoCards, `角色 ${obj.id}, 变体 ${variant.id}`);
+
+      // 验证每个 image
+      if (variant.images) {
+        for (const image of variant.images) {
+          if (!image.id || typeof image.id !== 'string') {
+            errors.push(`角色 ${obj.id}, 变体 ${variant.id}: image 必须有字符串类型的 id`);
+            continue;
+          }
+
+          // 验证图像级信息卡片
+          validateInfoCards(image.infoCards, `角色 ${obj.id}, 变体 ${variant.id}, 图像 ${image.id}`);
+        }
+      }
+    }
+
+    // 输出验证结果
+    if (errors.length > 0) {
+      console.error(`❌ [character-profiles-config] 角色 ${obj.id} 验证失败:`);
+      errors.forEach(error => console.error(`   ${error}`));
+    }
+    
+    if (warnings.length > 0) {
+      console.warn(`⚠️  [character-profiles-config] 角色 ${obj.id} 验证警告:`);
+      warnings.forEach(warning => console.warn(`   ${warning}`));
+    }
+
+    return { valid: errors.length === 0, errors, warnings };
   }
 
   /**
@@ -126,16 +258,19 @@ function characterProfilesConfigPlugin() {
           const data = JSON.parse(content);
 
           if (Array.isArray(data)) {
-            const validProfiles = data.filter(item => isValidCharacterProfileObject(item))
-              .map(item => processCharacterProfile(item));
+                        const validProfiles = data.filter(item => {
+              const validation = isValidCharacterProfileObject(item);
+              return validation.valid;
+            });
             if (validProfiles.length !== data.length) {
               console.warn(`⚠️  [character-profiles-config] ${fileName}.json 中有 ${data.length - validProfiles.length} 个无效角色配置对象被跳过`);
             }
             allCharacterProfiles = allCharacterProfiles.concat(validProfiles);
             hasChanges = true;
           } else if (typeof data === 'object' && data !== null) {
-            if (isValidCharacterProfileObject(data)) {
-              allCharacterProfiles.push(processCharacterProfile(data));
+            const validation = isValidCharacterProfileObject(data);
+            if (validation.valid) {
+              allCharacterProfiles.push(data);
               hasChanges = true;
             } else {
               console.warn(`⚠️  [character-profiles-config] 跳过 ${file}: 角色配置对象格式无效`);

@@ -39,7 +39,10 @@
               :aria-pressed="sortOrder === 'asc'"
               type="button"
             >
-              <i :class="getIconClass(sortOrder === 'asc' ? 'sort-alpha-down' : 'sort-alpha-up')" aria-hidden="true"></i>
+              <i
+                :class="getIconClass(sortOrder === 'asc' ? 'sort-alpha-down' : 'sort-alpha-up')"
+                aria-hidden="true"
+              ></i>
               <span class="sort-order-text">{{
                 $t(sortOrder === 'asc' ? 'articles.sortAsc' : 'articles.sortDesc')
               }}</span>
@@ -71,7 +74,11 @@
               >
                 <i :class="getIconClass('list-ol')" class="page-size-icon" aria-hidden="true"></i>
                 <span class="page-size-text">{{ displayPageSize }}</span>
-                <i class="arrow-icon" :class="[getIconClass('chevron-down'), { 'rotate-180': isPageSizeMenuOpen }]" aria-hidden="true"></i>
+                <i
+                  class="arrow-icon"
+                  :class="[getIconClass('chevron-down'), { 'rotate-180': isPageSizeMenuOpen }]"
+                  aria-hidden="true"
+                ></i>
               </button>
 
               <div
@@ -148,7 +155,13 @@
               ></i>
             </button>
             <Transition name="category-list">
-              <div v-if="isCategoriesExpanded" class="categories-list" id="categories-list" role="listbox" :aria-label="$t('articles.selectCategory')">
+              <div
+                v-if="isCategoriesExpanded"
+                class="categories-list"
+                id="categories-list"
+                role="listbox"
+                :aria-label="$t('articles.selectCategory')"
+              >
                 <!-- All 选项 -->
                 <button
                   class="category-button"
@@ -163,7 +176,12 @@
                     <i :class="getIconClass('th')" class="category-icon" aria-hidden="true"></i>
                     <span class="category-name">{{ $t('common.all') }}</span>
                   </div>
-                  <span class="category-count" :aria-label="$t('articles.articleCount', { count: searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount })">{{
+                  <span
+                    class="category-count"
+                    :aria-label="$t('articles.articleCount', {
+                      count: searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
+                    })"
+                  >{{
                     searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
                   }}</span>
                 </button>
@@ -181,13 +199,18 @@
                   }"
                   role="option"
                   :aria-selected="selectedCategory === String(categoryId)"
-                  :aria-label="`${getI18nText(category.name, currentLanguage)}, ${$t('articles.articleCount', { count: categoryCounts[String(categoryId)] ?? 0 })}`"
+                  :aria-label="`${getI18nText(category.name, currentLanguage)}, ${$t('articles.articleCount', {
+                    count: categoryCounts[String(categoryId)] ?? 0
+                  })}`"
                   type="button"
                 >
                   <div class="category-left">
                     <span class="category-name">{{ getI18nText(category.name, currentLanguage) }}</span>
                   </div>
-                  <span class="category-count" :aria-label="$t('articles.articleCount', { count: categoryCounts[String(categoryId)] ?? 0 })">{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
+                  <span
+                    class="category-count"
+                    :aria-label="$t('articles.articleCount', { count: categoryCounts[String(categoryId)] ?? 0 })"
+                  >{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
                 </button>
               </div>
             </Transition>
@@ -297,7 +320,11 @@
                 <h2 class="article-title">{{ getI18nText(article.title, currentLanguage) }}</h2>
 
                 <div class="article-meta">
-                  <time class="article-date" :datetime="article.date" :aria-label="$t('articles.publishedDate', { date: formatDate(article.date) })">
+                  <time
+                    class="article-date"
+                    :datetime="article.date"
+                    :aria-label="$t('articles.publishedDate', { date: formatDate(article.date) })"
+                  >
                     <i :class="getIconClass('calendar')" class="meta-icon" aria-hidden="true"></i>
                     {{ formatDate(article.date) }}
                   </time>
@@ -312,7 +339,9 @@
                         color: (articleCategories as any)[categoryId]?.color
                       }"
                       role="listitem"
-                      :aria-label="$t('articles.category', { name: getI18nText((articleCategories as any)[categoryId]?.name ?? categoryId, currentLanguage) })"
+                      :aria-label="$t('articles.category', {
+                        name: getI18nText((articleCategories as any)[categoryId]?.name ?? categoryId, currentLanguage)
+                      })"
                     >
                       {{
                         getI18nText(
@@ -342,7 +371,12 @@
           </div>
 
           <!-- 分页器 -->
-          <nav v-if="pagination.totalPages > 1" class="pagination" role="navigation" :aria-label="$t('articles.pagination')">
+          <nav
+            v-if="pagination.totalPages > 1"
+            class="pagination"
+            role="navigation"
+            :aria-label="$t('articles.pagination')"
+          >
             <button
               class="pagination-btn"
               :disabled="!pagination.hasPrev"
@@ -355,7 +389,10 @@
             </button>
 
             <div class="pagination-info">
-              <span :aria-label="$t('articles.currentPageInfo', { current: pagination.currentPage, total: pagination.totalPages })">
+              <span :aria-label="$t('articles.currentPageInfo', {
+                current: pagination.currentPage,
+                total: pagination.totalPages
+              })">
                 {{ $t('articles.page', { current: pagination.currentPage, total: pagination.totalPages }) }}
               </span>
 
@@ -397,7 +434,14 @@
     </div>
 
     <!-- 移动端全屏筛选弹窗 -->
-    <div v-if="isMobileSidebarOpen" class="mobile-filter-overlay" @click="closeMobileSidebar" role="dialog" :aria-modal="true" aria-labelledby="mobile-filter-title">
+    <div
+      v-if="isMobileSidebarOpen"
+      class="mobile-filter-overlay"
+      @click="closeMobileSidebar"
+      role="dialog"
+      :aria-modal="true"
+      aria-labelledby="mobile-filter-title"
+    >
       <div class="mobile-filter-content" @click.stop>
         <div class="mobile-filter-header">
           <h3 id="mobile-filter-title">{{ $t('articles.categories') }}</h3>

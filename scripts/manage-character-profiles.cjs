@@ -9,41 +9,188 @@ const CONFIG = {
 };
 
 /**
+ * 验证I18nText字段
+ * @param {any} value - 要验证的值
+ * @param {string} fieldName - 字段名称
+ * @param {string} context - 上下文信息
+ * @param {boolean} required - 是否必需
+ * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
+ */
+function validateI18nText(value, fieldName, context, required = false) {
+  const errors = [];
+  const warnings = [];
+
+  if (!value) {
+    if (required) {
+      errors.push(`${context}: 必须有 ${fieldName} 字段`);
+    }
+    return { valid: errors.length === 0, errors, warnings };
+  }
+
+  if (typeof value === 'string') {
+    // 字符串类型：通用于所有语言或i18n引用
+    if (value.trim().length === 0) {
+      errors.push(`${context}: ${fieldName} 字段不能是空字符串`);
+    }
+  } else if (typeof value === 'object' && value !== null) {
+    // 对象类型：各语言的键值对
+    const hasValidContent = Object.values(value).some(val => typeof val === 'string' && val.trim().length > 0);
+    if (!hasValidContent) {
+      errors.push(`${context}: ${fieldName} 对象必须包含至少一个有效的语言版本`);
+    }
+  } else {
+    errors.push(`${context}: ${fieldName} 字段必须是字符串或对象`);
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+/**
  * 验证角色配置对象是否有效
  */
 function isValidCharacterProfileObject(obj) {
   if (!obj || typeof obj !== 'object') return false;
 
+  const errors = [];
+  const warnings = [];
+
   // 必须有 id
-  if (!obj.id || typeof obj.id !== 'string') return false;
-
-  // 必须有 name
-  if (!obj.name || typeof obj.name !== 'object') return false;
-
-  // name 必须有至少一个语言版本
-  const hasValidName = Object.values(obj.name).some(value => typeof value === 'string' && value.trim().length > 0);
-  if (!hasValidName) return false;
-
-  // 必须有 variants 数组
-  if (!Array.isArray(obj.variants) || obj.variants.length === 0) return false;
-
-  // 验证每个 variant
-  for (const variant of obj.variants) {
-    if (!variant.id || typeof variant.id !== 'string') return false;
-    if (!variant.name || typeof variant.name !== 'object') return false;
-
-    // variant name 必须有至少一个语言版本
-    const hasValidVariantName = Object.values(variant.name).some(value => typeof value === 'string' && value.trim().length > 0);
-    if (!hasValidVariantName) return false;
-
-    // images 必须是数组（可以为空）
-    if (variant.images && !Array.isArray(variant.images)) return false;
-
-    // infoCards 必须是数组（可以为空）
-    if (variant.infoCards && !Array.isArray(variant.infoCards)) return false;
+  if (!obj.id || typeof obj.id !== 'string') {
+    errors.push('角色配置必须有字符串类型的 id 字段');
   }
 
-  return true;
+  // 验证 name 字段 (I18nText)
+  const nameValidation = validateI18nText(obj.name, 'name', `角色 ${obj.id ?? '未知'}`, true);
+  errors.push(...nameValidation.errors);
+  warnings.push(...nameValidation.warnings);
+
+  // 必须有 variants 数组
+  if (!Array.isArray(obj.variants) || obj.variants.length === 0) {
+    errors.push(`角色 ${obj.id ?? '未知'}: 必须有非空的 variants 数组`);
+  }
+
+  // 验证信息卡片模板
+  const templateIds = new Set();
+  if (obj.infoCardTemplates) {
+    if (!Array.isArray(obj.infoCardTemplates)) {
+      errors.push(`角色 ${obj.id}: infoCardTemplates 必须是数组`);
+    } else {
+      for (const template of obj.infoCardTemplates) {
+        if (!template.id || typeof template.id !== 'string') {
+          errors.push(`角色 ${obj.id}: 模板必须有字符串类型的 id`);
+          continue;
+        }
+        if (templateIds.has(template.id)) {
+          errors.push(`角色 ${obj.id}: 发现重复的模板 ID: ${template.id}`);
+        }
+        templateIds.add(template.id);
+
+        // 验证模板字段
+        const titleValidation = validateI18nText(template.title, 'title', `角色 ${obj.id}, 模板 ${template.id}`, false);
+        warnings.push(...titleValidation.warnings);
+        errors.push(...titleValidation.errors);
+
+        const contentValidation = validateI18nText(template.content, 'content', `角色 ${obj.id}, 模板 ${template.id}`, false);
+        warnings.push(...contentValidation.warnings);
+        errors.push(...contentValidation.errors);
+      }
+    }
+  }
+
+  // 验证信息卡片
+  function validateInfoCards(cards, context) {
+    if (!cards) return;
+    if (!Array.isArray(cards)) {
+      errors.push(`${context}: infoCards 必须是数组`);
+      return;
+    }
+
+    const cardIds = new Set();
+    for (const card of cards) {
+      if (!card.id || typeof card.id !== 'string') {
+        errors.push(`${context}: 卡片必须有字符串类型的 id`);
+        continue;
+      }
+
+      if (cardIds.has(card.id)) {
+        errors.push(`${context}: 发现重复的卡片 ID: ${card.id}`);
+      }
+      cardIds.add(card.id);
+
+      // 验证 template 引用
+      if (card.template) {
+        if (typeof card.template !== 'string') {
+          errors.push(`${context}, 卡片 ${card.id}: template 必须是字符串`);
+        } else if (!templateIds.has(card.template)) {
+          errors.push(`${context}, 卡片 ${card.id}: 引用了不存在的模板: ${card.template}`);
+        }
+      }
+
+      // 验证 variables
+      if (card.variables && typeof card.variables !== 'object') {
+        warnings.push(`${context}, 卡片 ${card.id}: variables 应该是对象`);
+      }
+
+      // 验证基本字段类型
+      const titleValidation = validateI18nText(card.title, 'title', `${context}, 卡片 ${card.id}`, false);
+      warnings.push(...titleValidation.warnings);
+      errors.push(...titleValidation.errors);
+
+      const contentValidation = validateI18nText(card.content, 'content', `${context}, 卡片 ${card.id}`, false);
+      warnings.push(...contentValidation.warnings);
+      errors.push(...contentValidation.errors);
+    }
+  }
+
+  // 验证角色级信息卡片
+  validateInfoCards(obj.infoCards, `角色 ${obj.id}`);
+
+  // 验证每个 variant
+  if (Array.isArray(obj.variants)) {
+    for (const variant of obj.variants) {
+      if (!variant.id || typeof variant.id !== 'string') {
+        errors.push(`角色 ${obj.id ?? '未知'}: variant 必须有字符串类型的 id`);
+      } else {
+        // 验证变体名称
+        const variantNameValidation = validateI18nText(variant.name, 'name', `角色 ${obj.id ?? '未知'}, 变体 ${variant.id}`, true);
+        errors.push(...variantNameValidation.errors);
+        warnings.push(...variantNameValidation.warnings);
+
+        // images 必须是数组（可以为空）
+        if (variant.images && !Array.isArray(variant.images)) {
+          errors.push(`角色 ${obj.id ?? '未知'}, 变体 ${variant.id}: images 必须是数组`);
+        }
+
+        // 验证变体级信息卡片
+        validateInfoCards(variant.infoCards, `角色 ${obj.id ?? '未知'}, 变体 ${variant.id}`);
+
+        // 验证每个 image
+        if (variant.images) {
+          for (const image of variant.images) {
+            if (!image.id || typeof image.id !== 'string') {
+              errors.push(`角色 ${obj.id ?? '未知'}, 变体 ${variant.id}: image 必须有字符串类型的 id`);
+            } else {
+              // 验证图像级信息卡片
+              validateInfoCards(image.infoCards, `角色 ${obj.id ?? '未知'}, 变体 ${variant.id}, 图像 ${image.id}`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 输出详细的验证结果
+  if (errors.length > 0) {
+    console.error(`❌ 角色 ${obj.id} 验证失败:`);
+    errors.forEach(error => console.error(`   ${error}`));
+  }
+
+  if (warnings.length > 0) {
+    console.warn(`⚠️  角色 ${obj.id} 验证警告:`);
+    warnings.forEach(warning => console.warn(`   ${warning}`));
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
 }
 
 /**
@@ -97,7 +244,10 @@ function mergeCharacterProfiles() {
 
         if (Array.isArray(data)) {
           // 验证数组中的每个对象
-          const validProfiles = data.filter(item => isValidCharacterProfileObject(item));
+          const validProfiles = data.filter(item => {
+            const validation = isValidCharacterProfileObject(item);
+            return validation.valid;
+          });
           if (validProfiles.length !== data.length) {
             console.warn(`⚠️  ${fileName}.json 中有 ${data.length - validProfiles.length} 个无效角色配置对象被跳过`);
           }
@@ -106,7 +256,8 @@ function mergeCharacterProfiles() {
           totalCount += validProfiles.length;
         } else if (typeof data === 'object' && data !== null) {
           // 如果是单个对象，验证并包装成数组
-          if (isValidCharacterProfileObject(data)) {
+          const validation = isValidCharacterProfileObject(data);
+          if (validation.valid) {
             allCharacterProfiles.push(data);
             console.log(`✅ 已合并 ${fileName}.json (1 个角色)`);
             totalCount += 1;

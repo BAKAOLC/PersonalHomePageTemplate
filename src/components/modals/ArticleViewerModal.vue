@@ -14,7 +14,11 @@
         <div class="article-header-info">
           <h1 id="article-title" class="article-title">{{ getI18nText(article.title, currentLanguage) }}</h1>
           <div class="article-meta">
-            <time class="article-date" :datetime="article.date" :aria-label="$t('articles.publishedDate', { date: formatDate(article.date) })">
+            <time
+              class="article-date"
+              :datetime="article.date"
+              :aria-label="$t('articles.publishedDate', { date: formatDate(article.date) })"
+            >
               <i :class="getIconClass('calendar')" class="meta-icon" aria-hidden="true"></i>
               {{ formatDate(article.date) }}
             </time>
@@ -78,7 +82,12 @@
       </article>
 
       <!-- 上一篇、下一篇按钮 -->
-      <nav v-if="showNavigation && (prevArticle || nextArticle)" class="article-navigation" role="navigation" :aria-label="$t('articles.articleNavigation')">
+      <nav
+        v-if="showNavigation && (prevArticle || nextArticle)"
+        class="article-navigation"
+        role="navigation"
+        :aria-label="$t('articles.articleNavigation')"
+      >
         <button
           v-if="prevArticle"
           class="nav-button prev-button"
@@ -131,6 +140,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n';
 
 import GiscusComments from '@/components/GiscusComments.vue';
+import { useEventManager } from '@/composables/useEventManager';
 import { useNotificationManager } from '@/composables/useNotificationManager';
 import { useScreenManager } from '@/composables/useScreenManager';
 import articleCategoriesConfig from '@/config/articles-categories.json';
@@ -175,6 +185,7 @@ const emit = defineEmits<Emits>();
 
 const languageStore = useLanguageStore();
 const notificationManager = useNotificationManager();
+const eventManager = useEventManager();
 const { t: $t } = useI18n();
 const { isMobile } = useScreenManager();
 
@@ -321,7 +332,7 @@ const handleKeydown = (event: KeyboardEvent): void => {
 onMounted(() => {
   show();
   // 添加键盘事件监听
-  document.addEventListener('keydown', handleKeydown);
+  eventManager.addEventListener('keydown', handleKeydown, undefined, document);
   // 设置焦点到模态框
   if (viewerContainer.value) {
     viewerContainer.value.focus();
@@ -329,8 +340,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  // 移除键盘事件监听
-  document.removeEventListener('keydown', handleKeydown);
   // 恢复背景滚动
   document.body.style.overflow = '';
 });

@@ -47,10 +47,22 @@
       </div>
       <!-- 加载进度条 - 只有在显示加载器且启用进度显示时才显示 -->
       <div v-if="showProgress && loadingProgress < 100 && showLoader" class="progress-container">
-        <div class="progress-bar" role="progressbar" :aria-valuenow="Math.round(loadingProgress)" aria-valuemin="0" aria-valuemax="100" :aria-label="$t('common.loadingProgress', { progress: Math.round(loadingProgress) })">
+        <div
+          class="progress-bar"
+          role="progressbar"
+          :aria-valuenow="Math.round(loadingProgress)"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-label="$t('common.loadingProgress', { progress: Math.round(loadingProgress) })"
+        >
           <div class="progress-fill" :style="{ width: `${loadingProgress}%` }"></div>
         </div>
-        <div class="progress-text" :aria-label="$t('common.loadingProgress', { progress: Math.round(loadingProgress) })">{{ Math.round(loadingProgress) }}%</div>
+        <div
+          class="progress-text"
+          :aria-label="$t('common.loadingProgress', { progress: Math.round(loadingProgress) })"
+        >
+          {{ Math.round(loadingProgress) }}%
+        </div>
       </div>
     </div>
   </div>

@@ -11,9 +11,10 @@ import type { I18nReference, I18nText } from '@/types';
  * 解析参数中的i18n引用
  * @param param - 参数值
  * @param t - i18n翻译函数
+ * @param params - 外层传入的参数
  * @returns 解析后的参数值
  */
-const resolveParamI18nReference = (param: string, t: any, params?: Record<string, any>): string => {
+const resolveParamI18nReference = (param: string, t: any, params?: Record<string, any> | any[]): string => {
   if (param.startsWith('$t:')) {
     return resolveI18nReference(param, t, params);
   }
@@ -24,10 +25,10 @@ const resolveParamI18nReference = (param: string, t: any, params?: Record<string
  * 解析i18n引用字符串，支持参数列表和键值对参数
  * @param value - 可能包含i18n引用的字符串
  * @param t - i18n翻译函数
- * @param params - 可选的参数对象，用于参数替换
+ * @param params - 可选的参数对象或数组，用于参数替换
  * @returns 解析后的字符串
  */
-const resolveI18nReference = (value: string, t: any, params?: Record<string, any>): string => {
+const resolveI18nReference = (value: string, t: any, params?: Record<string, any> | any[]): string => {
   if (value.startsWith('$t:')) {
     const content = value.substring(3);
 
@@ -78,8 +79,14 @@ const resolveI18nReference = (value: string, t: any, params?: Record<string, any
               Object.entries(parsedParams).map(([k, v]) => [k, resolveParamI18nReference(v, t, params)]),
             );
             // 合并传入的参数和解析的参数
-            const finalParams = { ...params, ...resolvedParams };
-            return t(key, finalParams);
+            if (Array.isArray(params)) {
+              // 如果外层传入的是数组参数，直接使用解析的参数对象
+              return t(key, resolvedParams);
+            } else {
+              // 合并对象参数
+              const finalParams = { ...params, ...resolvedParams };
+              return t(key, finalParams);
+            }
           } else {
             // 解析数组参数
             const parsedParams = parseParameterArray(paramsString).map(param => {
@@ -148,55 +155,102 @@ const parseKeyValueParams = (paramsString: string): Record<string, string> => {
 };
 
 /**
+ * 处理文本和参数替换，支持i18n引用和普通字符串的参数替换
+ * @param text - 文本字符串
+ * @param t - i18n翻译函数
+ * @param params - 参数对象或数组
+ * @returns 处理后的文本
+ */
+const processTextWithParams = (text: string, t: any, params?: Record<string, any> | any[]): string => {
+  // 如果是i18n引用，使用原有逻辑
+  if (text.startsWith('$t:')) {
+    return resolveI18nReference(text, t, params);
+  }
+
+  // 如果没有参数，直接返回原文本
+  if (!params) {
+    return text;
+  }
+
+  // 处理数组参数 - 替换 {0}, {1}, {2} 等占位符
+  if (Array.isArray(params)) {
+    let result = text;
+    params.forEach((value, index) => {
+      const placeholder = `{${index}}`;
+      result = result.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), String(value));
+    });
+    return result;
+  }
+
+  // 处理对象参数 - 替换 {key} 格式的占位符
+  if (typeof params === 'object' && Object.keys(params).length > 0) {
+    let result = text;
+    for (const [key, value] of Object.entries(params)) {
+      const placeholder = `{${key}}`;
+      result = result.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), String(value));
+    }
+    return result;
+  }
+
+  // 没有有效参数，直接返回原文本
+  return text;
+};
+
+/**
  * 获取多语言文本，支持fallback，也支持直接传入字符串和i18n引用
  * @param text - 多语言文本对象、字符串或i18n引用
  * @param currentLang - 当前语言
- * @param params - 可选的参数对象，用于i18n文本中的参数替换
+ * @param params - 可选的参数对象或数组，用于i18n文本中的参数替换
  * @returns 对应语言的文本
+ *
+ * @example
+ * // 对象参数示例
+ * const text1 = { en: "Hello {name}!", zh: "你好 {name}！" };
+ * getI18nText(text1, "en", { name: "John" }); // "Hello John!"
+ *
+ * // 数组参数示例
+ * const text2 = { en: "Hello {0} {1}!", zh: "你好 {0} {1}！" };
+ * getI18nText(text2, "en", ["John", "Doe"]); // "Hello John Doe!"
+ *
+ * // i18n引用示例
+ * getI18nText("$t:greeting{name:'John'}", "en"); // 查找i18n中的greeting键
  */
 export const getI18nText = (
   text: I18nText | I18nReference | undefined,
   currentLang: string,
-  params?: Record<string, any>,
+  params?: Record<string, any> | any[],
 ): string => {
   const { t } = i18n.global as any;
 
-  // 如果是字符串，检查是否为i18n引用
-  if (typeof text === 'string') {
-    // 检查是否为i18n引用格式：$t:key.path
-    if (text.startsWith('$t:')) {
-      return resolveI18nReference(text, t, params);
-    }
-    // 普通字符串直接返回
-    return text;
+  // 如果是 undefined 或 null，返回空字符串
+  if (!text || (typeof text !== 'string' && typeof text !== 'object')) {
+    return '';
   }
 
-  // 如果是 undefined 或 null，返回空字符串
-  if (!text || typeof text !== 'object') {
-    return '';
+  if (typeof text === 'string') {
+    return processTextWithParams(text, t, params);
   }
 
   // 优先返回当前语言的文本
   if (text[currentLang]) {
-    return resolveI18nReference(text[currentLang], t, params);
+    return processTextWithParams(text[currentLang], t, params);
   }
-
   // 尝试fallback语言
   const fallbackLang = getFallbackLanguage();
   if (text[fallbackLang]) {
-    return resolveI18nReference(text[fallbackLang], t, params);
+    return processTextWithParams(text[fallbackLang], t, params);
   }
 
   // 尝试默认语言
   const defaultLang = getDefaultLanguage();
   if (text[defaultLang]) {
-    return resolveI18nReference(text[defaultLang], t, params);
+    return processTextWithParams(text[defaultLang], t, params);
   }
 
   // 返回第一个可用的文本
   const availableKeys = Object.keys(text);
   if (availableKeys.length > 0) {
-    return resolveI18nReference(text[availableKeys[0]], t, params);
+    return processTextWithParams(text[availableKeys[0]], t, params);
   }
 
   return '';

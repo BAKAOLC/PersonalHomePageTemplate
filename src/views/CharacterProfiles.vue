@@ -377,7 +377,7 @@ onMounted(() => {
 .info-cards {
   @apply space-y-3 h-full overflow-y-auto;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e0 #f7fafc;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 
 .info-cards::-webkit-scrollbar {
@@ -385,15 +385,24 @@ onMounted(() => {
 }
 
 .info-cards::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-700 rounded;
+  background: transparent;
 }
 
 .info-cards::-webkit-scrollbar-thumb {
-  @apply bg-gray-400 dark:bg-gray-500 rounded;
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
 }
 
 .info-cards::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500 dark:bg-gray-400;
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.dark .info-cards::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+.dark .info-cards::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.7);
 }
 
 .info-card {
@@ -473,7 +482,7 @@ onMounted(() => {
 .image-list {
   @apply flex flex-col gap-2 h-full overflow-y-auto;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e0 #f7fafc;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
   /* 为键盘选择器提供额外空间 */
   padding: 0.25rem;
   /* 确保容器不会裁剪子元素的边框 */
@@ -485,15 +494,24 @@ onMounted(() => {
 }
 
 .image-list::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-700 rounded;
+  background: transparent;
 }
 
 .image-list::-webkit-scrollbar-thumb {
-  @apply bg-gray-400 dark:bg-gray-500 rounded;
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
 }
 
 .image-list::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500 dark:bg-gray-400;
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.dark .image-list::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+.dark .image-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.7);
 }
 
 .image-item {
@@ -604,7 +622,7 @@ onMounted(() => {
 .mobile-image-list-container {
   @apply flex gap-2 overflow-x-auto;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e0 #f7fafc;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
   padding: 0.25rem;
 }
 
@@ -613,15 +631,24 @@ onMounted(() => {
 }
 
 .mobile-image-list-container::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-700 rounded;
+  background: transparent;
 }
 
 .mobile-image-list-container::-webkit-scrollbar-thumb {
-  @apply bg-gray-400 dark:bg-gray-500 rounded;
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
 }
 
 .mobile-image-list-container::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500 dark:bg-gray-400;
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.dark .mobile-image-list-container::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+.dark .mobile-image-list-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.7);
 }
 
 .mobile-image-item {
@@ -812,7 +839,7 @@ onMounted(() => {
   .image-list {
     @apply flex flex-col gap-3 h-full overflow-y-auto;
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e0 #f7fafc;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
     /* 为桌面端键盘选择器提供额外空间 */
     padding: 0.25rem;
     overflow: visible;
@@ -823,15 +850,24 @@ onMounted(() => {
   }
 
   .image-list::-webkit-scrollbar-track {
-    @apply bg-gray-100 dark:bg-gray-700 rounded;
+    background: transparent;
   }
 
   .image-list::-webkit-scrollbar-thumb {
-    @apply bg-gray-400 dark:bg-gray-500 rounded;
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
   }
 
   .image-list::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-500 dark:bg-gray-400;
+    background: rgba(156, 163, 175, 0.7);
+  }
+
+  .dark .image-list::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+  }
+
+  .dark .image-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(75, 85, 99, 0.7);
   }
 
   .image-item {

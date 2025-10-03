@@ -125,8 +125,14 @@ const mainImageStartedLoading = ref(false);
 const loadingProgress = ref(0);
 const progressImageUrl = ref<string | null>(null);
 const useProgressLoading = ref(false);
-// 添加请求ID来处理竞态条件
+// 统一的请求ID来处理竞态条件
+// 当快速切换src时，只有最新的请求应该更新UI状态
 const currentRequestId = ref<number>(0);
+
+// 检查请求是否仍然有效的辅助函数
+const isCurrentRequest = (requestId: number): boolean => {
+  return requestId === currentRequestId.value && requestId !== 0;
+};
 
 // 转换优先级字符串到枚举
 const getPriority = (): LoadPriority => {
@@ -147,10 +153,13 @@ const getThumbnailPriority = (): LoadPriority => {
 };
 
 // 使用缓存服务加载图片并跟踪进度
-const loadImageWithProgress = (url: string, isThumbnail: boolean = false): Promise<string> => {
+const loadImageWithProgress = (url: string, isThumbnail: boolean = false, requestId: number): Promise<string> => {
   const priority = isThumbnail ? getThumbnailPriority() : getPriority();
   return getImageCache().loadImage(url, priority, (progress: number) => {
-    loadingProgress.value = progress;
+    // 只有当前请求才更新进度
+    if (isCurrentRequest(requestId)) {
+      loadingProgress.value = progress;
+    }
   }, isThumbnail);
 };
 
@@ -174,6 +183,9 @@ const displayImageSrc = computed(() => {
 });
 
 const onThumbnailLoad = (): void => {
+  // 检查是否为当前请求的缩略图
+  if (!isCurrentRequest(currentRequestId.value)) return;
+
   thumbnailLoaded.value = true;
   showThumbnail.value = true;
 
@@ -182,13 +194,20 @@ const onThumbnailLoad = (): void => {
     mainImageStartedLoading.value = true;
     // 对于高优先级图片，减少延迟时间
     const delay = props.priority === 'high' ? 50 : props.delayMainImage;
+    const requestId = currentRequestId.value; // 捕获当前请求ID
     setTimeout(() => {
-      startMainImageLoading();
+      // 确保仍然是当前请求
+      if (isCurrentRequest(requestId)) {
+        startMainImageLoading();
+      }
     }, delay);
   }
 };
 
 const onThumbnailError = (): void => {
+  // 检查是否为当前请求
+  if (!isCurrentRequest(currentRequestId.value)) return;
+
   console.warn('Thumbnail loading failed', preloadThumbnailSrc.value);
   // 如果缩略图加载失败，立即开始加载主图
   if (!mainImageStartedLoading.value) {
@@ -209,16 +228,16 @@ const startMainImageLoading = (): void => {
   if (useProgressLoading.value) {
     // 使用带进度的加载
     const isThumbnailLoading = props.displayType !== 'original';
-    loadImageWithProgress(displayImageSrc.value, isThumbnailLoading)
+    loadImageWithProgress(displayImageSrc.value, isThumbnailLoading, requestId)
       .then((objectUrl) => {
         // 检查请求是否仍然有效（防止竞态条件）
-        if (requestId === currentRequestId.value) {
+        if (isCurrentRequest(requestId)) {
           progressImageUrl.value = objectUrl;
         }
       })
       .catch((error) => {
         // 检查请求是否仍然有效（防止竞态条件）
-        if (requestId === currentRequestId.value) {
+        if (isCurrentRequest(requestId)) {
           console.warn('Progress loading failed, fallback to normal loading', error);
           useProgressLoading.value = false;
           shouldShowMainImage.value = true;
@@ -230,14 +249,8 @@ const startMainImageLoading = (): void => {
   }
 };
 
-// 存储当前有效的请求ID，用于在事件处理中验证
-const activeRequestId = ref<number>(0);
-
 const onImageLoad = (): void => {
-  // 检查请求ID是否仍然有效（防止竞态条件）
-  if (activeRequestId.value !== currentRequestId.value) {
-    return;
-  }
+  if (!isCurrentRequest(currentRequestId.value)) return;
 
   imageLoaded.value = true;
   isLoading.value = false;
@@ -247,18 +260,19 @@ const onImageLoad = (): void => {
   const transitions = AnimationDurations.getProgressiveImageTransitions();
   const fadeOutDuration = transitions.thumbnailFade;
   const waitTime = fadeOutDuration + 50;
+  const requestId = currentRequestId.value; // 捕获当前请求ID
   setTimeout(() => {
-    thumbnailHidden.value = true;
+    // 确保仍然是当前请求
+    if (isCurrentRequest(requestId)) {
+      thumbnailHidden.value = true;
+    }
   }, waitTime); // 如果没有动画则等待50ms，有动画则等待动画时长+50ms
 
   emit('load');
 };
 
 const onProgressImageLoad = (): void => {
-  // 检查请求ID是否仍然有效（防止竞态条件）
-  if (activeRequestId.value !== currentRequestId.value) {
-    return;
-  }
+  if (!isCurrentRequest(currentRequestId.value)) return;
 
   imageLoaded.value = true;
   isLoading.value = false;
@@ -267,8 +281,12 @@ const onProgressImageLoad = (): void => {
   const transitions = AnimationDurations.getProgressiveImageTransitions();
   const fadeOutDuration = transitions.thumbnailFade;
   const waitTime = fadeOutDuration + 50;
+  const requestId = currentRequestId.value; // 捕获当前请求ID
   setTimeout(() => {
-    thumbnailHidden.value = true;
+    // 确保仍然是当前请求
+    if (isCurrentRequest(requestId)) {
+      thumbnailHidden.value = true;
+    }
   }, waitTime); // 如果没有动画则等待50ms，有动画则等待动画时长+50ms
 
   emit('load');
@@ -284,8 +302,6 @@ watch(() => props.src, (newSrc) => {
   if (newSrc) {
     // 递增请求ID来标识新的加载请求，防止竞态条件
     currentRequestId.value += 1;
-    // 更新当前活跃的请求ID
-    activeRequestId.value = currentRequestId.value;
 
     // 不取消之前图片的加载，让它们在后台继续加载到缓存中
     // 这样用户切换回来时可以立即显示
@@ -311,20 +327,28 @@ watch(() => props.src, (newSrc) => {
     const cachedImage = getImageCache().getCachedImage(newSrc);
     if (cachedImage && cachedImage.loaded && !cachedImage.error) {
       // 如果图片已经缓存且加载完成，直接使用
+      const requestId = currentRequestId.value; // 捕获当前请求ID
+
       if (props.showProgress && props.displayType === 'original' && props.showLoader) {
         useProgressLoading.value = true;
         progressImageUrl.value = cachedImage.objectUrl;
         loadingProgress.value = 100;
         // 稍微延迟一下让用户看到已完成的状态
         setTimeout(() => {
-          imageLoaded.value = true;
-          isLoading.value = false;
+          // 确保仍然是当前请求
+          if (isCurrentRequest(requestId)) {
+            imageLoaded.value = true;
+            isLoading.value = false;
+          }
         }, 50);
       } else {
         shouldShowMainImage.value = true;
         setTimeout(() => {
-          imageLoaded.value = true;
-          isLoading.value = false;
+          // 确保仍然是当前请求
+          if (isCurrentRequest(requestId)) {
+            imageLoaded.value = true;
+            isLoading.value = false;
+          }
         }, 50);
       }
       return;
@@ -339,8 +363,12 @@ watch(() => props.src, (newSrc) => {
       mainImageStartedLoading.value = true;
       // 对于高优先级图片，立即开始加载
       const delay = props.priority === 'high' ? 0 : 100;
+      const requestId = currentRequestId.value; // 捕获当前请求ID
       setTimeout(() => {
-        startMainImageLoading();
+        // 确保仍然是当前请求
+        if (isCurrentRequest(requestId)) {
+          startMainImageLoading();
+        }
       }, delay);
     }
   }

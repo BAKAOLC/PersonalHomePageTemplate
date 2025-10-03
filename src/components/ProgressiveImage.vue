@@ -24,7 +24,7 @@
       :class="[imageClass, { 'fade-in': imageLoaded }]"
       draggable="false"
       role="img"
-      @load="onImageLoad($event)"
+      @load="onImageLoad"
       @error="onImageError"
     />
 
@@ -36,7 +36,7 @@
       :class="[imageClass, { 'fade-in': imageLoaded }]"
       draggable="false"
       role="img"
-      @load="onProgressImageLoad($event)"
+      @load="onProgressImageLoad"
       @error="onImageError"
     />
 
@@ -230,11 +230,12 @@ const startMainImageLoading = (): void => {
   }
 };
 
-const onImageLoad = (event?: Event): void => {
-  // 获取图片元素的src属性来检查是否是当前请求的图片
-  const imgElement = event?.target as HTMLImageElement;
-  if (imgElement && imgElement.src !== displayImageSrc.value) {
-    // 如果不是当前应该显示的图片，忽略这个加载事件
+// 存储当前有效的请求ID，用于在事件处理中验证
+const activeRequestId = ref<number>(0);
+
+const onImageLoad = (): void => {
+  // 检查请求ID是否仍然有效（防止竞态条件）
+  if (activeRequestId.value !== currentRequestId.value) {
     return;
   }
 
@@ -253,11 +254,9 @@ const onImageLoad = (event?: Event): void => {
   emit('load');
 };
 
-const onProgressImageLoad = (event?: Event): void => {
-  // 获取图片元素的src属性来检查是否是当前请求的图片
-  const imgElement = event?.target as HTMLImageElement;
-  if (imgElement && progressImageUrl.value && imgElement.src !== progressImageUrl.value) {
-    // 如果不是当前应该显示的进度图片，忽略这个加载事件
+const onProgressImageLoad = (): void => {
+  // 检查请求ID是否仍然有效（防止竞态条件）
+  if (activeRequestId.value !== currentRequestId.value) {
     return;
   }
 
@@ -285,6 +284,8 @@ watch(() => props.src, (newSrc) => {
   if (newSrc) {
     // 递增请求ID来标识新的加载请求，防止竞态条件
     currentRequestId.value += 1;
+    // 更新当前活跃的请求ID
+    activeRequestId.value = currentRequestId.value;
 
     // 不取消之前图片的加载，让它们在后台继续加载到缓存中
     // 这样用户切换回来时可以立即显示

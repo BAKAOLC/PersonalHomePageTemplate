@@ -147,6 +147,12 @@ const modalManager = useModalManager();
 // 获取当前语言
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
+// 响应式数据
+const characterProfiles = ref<CharacterProfile[]>(characterProfilesData);
+const selectedCharacter = ref<CharacterProfile | null>(null);
+const selectedVariant = ref<CharacterVariant | null>(null);
+const selectedImage = ref<CharacterVariantImage | null>(null);
+
 // 计算显示的信息卡片（使用新的解析器）
 const displayInfoCards = computed(() => {
   if (!selectedCharacter.value || !selectedVariant.value) {
@@ -171,12 +177,6 @@ watch(displayInfoCards, () => {
     }
   });
 });
-
-// 响应式数据
-const characterProfiles = ref<CharacterProfile[]>(characterProfilesData);
-const selectedCharacter = ref<CharacterProfile | null>(null);
-const selectedVariant = ref<CharacterVariant | null>(null);
-const selectedImage = ref<CharacterVariantImage | null>(null);
 
 // 选择角色
 const selectCharacter = (character: CharacterProfile): void => {

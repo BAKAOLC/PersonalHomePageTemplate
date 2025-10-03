@@ -125,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import ProgressiveImage from '@/components/ProgressiveImage.vue';
@@ -160,6 +160,16 @@ const displayInfoCards = computed(() => {
     selectedVariant.value.id,
     selectedImage.value?.id,
   );
+});
+
+// 监听卡片更新，自动滚动到顶部
+watch(displayInfoCards, () => {
+  nextTick(() => {
+    const infoCards = document.querySelector('.info-cards');
+    if (infoCards) {
+      infoCards.scrollTop = 0;
+    }
+  });
 });
 
 // 响应式数据

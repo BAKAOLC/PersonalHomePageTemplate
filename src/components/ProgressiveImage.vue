@@ -24,7 +24,7 @@
       :class="[imageClass, { 'fade-in': imageLoaded }]"
       draggable="false"
       role="img"
-      @load="onImageLoad"
+      @load="onImageLoad($event)"
       @error="onImageError"
     />
 
@@ -36,7 +36,7 @@
       :class="[imageClass, { 'fade-in': imageLoaded }]"
       draggable="false"
       role="img"
-      @load="onProgressImageLoad"
+      @load="onProgressImageLoad($event)"
       @error="onImageError"
     />
 
@@ -125,6 +125,8 @@ const mainImageStartedLoading = ref(false);
 const loadingProgress = ref(0);
 const progressImageUrl = ref<string | null>(null);
 const useProgressLoading = ref(false);
+// 添加请求ID来处理竞态条件
+const currentRequestId = ref<number>(0);
 
 // 转换优先级字符串到枚举
 const getPriority = (): LoadPriority => {
@@ -198,6 +200,9 @@ const onThumbnailError = (): void => {
 const startMainImageLoading = (): void => {
   if (!displayImageSrc.value) return;
 
+  // 获取当前请求ID，用于防止竞态条件
+  const requestId = currentRequestId.value;
+
   // 决定是否使用进度加载：需要同时满足显示进度、是原始图片、且显示加载器
   useProgressLoading.value = props.showProgress && props.displayType === 'original' && props.showLoader;
 
@@ -206,12 +211,18 @@ const startMainImageLoading = (): void => {
     const isThumbnailLoading = props.displayType !== 'original';
     loadImageWithProgress(displayImageSrc.value, isThumbnailLoading)
       .then((objectUrl) => {
-        progressImageUrl.value = objectUrl;
+        // 检查请求是否仍然有效（防止竞态条件）
+        if (requestId === currentRequestId.value) {
+          progressImageUrl.value = objectUrl;
+        }
       })
       .catch((error) => {
-        console.warn('Progress loading failed, fallback to normal loading', error);
-        useProgressLoading.value = false;
-        shouldShowMainImage.value = true;
+        // 检查请求是否仍然有效（防止竞态条件）
+        if (requestId === currentRequestId.value) {
+          console.warn('Progress loading failed, fallback to normal loading', error);
+          useProgressLoading.value = false;
+          shouldShowMainImage.value = true;
+        }
       });
   } else {
     // 使用普通加载
@@ -219,7 +230,14 @@ const startMainImageLoading = (): void => {
   }
 };
 
-const onImageLoad = (): void => {
+const onImageLoad = (event?: Event): void => {
+  // 获取图片元素的src属性来检查是否是当前请求的图片
+  const imgElement = event?.target as HTMLImageElement;
+  if (imgElement && imgElement.src !== displayImageSrc.value) {
+    // 如果不是当前应该显示的图片，忽略这个加载事件
+    return;
+  }
+
   imageLoaded.value = true;
   isLoading.value = false;
 
@@ -235,7 +253,14 @@ const onImageLoad = (): void => {
   emit('load');
 };
 
-const onProgressImageLoad = (): void => {
+const onProgressImageLoad = (event?: Event): void => {
+  // 获取图片元素的src属性来检查是否是当前请求的图片
+  const imgElement = event?.target as HTMLImageElement;
+  if (imgElement && progressImageUrl.value && imgElement.src !== progressImageUrl.value) {
+    // 如果不是当前应该显示的进度图片，忽略这个加载事件
+    return;
+  }
+
   imageLoaded.value = true;
   isLoading.value = false;
 
@@ -258,6 +283,9 @@ const onImageError = (): void => {
 // 监听src变化，重置状态
 watch(() => props.src, (newSrc) => {
   if (newSrc) {
+    // 递增请求ID来标识新的加载请求，防止竞态条件
+    currentRequestId.value += 1;
+
     // 不取消之前图片的加载，让它们在后台继续加载到缓存中
     // 这样用户切换回来时可以立即显示
 

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 /**
  * Vite 插件：自动合并文章配置文件
@@ -8,7 +9,63 @@ function articlesConfigPlugin() {
   const CONFIG = {
     articlesDir: path.resolve(process.cwd(), 'src/config/articles'),
     outputFile: path.resolve(process.cwd(), 'src/config/articles.json'),
+    cacheFile: path.resolve(process.cwd(), '.articles-cache.json'),
   };
+
+  /**
+   * 计算文件的哈希值
+   * @param {string} filePath - 文件路径
+   * @returns {Promise<string|null>} 文件哈希值或null
+   */
+  async function getFileHash(filePath) {
+    try {
+      const fileBuffer = await fs.promises.readFile(filePath);
+      return crypto.createHash('md5').update(fileBuffer).digest('hex');
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 加载缓存数据
+   * @returns {Promise<Record<string, string>>} 缓存对象
+   */
+  async function loadCache() {
+    try {
+      const cacheData = await fs.promises.readFile(CONFIG.cacheFile, 'utf8');
+      return JSON.parse(cacheData);
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * 保存缓存数据
+   * @param {Record<string, string>} cache - 缓存对象
+   * @returns {Promise<void>}
+   */
+  async function saveCache(cache) {
+    await fs.promises.writeFile(CONFIG.cacheFile, JSON.stringify(cache, null, 2));
+  }
+
+  /**
+   * 计算目录中所有文件的联合哈希
+   * @param {string[]} filePaths - 文件路径数组
+   * @returns {Promise<string>} 联合哈希值
+   */
+  async function calculateDirectoryHash(filePaths) {
+    const sortedPaths = filePaths.slice().sort();
+    const hashes = [];
+
+    for (const filePath of sortedPaths) {
+      const hash = await getFileHash(filePath);
+      if (hash) {
+        hashes.push(`${path.basename(filePath)}:${hash}`);
+      }
+    }
+
+    return crypto.createHash('md5').update(hashes.join('|')).digest('hex');
+  }
 
   /**
    * 验证文章对象是否有效
@@ -138,7 +195,7 @@ function articlesConfigPlugin() {
   /**
    * 合并文章配置文件
    */
-  function mergeArticlesConfig() {
+  async function mergeArticlesConfig() {
     try {
       // 检查 articles 目录是否存在
       if (!fs.existsSync(CONFIG.articlesDir)) {
@@ -158,28 +215,35 @@ function articlesConfigPlugin() {
         .sort();
 
       if (files.length === 0) {
-        console.log('📁 [articles-config] 没有找到 JSON 文件，跳过合并');
+        console.log('📁 [articles-config] 没有找到 JSON 文件，创建空的 articles.json');
+        // 创建空的配置文件
+        fs.writeFileSync(CONFIG.outputFile, JSON.stringify([], null, 2), 'utf8');
+        console.log('✅ [articles-config] 已创建空的 articles.json 文件');
+        // 清空缓存，因为没有文件
+        await saveCache({});
+        return true;
+      }
+
+      // 加载缓存
+      const cache = await loadCache();
+      
+      // 计算所有配置文件的路径
+      const filePaths = files.map(file => path.join(CONFIG.articlesDir, file));
+      
+      // 计算当前目录的哈希
+      const currentHash = await calculateDirectoryHash(filePaths);
+      const cacheKey = 'articles_directory_hash';
+      const cachedHash = cache[cacheKey];
+
+      // 检查是否需要重新生成
+      const outputExists = fs.existsSync(CONFIG.outputFile);
+      if (outputExists && cachedHash === currentHash) {
+        console.log('📁 [articles-config] 配置文件是最新的，跳过合并');
         return false;
       }
 
       let allArticles = [];
       let hasChanges = false;
-
-      // 检查是否需要重新生成
-      const outputExists = fs.existsSync(CONFIG.outputFile);
-      if (outputExists) {
-        const outputStat = fs.statSync(CONFIG.outputFile);
-        const needsUpdate = files.some(file => {
-          const filePath = path.join(CONFIG.articlesDir, file);
-          const fileStat = fs.statSync(filePath);
-          return fileStat.mtime > outputStat.mtime;
-        });
-
-        if (!needsUpdate) {
-          console.log('📁 [articles-config] 配置文件是最新的，跳过合并');
-          return false;
-        }
-      }
 
       // 合并所有文件
       for (const file of files) {
@@ -214,7 +278,14 @@ function articlesConfigPlugin() {
       }
 
       if (!hasChanges) {
-        return false;
+        console.log('📁 [articles-config] 没有找到有效的文章配置，创建空的 articles.json');
+        // 即使没有有效配置，也要创建空的配置文件
+        fs.writeFileSync(CONFIG.outputFile, JSON.stringify([], null, 2), 'utf8');
+        console.log('✅ [articles-config] 已创建空的 articles.json 文件');
+        // 更新缓存
+        cache[cacheKey] = currentHash;
+        await saveCache(cache);
+        return true;
       }
 
       // 去重
@@ -243,6 +314,10 @@ function articlesConfigPlugin() {
       fs.writeFileSync(CONFIG.outputFile, JSON.stringify(uniqueArticles, null, 2), 'utf8');
       console.log(`✅ [articles-config] 成功合并 ${files.length} 个文件，共 ${uniqueArticles.length} 篇文章`);
 
+      // 更新缓存
+      cache[cacheKey] = currentHash;
+      await saveCache(cache);
+
       return true;
     } catch (error) {
       console.error('❌ [articles-config] 合并失败:', error.message);
@@ -252,7 +327,7 @@ function articlesConfigPlugin() {
 
   return {
     name: 'articles-config',
-    buildStart() {
+    async buildStart() {
       // 检查是否跳过构建时处理（CI模式下已经预处理过）
       if (process.env.VITE_SKIP_PREBUILD === 'true') {
         console.log('⏭️  [articles-config] CI模式：跳过构建时处理');
@@ -260,7 +335,7 @@ function articlesConfigPlugin() {
       }
       // 在构建开始时执行合并
       console.log('🔧 [articles-config] 构建时合并文章配置...');
-      mergeArticlesConfig();
+      await mergeArticlesConfig();
     },
     configureServer(server) {
       // 在开发模式下监听文件变化
@@ -268,10 +343,10 @@ function articlesConfigPlugin() {
 
       watcher.add(CONFIG.articlesDir);
 
-      watcher.on('change', (filePath) => {
+      watcher.on('change', async (filePath) => {
         if (filePath.startsWith(CONFIG.articlesDir) && filePath.endsWith('.json')) {
           console.log(`🔄 [articles-config] 检测到配置文件变化: ${path.basename(filePath)}`);
-          if (mergeArticlesConfig()) {
+          if (await mergeArticlesConfig()) {
             // 触发热重载
             server.ws.send({
               type: 'full-reload',
@@ -280,10 +355,10 @@ function articlesConfigPlugin() {
         }
       });
 
-      watcher.on('add', (filePath) => {
+      watcher.on('add', async (filePath) => {
         if (filePath.startsWith(CONFIG.articlesDir) && filePath.endsWith('.json')) {
           console.log(`➕ [articles-config] 检测到新配置文件: ${path.basename(filePath)}`);
-          if (mergeArticlesConfig()) {
+          if (await mergeArticlesConfig()) {
             server.ws.send({
               type: 'full-reload',
             });
@@ -291,10 +366,10 @@ function articlesConfigPlugin() {
         }
       });
 
-      watcher.on('unlink', (filePath) => {
+      watcher.on('unlink', async (filePath) => {
         if (filePath.startsWith(CONFIG.articlesDir) && filePath.endsWith('.json')) {
           console.log(`🗑️  [articles-config] 检测到配置文件删除: ${path.basename(filePath)}`);
-          if (mergeArticlesConfig()) {
+          if (await mergeArticlesConfig()) {
             server.ws.send({
               type: 'full-reload',
             });

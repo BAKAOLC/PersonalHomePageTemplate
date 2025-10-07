@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -6,7 +7,63 @@ const CONFIG = {
   articlesDir: path.join(__dirname, '../src/config/articles'),
   outputFile: path.join(__dirname, '../src/config/articles.json'),
   backupFile: path.join(__dirname, '../src/config/articles.json.backup'),
+  cacheFile: path.join(__dirname, '../.articles-cache.json'),
 };
+
+/**
+ * 计算文件的哈希值
+ * @param {string} filePath - 文件路径
+ * @returns {Promise<string|null>} 文件哈希值或null
+ */
+async function getFileHash(filePath) {
+  try {
+    const fileBuffer = await fs.promises.readFile(filePath);
+    return crypto.createHash('md5').update(fileBuffer).digest('hex');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 加载缓存数据
+ * @returns {Promise<Record<string, string>>} 缓存对象
+ */
+async function loadCache() {
+  try {
+    const cacheData = await fs.promises.readFile(CONFIG.cacheFile, 'utf8');
+    return JSON.parse(cacheData);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * 保存缓存数据
+ * @param {Record<string, string>} cache - 缓存对象
+ * @returns {Promise<void>}
+ */
+async function saveCache(cache) {
+  await fs.promises.writeFile(CONFIG.cacheFile, JSON.stringify(cache, null, 2));
+}
+
+/**
+ * 计算目录中所有文件的联合哈希
+ * @param {string[]} filePaths - 文件路径数组
+ * @returns {Promise<string>} 联合哈希值
+ */
+async function calculateDirectoryHash(filePaths) {
+  const sortedPaths = filePaths.slice().sort();
+  const hashes = [];
+
+  for (const filePath of sortedPaths) {
+    const hash = await getFileHash(filePath);
+    if (hash) {
+      hashes.push(`${path.basename(filePath)}:${hash}`);
+    }
+  }
+
+  return crypto.createHash('md5').update(hashes.join('|')).digest('hex');
+}
 
 /**
  * 验证文章对象是否有效
@@ -149,7 +206,7 @@ function processArticle(article) {
 /**
  * 读取 articles 目录下的所有 JSON 文件并合并
  */
-function mergeArticles() {
+async function mergeArticles() {
   try {
     // 检查 articles 目录是否存在
     if (!fs.existsSync(CONFIG.articlesDir)) {
@@ -173,7 +230,30 @@ function mergeArticles() {
       .sort(); // 按文件名排序以保证一致性
 
     if (files.length === 0) {
-      console.log('📁 没有找到 JSON 文件，跳过合并');
+      console.log('📁 没有找到 JSON 文件，创建空的 articles.json');
+      // 创建空的配置文件
+      fs.writeFileSync(CONFIG.outputFile, JSON.stringify([], null, 2), 'utf8');
+      console.log('✅ 已创建空的 articles.json 文件');
+      // 清空缓存，因为没有文件
+      await saveCache({});
+      return;
+    }
+
+    // 加载缓存
+    const cache = await loadCache();
+
+    // 计算所有配置文件的路径
+    const filePaths = files.map(file => path.join(CONFIG.articlesDir, file));
+
+    // 计算当前目录的哈希
+    const currentHash = await calculateDirectoryHash(filePaths);
+    const cacheKey = 'articles_directory_hash';
+    const cachedHash = cache[cacheKey];
+
+    // 检查是否需要重新生成
+    const outputExists = fs.existsSync(CONFIG.outputFile);
+    if (outputExists && cachedHash === currentHash) {
+      console.log('📁 配置文件是最新的，跳过合并');
       return;
     }
 
@@ -247,10 +327,18 @@ function mergeArticles() {
     // 写入合并后的文件
     fs.writeFileSync(CONFIG.outputFile, JSON.stringify(uniqueArticles, null, 2), 'utf8');
 
-    console.log(`\n🎉 成功合并 ${files.length} 个文件，共 ${uniqueArticles.length} 篇文章到 articles.json！`);
-    if (totalCount !== uniqueArticles.length) {
-      console.log(`📝 去重了 ${totalCount - uniqueArticles.length} 个重复项`);
+    if (uniqueArticles.length === 0) {
+      console.log(`\n📝 成功处理 ${files.length} 个文件，但没有找到有效的文章配置，已创建空的 articles.json！`);
+    } else {
+      console.log(`\n🎉 成功合并 ${files.length} 个文件，共 ${uniqueArticles.length} 篇文章到 articles.json！`);
+      if (totalCount !== uniqueArticles.length) {
+        console.log(`📝 去重了 ${totalCount - uniqueArticles.length} 个重复项`);
+      }
     }
+
+    // 更新缓存
+    cache[cacheKey] = currentHash;
+    await saveCache(cache);
   } catch (error) {
     console.error('❌ 合并失败:', error.message);
 
@@ -323,21 +411,31 @@ function cleanup() {
 }
 
 // 命令行参数处理
-const command = process.argv[2];
+async function main() {
+  const command = process.argv[2];
 
-switch (command) {
-  case 'merge':
-    mergeArticles();
-    break;
-  case 'split':
-    splitArticles();
-    break;
-  case 'cleanup':
-    cleanup();
-    break;
-  case 'build':
-  default:
-    // 默认行为：合并文件（用于构建）
-    mergeArticles();
-    break;
+  switch (command) {
+    case 'merge':
+      await mergeArticles();
+      break;
+    case 'split':
+      splitArticles();
+      break;
+    case 'cleanup':
+      cleanup();
+      break;
+    case 'build':
+    default:
+      // 默认行为：合并文件（用于构建）
+      await mergeArticles();
+      break;
+  }
+}
+
+// 如果直接运行此脚本
+if (require.main === module) {
+  main().catch(error => {
+    console.error('脚本执行失败:', error);
+    process.exit(1);
+  });
 }

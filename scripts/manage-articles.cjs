@@ -20,8 +20,8 @@ function isValidArticleObject(obj) {
   // 必须有 title
   if (!obj.title) return false;
 
-  // 必须有 content
-  if (!obj.content) return false;
+  // 内容可以是内联的 content 或外部的 markdownPath，但至少要有一个
+  if (!obj.content && !obj.markdownPath) return false;
 
   // 必须有 date
   if (!obj.date || typeof obj.date !== 'string') return false;
@@ -32,7 +32,91 @@ function isValidArticleObject(obj) {
   // 如果有 allowComments，必须是布尔值
   if (obj.allowComments !== undefined && typeof obj.allowComments !== 'boolean') return false;
 
+  // markdownPath 可以是字符串（全语言通用）或对象（多语言）
+  if (obj.markdownPath && typeof obj.markdownPath !== 'string' && typeof obj.markdownPath !== 'object') return false;
+
   return true;
+}
+
+/**
+ * 从Markdown内容生成摘要
+ */
+function generateSummaryFromMarkdown(content, maxLength = 150) {
+  if (!content || typeof content !== 'string') return '';
+
+  // 移除 Markdown 格式
+  const plainText = content
+    .replace(/#{1,6}\s+/g, '') // 标题
+    .replace(/\*\*(.*?)\*\*/g, '$1') // 粗体
+    .replace(/\*(.*?)\*/g, '$1') // 斜体
+    .replace(/`(.*?)`/g, '$1') // 行内代码
+    .replace(/```[\s\S]*?```/g, '') // 代码块
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 链接
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1') // 图片
+    .replace(/^\s*[-*+]\s+/gm, '') // 列表
+    .replace(/^\s*\d+\.\s+/gm, '') // 有序列表
+    .replace(/^\s*>\s+/gm, '') // 引用
+    .replace(/\n\s*\n/g, '\n') // 多个换行
+    .replace(/\n/g, ' ') // 换行转空格
+    .trim();
+
+  // 截取指定长度
+  if (plainText.length > maxLength) {
+    return `${plainText.substring(0, maxLength)}...`;
+  }
+
+  return plainText;
+}
+
+/**
+ * 尝试从外部Markdown文件生成多语言摘要
+ */
+function tryGenerateSummaryFromMarkdown(markdownPath) {
+  if (!markdownPath) return null;
+
+  try {
+    if (typeof markdownPath === 'string') {
+      // 字符串路径，生成单个摘要（全语言通用）
+      const publicPath = markdownPath.replace(/^\//, '');
+      const fullPath = path.resolve(__dirname, '../public', publicPath);
+
+      if (fs.existsSync(fullPath)) {
+        const content = fs.readFileSync(fullPath, 'utf8');
+        return generateSummaryFromMarkdown(content);
+      }
+    } else if (typeof markdownPath === 'object') {
+      // 对象路径，为每种语言生成对应的摘要
+      const summaryObject = {};
+
+      for (const [lang, filePath] of Object.entries(markdownPath)) {
+        if (!filePath) continue;
+
+        try {
+          const publicPath = filePath.replace(/^\//, '');
+          const fullPath = path.resolve(__dirname, '../public', publicPath);
+
+          if (fs.existsSync(fullPath)) {
+            const content = fs.readFileSync(fullPath, 'utf8');
+            const summary = generateSummaryFromMarkdown(content);
+            if (summary) {
+              summaryObject[lang] = summary;
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️  无法为语言 ${lang} 生成摘要:`, error.message);
+        }
+      }
+
+      // 如果生成了任何摘要，返回摘要对象
+      if (Object.keys(summaryObject).length > 0) {
+        return summaryObject;
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️  无法从 Markdown 文件生成摘要:', error.message);
+  }
+
+  return null;
 }
 
 /**
@@ -48,6 +132,15 @@ function processArticle(article) {
 
   if (!processed.categories) {
     processed.categories = [];
+  }
+
+  // 如果没有摘要但有外部Markdown文件，尝试生成摘要
+  if (!processed.summary && processed.markdownPath) {
+    const generatedSummary = tryGenerateSummaryFromMarkdown(processed.markdownPath);
+    if (generatedSummary) {
+      processed.summary = generatedSummary;
+      console.log(`📄 为文章 ${processed.id} 生成了摘要`);
+    }
   }
 
   return processed;

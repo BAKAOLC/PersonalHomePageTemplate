@@ -11,7 +11,9 @@ export interface Article {
   cover?: I18nText; // 支持多语言封面
   categories: string[]; // category IDs
   date: string; // yyyy-MM-dd format
-  content: I18nText;
+  content?: I18nText; // 内联内容（可选，向后兼容）
+  markdownPath?: I18nText; // 外部Markdown文件路径（可选）
+  summary?: I18nText; // 文章摘要（可选，如果没有则从内容生成）
   allowComments?: boolean; // 默认为 true
 }
 

@@ -78,7 +78,20 @@
 
       <!-- 文章内容 -->
       <article class="article-content-section" :aria-label="$t('articles.articleContent')">
-        <div class="markdown-content" v-html="renderedContent" role="article"></div>
+        <!-- 加载状态 -->
+        <div v-if="isLoadingContent" class="content-loading" role="status" :aria-label="$t('articles.loadingContent')">
+          <div class="loading-spinner"></div>
+          <p class="loading-text">{{ $t('articles.loadingContent') }}</p>
+        </div>
+
+        <!-- 错误状态 -->
+        <div v-else-if="contentLoadError" class="content-error" role="alert">
+          <i :class="getIconClass('exclamation-triangle')" class="error-icon" aria-hidden="true"></i>
+          <p class="error-text">{{ contentLoadError }}</p>
+        </div>
+
+        <!-- 文章内容 -->
+        <div v-else class="markdown-content" v-html="renderedContent" role="article"></div>
       </article>
 
       <!-- 上一篇、下一篇按钮 -->
@@ -147,7 +160,7 @@ import articleCategoriesConfig from '@/config/articles-categories.json';
 import { siteConfig } from '@/config/site';
 import { useLanguageStore } from '@/stores/language';
 import type { Article, ArticleCategoriesConfig } from '@/types';
-import { formatDate, getAdjacentArticles, getArticleCover } from '@/utils/articles';
+import { formatDate, getAdjacentArticles, getArticleContent, getArticleCover } from '@/utils/articles';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
@@ -192,6 +205,9 @@ const { isMobile } = useScreenManager();
 // 响应式数据
 const viewerContainer = ref<HTMLElement>();
 const viewerContent = ref<HTMLElement>();
+const isLoadingContent = ref(false);
+const contentLoadError = ref<string | null>(null);
+const articleContent = ref<string>('');
 
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
@@ -201,8 +217,10 @@ const articleCover = computed(() => {
 });
 
 const renderedContent = computed(() => {
-  const content = getI18nText(props.article.content, currentLanguage.value);
-  const html = renderMarkdown(content);
+  if (isLoadingContent.value || contentLoadError.value) {
+    return '';
+  }
+  const html = renderMarkdown(articleContent.value);
   return DOMPurify.sanitize(html);
 });
 
@@ -303,6 +321,23 @@ const copyArticleLink = async (): Promise<void> => {
 };
 
 // 方法
+const loadArticleContent = async (): Promise<void> => {
+  isLoadingContent.value = true;
+  contentLoadError.value = null;
+
+  try {
+    const content = await getArticleContent(props.article, currentLanguage.value);
+    articleContent.value = content;
+  } catch (error) {
+    console.error('Failed to load article content:', error);
+    contentLoadError.value = $t('articles.contentLoadError');
+    // 回退到默认内容或错误消息
+    articleContent.value = `# ${$t('articles.contentLoadError')}\n\n${$t('articles.contentLoadErrorDescription')}`;
+  } finally {
+    isLoadingContent.value = false;
+  }
+};
+
 const show = (): void => {
   nextTick(() => {
     if (viewerContainer.value) {
@@ -316,9 +351,14 @@ const show = (): void => {
 
 // 监听器
 watch(() => props.article, () => {
+  loadArticleContent();
   if (viewerContent.value) {
     viewerContent.value.scrollTop = 0;
   }
+});
+
+watch(currentLanguage, () => {
+  loadArticleContent();
 });
 
 // 键盘导航支持
@@ -330,6 +370,7 @@ const handleKeydown = (event: KeyboardEvent): void => {
 
 // 生命周期
 onMounted(() => {
+  loadArticleContent();
   show();
   // 添加键盘事件监听
   eventManager.addEventListener('keydown', handleKeydown, undefined, document);
@@ -476,6 +517,43 @@ onBeforeUnmount(() => {
 
 .article-content-section {
   @apply mb-8;
+}
+
+/* 内容加载状态 */
+.content-loading {
+  @apply flex flex-col items-center justify-center;
+  @apply py-16 px-4;
+  @apply text-gray-600 dark:text-gray-400;
+}
+
+.loading-spinner {
+  @apply w-8 h-8 border-4 border-gray-200 dark:border-gray-700;
+  @apply border-t-primary-600;
+  @apply rounded-full;
+  @apply animate-spin;
+  @apply mb-4;
+}
+
+.loading-text {
+  @apply text-sm;
+  @apply font-medium;
+}
+
+/* 内容错误状态 */
+.content-error {
+  @apply flex flex-col items-center justify-center;
+  @apply py-16 px-4;
+  @apply text-red-600 dark:text-red-400;
+  @apply text-center;
+}
+
+.error-icon {
+  @apply text-2xl mb-4;
+}
+
+.error-text {
+  @apply text-sm;
+  @apply font-medium;
 }
 
 .markdown-content {

@@ -61,10 +61,16 @@ export function filterArticles(
     const query = filterState.searchQuery.toLowerCase().trim();
     filtered = filtered.filter(article => {
       const title = getI18nText(article.title, currentLanguage).toLowerCase();
-      const summary = generateArticleSummary(article.content, currentLanguage).toLowerCase();
-      const content = getI18nText(article.content, currentLanguage).toLowerCase();
+      const summary = getArticleSummary(article, currentLanguage).toLowerCase();
 
-      return title.includes(query) || summary.includes(query) || content.includes(query);
+      // 只在有内联内容时搜索内容，避免为了搜索而加载外部文件
+      let contentMatch = false;
+      if (article.content) {
+        const content = getI18nText(article.content, currentLanguage).toLowerCase();
+        contentMatch = content.includes(query);
+      }
+
+      return title.includes(query) || summary.includes(query) || contentMatch;
     });
   }
 
@@ -191,4 +197,80 @@ export function countArticlesByCategory(articles: Article[]): Record<string, num
   });
 
   return counts;
+}
+
+/**
+ * 异步加载外部Markdown文件内容
+ */
+export async function loadMarkdownContent(
+  markdownPath: I18nText | undefined,
+  currentLanguage: string,
+): Promise<string> {
+  if (!markdownPath) {
+    throw new Error('Markdown path not provided');
+  }
+
+  const path = getI18nText(markdownPath, currentLanguage);
+  if (!path) {
+    throw new Error(`Markdown path not found for language: ${currentLanguage}`);
+  }
+
+  try {
+    const response = await fetch(path);
+    if (!response.ok) {
+      throw new Error(`Failed to load markdown: ${response.status} ${response.statusText}`);
+    }
+
+    const content = await response.text();
+    return content;
+  } catch (error) {
+    console.error('Error loading markdown content:', error);
+    throw error;
+  }
+}
+
+/**
+ * 获取文章内容（支持内联内容和外部Markdown文件）
+ */
+export async function getArticleContent(
+  article: Article,
+  currentLanguage: string,
+): Promise<string> {
+  // 优先使用外部Markdown文件
+  if (article.markdownPath) {
+    try {
+      return await loadMarkdownContent(article.markdownPath, currentLanguage);
+    } catch (error) {
+      console.warn('Failed to load external markdown, falling back to inline content:', error);
+    }
+  }
+
+  // 回退到内联内容
+  if (article.content) {
+    return getI18nText(article.content, currentLanguage);
+  }
+
+  throw new Error('No content available for this article');
+}
+
+/**
+ * 获取文章摘要（支持自定义摘要和从内容生成）
+ */
+export function getArticleSummary(
+  article: Article,
+  currentLanguage: string,
+  maxLength = 100,
+): string {
+  // 优先使用自定义摘要
+  if (article.summary) {
+    return getI18nText(article.summary, currentLanguage);
+  }
+
+  // 从内联内容生成摘要
+  if (article.content) {
+    return generateArticleSummary(article.content, currentLanguage, maxLength);
+  }
+
+  // 如果只有外部文件路径，返回默认摘要
+  return getI18nText('$t:articles.clickToReadFull', currentLanguage);
 }

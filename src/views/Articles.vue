@@ -353,7 +353,7 @@
                   </div>
                 </div>
 
-                <p class="article-summary">{{ generateArticleSummary(article.content, currentLanguage) }}</p>
+                <p class="article-summary">{{ getArticleSummary(article, currentLanguage) }}</p>
 
                 <div class="article-actions">
                   <button
@@ -377,19 +377,54 @@
             role="navigation"
             :aria-label="$t('articles.pagination')"
           >
-            <button
-              class="pagination-btn"
-              :disabled="!pagination.hasPrev"
-              @click="goToPage(pagination.currentPage - 1)"
-              :aria-label="$t('articles.goToPreviousPage')"
-              type="button"
-            >
-              <i :class="getIconClass('chevron-left')" aria-hidden="true"></i>
-              {{ $t('articles.prevArticle') }}
-            </button>
+            <!-- 第一行：分页按钮 -->
+            <div class="pagination-controls">
+              <!-- 上一页按钮 -->
+              <button
+                class="pagination-btn prev-btn"
+                :disabled="!pagination.hasPrev"
+                @click="goToPage(pagination.currentPage - 1)"
+                :aria-label="$t('articles.goToPreviousPage')"
+                type="button"
+              >
+                <i :class="getIconClass('chevron-left')" aria-hidden="true"></i>
+                {{ $t('articles.previousPage') }}
+              </button>
 
+              <!-- 页码按钮 -->
+              <div class="pagination-numbers">
+                <template v-for="(page, index) in paginationButtons" :key="index">
+                  <button
+                    v-if="typeof page === 'number'"
+                    class="page-btn"
+                    :class="{ 'active': page === pagination.currentPage }"
+                    @click="goToPage(page)"
+                    :aria-label="$t('articles.goToPageNumber', { page })"
+                    :aria-current="page === pagination.currentPage ? 'page' : undefined"
+                    type="button"
+                  >
+                    {{ page }}
+                  </button>
+                  <span v-else class="page-ellipsis" aria-hidden="true">...</span>
+                </template>
+              </div>
+
+              <!-- 下一页按钮 -->
+              <button
+                class="pagination-btn next-btn"
+                :disabled="!pagination.hasNext"
+                @click="goToPage(pagination.currentPage + 1)"
+                :aria-label="$t('articles.goToNextPage')"
+                type="button"
+              >
+                {{ $t('articles.nextPage') }}
+                <i :class="getIconClass('chevron-right')" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <!-- 第二行：页面信息和快速跳转 -->
             <div class="pagination-info">
-              <span :aria-label="$t('articles.currentPageInfo', {
+              <span class="page-info" :aria-label="$t('articles.currentPageInfo', {
                 current: pagination.currentPage,
                 total: pagination.totalPages
               })">
@@ -406,6 +441,7 @@
                   :max="pagination.totalPages"
                   class="page-input"
                   :aria-label="$t('articles.pageNumberInput')"
+                  @keyup.enter="jumpToPage"
                 />
                 <button
                   @click="jumpToPage"
@@ -417,17 +453,6 @@
                 </button>
               </div>
             </div>
-
-            <button
-              class="pagination-btn"
-              :disabled="!pagination.hasNext"
-              @click="goToPage(pagination.currentPage + 1)"
-              :aria-label="$t('articles.goToNextPage')"
-              type="button"
-            >
-              {{ $t('articles.nextArticle') }}
-              <i :class="getIconClass('chevron-right')" aria-hidden="true"></i>
-            </button>
           </nav>
         </main>
       </div>
@@ -526,7 +551,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -547,8 +572,8 @@ import {
   countArticlesByCategory,
   filterArticles,
   formatDate,
-  generateArticleSummary,
   getArticleCover,
+  getArticleSummary,
   paginateArticles,
 } from '@/utils/articles';
 import { getI18nText } from '@/utils/i18nText';
@@ -756,18 +781,63 @@ const clearCategoryFilter = (): void => {
   currentPage.value = 1;
 };
 
+/**
+ * 滚动到文章列表顶部
+ */
+const scrollToArticlesList = (): void => {
+  nextTick(() => {
+    const articlesListElement = document.querySelector('.articles-list');
+    if (articlesListElement) {
+      articlesListElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+  });
+};
+
 const goToPage = (page: number): void => {
   if (page >= 1 && page <= pagination.value.totalPages) {
     currentPage.value = page;
     jumpToPageNumber.value = page;
+    // 翻页后滚动到文章列表顶部
+    scrollToArticlesList();
   }
 };
 
 const jumpToPage = (): void => {
   if (jumpToPageNumber.value >= 1 && jumpToPageNumber.value <= pagination.value.totalPages) {
     currentPage.value = jumpToPageNumber.value;
+    // 跳转页面后滚动到文章列表顶部
+    scrollToArticlesList();
   }
 };
+
+// 生成分页按钮数组
+const paginationButtons = computed(() => {
+  const current = pagination.value.currentPage;
+  const total = pagination.value.totalPages;
+
+  if (total <= 7) {
+    // 如果总页数小于等于7页，显示所有页码
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const buttons: (number | string)[] = [];
+
+  if (current <= 4) {
+    // 当前页在前部分
+    buttons.push(1, 2, 3, 4, 5, '...', total);
+  } else if (current >= total - 3) {
+    // 当前页在后部分
+    buttons.push(1, '...', total - 4, total - 3, total - 2, total - 1, total);
+  } else {
+    // 当前页在中间
+    buttons.push(1, '...', current - 1, current, current + 1, '...', total);
+  }
+
+  return buttons;
+});
 
 // 创建文章查看器模态框的辅助函数
 const createArticleViewerModal = (article: Article): ModalConfig => {
@@ -1453,10 +1523,15 @@ onBeforeUnmount(() => {
 }
 
 .pagination {
-  @apply flex items-center justify-between;
+  @apply flex flex-col gap-3;
   @apply bg-white dark:bg-gray-800;
   @apply border border-gray-200 dark:border-gray-700;
-  @apply rounded-lg p-4;
+  @apply rounded-lg p-3;
+}
+
+.pagination-controls {
+  @apply flex items-center justify-between;
+  @apply w-full;
 }
 
 .pagination-btn {
@@ -1471,7 +1546,9 @@ onBeforeUnmount(() => {
 }
 
 .pagination-info {
-  @apply flex items-center gap-4;
+  @apply flex items-center justify-center gap-4;
+  @apply w-full;
+  @apply text-sm;
 }
 
 .page-jump {
@@ -1479,21 +1556,78 @@ onBeforeUnmount(() => {
 }
 
 .page-input {
-  @apply w-16 px-2 py-1;
+  @apply w-12 px-1 py-0.5;
   @apply border border-gray-300 dark:border-gray-600;
   @apply rounded;
   @apply bg-white dark:bg-gray-800;
   @apply text-gray-900 dark:text-white;
   @apply text-center;
+  @apply text-xs;
+  @apply h-7;
 }
 
 .jump-btn {
-  @apply px-3 py-1;
+  @apply px-2 py-0.5;
   @apply bg-primary-600 hover:bg-primary-700;
   @apply text-white;
   @apply rounded;
-  @apply text-sm;
+  @apply text-xs;
   @apply transition-all duration-200;
+  @apply h-7;
+}
+
+/* 新分页器样式 */
+.pagination-numbers {
+  @apply flex items-center justify-center;
+  @apply flex-1 gap-0.5;
+}
+
+.page-btn {
+  @apply flex items-center justify-center;
+  @apply min-w-[32px] h-8 px-2;
+  @apply border border-gray-300 dark:border-gray-600;
+  @apply bg-white dark:bg-gray-800;
+  @apply text-gray-700 dark:text-gray-300;
+  @apply rounded;
+  @apply hover:bg-gray-50 dark:hover:bg-gray-700;
+  @apply transition-all duration-200;
+  @apply font-medium;
+  @apply cursor-pointer;
+  @apply text-xs;
+}
+
+.page-btn.active {
+  @apply bg-primary-600;
+  @apply text-white;
+  @apply border-primary-600;
+}
+
+.page-btn.active:hover {
+  @apply bg-primary-700;
+  @apply border-primary-700;
+}
+
+.page-ellipsis {
+  @apply flex items-center justify-center;
+  @apply min-w-[32px] h-8;
+  @apply text-gray-500 dark:text-gray-400;
+  @apply cursor-default;
+  @apply text-xs;
+}
+
+.prev-btn,
+.next-btn {
+  @apply flex items-center gap-1;
+  @apply px-3 py-1.5;
+  @apply bg-gray-100 dark:bg-gray-700;
+  @apply text-gray-700 dark:text-gray-300;
+  @apply rounded;
+  @apply hover:bg-gray-200 dark:hover:bg-gray-600;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply disabled:hover:bg-gray-100 dark:disabled:hover:bg-gray-700;
+  @apply transition-all duration-200;
+  @apply font-medium;
+  @apply text-sm;
 }
 
 .info-cards-section {
@@ -1967,11 +2101,45 @@ onBeforeUnmount(() => {
   }
 
   .pagination {
-    @apply flex-col gap-4;
+    @apply flex-col gap-2;
+    @apply p-2;
+  }
+
+  .pagination-controls {
+    @apply flex-row;
+  }
+
+  .pagination-numbers {
+    @apply gap-0.5;
+    @apply flex-wrap;
+    @apply justify-center;
+  }
+
+  .page-btn {
+    @apply min-w-[28px] h-7;
+    @apply px-1;
+    @apply text-xs;
+  }
+
+  .prev-btn,
+  .next-btn {
+    @apply px-2 py-1;
+    @apply text-xs;
+    @apply min-w-[32px];
+  }
+
+  .pagination-info {
+    @apply gap-3;
+    @apply text-xs;
+  }
+
+  .page-ellipsis {
+    @apply min-w-[36px] h-9;
   }
 
   .pagination-info {
     @apply flex-col gap-2;
+    @apply text-center;
   }
 }
 
@@ -2189,6 +2357,40 @@ onBeforeUnmount(() => {
   .read-more-btn:hover,
   .scroll-to-top-button:hover {
     transform: none !important;
+  }
+}
+
+/* 中小屏幕（平板和小桌面）- 隐藏分页按钮文本 */
+@media (max-width: 1023px) {
+  .prev-btn,
+  .next-btn {
+    @apply px-2;
+    @apply min-w-[32px];
+    @apply py-1;
+    font-size: 0; /* 隐藏文本 */
+  }
+
+  .prev-btn i,
+  .next-btn i {
+    font-size: 0.875rem; /* 恢复图标尺寸 */
+  }
+
+  .pagination-controls {
+    @apply flex-row;
+  }
+
+  .pagination-numbers {
+    @apply justify-center;
+    @apply gap-0.5;
+  }
+
+  .page-btn {
+    @apply min-w-[28px] h-7 px-1;
+    @apply text-xs;
+  }
+
+  .page-ellipsis {
+    @apply min-w-[28px] h-7;
   }
 }
 

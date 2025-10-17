@@ -3,7 +3,7 @@ import type { I18nText } from './language';
 // 友链相关类型
 export interface FriendLink {
   id: string;
-  name: string;
+  name: I18nText;
   url: string;
   avatar?: string;
   description: I18nText;

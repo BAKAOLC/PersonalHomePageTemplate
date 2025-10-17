@@ -132,7 +132,7 @@
             >
               <h2 :id="`category-${category.id}-title`" class="category-section-title">
                 {{ t(category.name, currentLanguage) }}
-                <span class="category-count" :aria-label="`包含 ${category.links.length} 个友链`">
+                <span class="category-count" :aria-label="$t('links.categoryCount', { count: category.links.length })">
                   ({{ category.links.length }})
                 </span>
               </h2>
@@ -143,7 +143,7 @@
               <div
                 class="links-cards"
                 role="list"
-                :aria-label="`${t(category.name, currentLanguage)} 友链列表`"
+                :aria-label="$t('links.categoryLinksList', { category: t(category.name, currentLanguage) })"
               >
                 <article
                   v-for="link in category.links"
@@ -154,12 +154,12 @@
                   @keydown.space.prevent="visitLink(link.url)"
                   role="listitem"
                   tabindex="0"
-                  :aria-label="`访问 ${link.name} 的网站`"
+                  :aria-label="$t('links.visitWebsite', { name: t(link.name, currentLanguage) })"
                 >
                   <div class="link-avatar" v-if="linksConfig.settings.showAvatar">
                     <ProgressiveImage
                       :src="link.avatar ?? linksConfig.settings.defaultAvatar"
-                      :alt="`${link.name} 的头像`"
+                      :alt="$t('links.avatarAlt', { name: t(link.name, currentLanguage) })"
                       class="avatar-img"
                       object-fit="cover"
                       :show-loader="false"
@@ -168,7 +168,7 @@
 
                   <div class="link-content">
                     <div class="link-info">
-                      <h3 class="link-name">{{ link.name }}</h3>
+                      <h3 class="link-name">{{ t(link.name, currentLanguage) }}</h3>
                       <p v-if="linksConfig.settings.showDescription" class="link-description">
                         {{ t(link.description, currentLanguage) }}
                       </p>
@@ -178,7 +178,7 @@
                       v-if="linksConfig.settings.showTags && link.tags && link.tags.length > 0"
                       class="link-tags"
                       role="list"
-                      aria-label="标签"
+                      :aria-label="$t('links.tags')"
                     >
                       <span v-for="tag in link.tags" :key="tag" class="link-tag" role="listitem">
                         {{ getTagText(tag, currentLanguage) }}
@@ -347,7 +347,7 @@ const filteredLinks = computed(() => {
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim();
     links = links.filter(link => {
-      const name = link.name.toLowerCase();
+      const name = t(link.name, currentLanguage.value).toLowerCase();
       const description = t(link.description, currentLanguage.value).toLowerCase();
       const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
 
@@ -370,7 +370,7 @@ const categoryCounts = computed(() => {
       if (!searchQuery.value.trim()) return true;
 
       const query = searchQuery.value.toLowerCase().trim();
-      const name = link.name.toLowerCase();
+      const name = t(link.name, currentLanguage.value).toLowerCase();
       const description = t(link.description, currentLanguage.value).toLowerCase();
       const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
 
@@ -398,7 +398,7 @@ const filteredCategories = computed(() => {
       if (!searchQuery.value.trim()) return true;
 
       const query = searchQuery.value.toLowerCase().trim();
-      const name = link.name.toLowerCase();
+      const name = t(link.name, currentLanguage.value).toLowerCase();
       const description = t(link.description, currentLanguage.value).toLowerCase();
       const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
 

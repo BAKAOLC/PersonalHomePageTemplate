@@ -195,8 +195,11 @@
   },
   "links": {
     "allCategories": "All Categories",
+    "avatarAlt": "{name}'s avatar",
     "backToHome": "Back to Home",
     "categories": "Categories",
+    "categoryCount": "Contains {count} links",
+    "categoryLinksList": "{category} links list",
     "clearSearch": "Clear search",
     "copied": "Copied",
     "copyToClipboard": "Copy to Clipboard",
@@ -212,7 +215,8 @@
     "subtitle": "My friends and useful resources",
     "tags": "Tags",
     "title": "Links",
-    "visitSite": "Visit Site"
+    "visitSite": "Visit Site",
+    "visitWebsite": "Visit {name}'s website"
   },
   "loading": {
     "enteringSite": "Entering site...",

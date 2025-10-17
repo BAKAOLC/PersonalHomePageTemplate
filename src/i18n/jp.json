@@ -195,8 +195,11 @@
   },
   "links": {
     "allCategories": "すべてのカテゴリ",
+    "avatarAlt": "{name}のアバター",
     "backToHome": "ホームに戻る",
     "categories": "カテゴリ",
+    "categoryCount": "{count} 個のリンクを含む",
+    "categoryLinksList": "{category} リンクリスト",
     "clearSearch": "検索をクリア",
     "copied": "コピーしました",
     "copyToClipboard": "クリップボードにコピー",
@@ -212,7 +215,8 @@
     "subtitle": "友達と便利なリソース",
     "tags": "タグ",
     "title": "リンク",
-    "visitSite": "サイトを訪問"
+    "visitSite": "サイトを訪問",
+    "visitWebsite": "{name}のウェブサイトを訪問"
   },
   "loading": {
     "enteringSite": "サイトに入ります...",

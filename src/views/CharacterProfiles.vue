@@ -305,30 +305,47 @@ onMounted(() => {
 
 .character-selector {
   @apply mb-2;
+  /* 确保独立的滚动上下文 */
+  position: relative;
+  overflow: hidden;
 }
 
 .variant-selector {
   @apply border-t border-gray-200 dark:border-gray-700 pt-2;
+  /* 确保独立的滚动上下文 */
+  position: relative;
+  overflow: hidden;
 }
 
 .selector-scroll-container {
   @apply flex gap-2 overflow-x-auto;
   padding: 0.5rem 0.5rem 0.75rem 0.5rem; /* 增加四周padding，为键盘选择器提供空间 */
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e0 #f7fafc;
+  scrollbar-color: #cbd5e0 transparent; /* 滚动条滑块颜色，轨道透明 */
   scroll-behavior: smooth;
   width: 100%;
   min-width: 0;
-  /* 确保容器不会裁剪子元素的边框 */
-  overflow: visible;
+  /* 启用移动端平滑滚动 */
+  -webkit-overflow-scrolling: touch;
+  /* 确保每个容器都有独立的滚动上下文 */
+  position: relative;
+  isolation: isolate;
 }
 
 .selector-scroll-container::-webkit-scrollbar {
-  height: 4px;
+  height: 8px;
+}
+
+/* 移动端使用更大的滚动条 */
+@media (max-width: 767px) {
+  .selector-scroll-container::-webkit-scrollbar {
+    height: 12px;
+  }
 }
 
 .selector-scroll-container::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-700 rounded;
+  background: transparent; /* 隐藏滚动条轨道背景 */
+  border-radius: 0;
 }
 
 .selector-scroll-container::-webkit-scrollbar-thumb {
@@ -349,6 +366,8 @@ onMounted(() => {
   min-width: fit-content;
   /* 为键盘选择器边框提供额外空间 */
   margin: 0.125rem;
+  /* 确保按钮不会超出容器，但允许滚动 */
+  position: relative;
 }
 
 .selector-button.active {
@@ -907,3 +926,4 @@ onMounted(() => {
   }
 }
 </style>
+

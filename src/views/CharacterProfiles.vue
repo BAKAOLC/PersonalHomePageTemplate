@@ -151,6 +151,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 
 import ProgressiveImage from '@/components/ProgressiveImage.vue';
 import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
@@ -168,6 +169,8 @@ import { getIconClass } from '@/utils/icons';
 useI18n();
 const languageStore = useLanguageStore();
 const modalManager = useModalManager();
+const route = useRoute();
+const router = useRouter();
 
 // 获取当前语言
 const currentLanguage = computed(() => languageStore.currentLanguage);
@@ -248,15 +251,48 @@ watch(displayInfoCards, () => {
   });
 });
 
+// 是否正在从URL初始化（避免循环更新）
+const isInitializingFromUrl = ref(false);
+
+// 更新URL参数
+const updateUrl = (characterId?: string, variantId?: string, imageId?: string): void => {
+  // 如果正在从URL初始化，不更新URL
+  if (isInitializingFromUrl.value) return;
+
+  const query: Record<string, string> = {};
+  if (characterId) query.character = characterId;
+  if (variantId) query.variant = variantId;
+  if (imageId) query.image = imageId;
+
+  // 检查是否需要更新URL（避免不必要的更新）
+  const currentCharacter = route.query.character as string | undefined;
+  const currentVariant = route.query.variant as string | undefined;
+  const currentImage = route.query.image as string | undefined;
+
+  if (
+    currentCharacter !== characterId ||
+    currentVariant !== variantId ||
+    currentImage !== imageId
+  ) {
+    router.replace({
+      name: 'character-profiles',
+      query,
+    });
+  }
+};
+
 // 选择角色
-const selectCharacter = (character: CharacterProfile): void => {
+const selectCharacter = (character: CharacterProfile, skipUrlUpdate = false): void => {
   selectedCharacter.value = character;
   // 自动选择第一个差分
   if (character.variants.length > 0) {
-    selectVariant(character.variants[0]);
+    selectVariant(character.variants[0], skipUrlUpdate);
   } else {
     selectedVariant.value = null;
     selectedImage.value = null;
+    if (!skipUrlUpdate) {
+      updateUrl(character.id);
+    }
   }
 
   // 滚动到选中的角色按钮
@@ -269,14 +305,17 @@ const selectCharacter = (character: CharacterProfile): void => {
 };
 
 // 选择差分
-const selectVariant = (variant: CharacterVariant): void => {
+const selectVariant = (variant: CharacterVariant, skipUrlUpdate = false): void => {
   selectedVariant.value = variant;
 
   // 自动选择第一张图片
   if (variant.images.length > 0) {
-    selectImage(variant.images[0]);
+    selectImage(variant.images[0], skipUrlUpdate);
   } else {
     selectedImage.value = null;
+    if (!skipUrlUpdate && selectedCharacter.value) {
+      updateUrl(selectedCharacter.value.id, variant.id);
+    }
   }
 
   // 滚动到选中的差分按钮
@@ -289,8 +328,11 @@ const selectVariant = (variant: CharacterVariant): void => {
 };
 
 // 选择图片
-const selectImage = (image: CharacterVariantImage): void => {
+const selectImage = (image: CharacterVariantImage, skipUrlUpdate = false): void => {
   selectedImage.value = image;
+  if (!skipUrlUpdate && selectedCharacter.value && selectedVariant.value) {
+    updateUrl(selectedCharacter.value.id, selectedVariant.value.id, image.id);
+  }
 };
 
 // 打开图片查看器
@@ -354,11 +396,58 @@ watch(selectedCharacter, () => {
   });
 });
 
-// 组件挂载时自动选择第一个角色
-onMounted(() => {
+// 根据URL参数初始化选择
+const initializeFromUrl = (): void => {
+  isInitializingFromUrl.value = true;
+  
+  const characterId = route.query.character as string | undefined;
+  const variantId = route.query.variant as string | undefined;
+  const imageId = route.query.image as string | undefined;
+
+  if (characterId && characterProfiles.value.length > 0) {
+    const character = characterProfiles.value.find(c => c.id === characterId);
+    if (character) {
+      selectCharacter(character, true);
+      
+      if (variantId && character.variants.length > 0) {
+        const variant = character.variants.find(v => v.id === variantId);
+        if (variant) {
+          selectVariant(variant, true);
+          
+          if (imageId && variant.images.length > 0) {
+            const image = variant.images.find(img => img.id === imageId);
+            if (image) {
+              selectImage(image, true);
+              isInitializingFromUrl.value = false;
+              return;
+            }
+          }
+        }
+      }
+      
+      isInitializingFromUrl.value = false;
+      // 如果URL参数不完整，更新URL
+      if (selectedCharacter.value && selectedVariant.value && selectedImage.value) {
+        updateUrl(selectedCharacter.value.id, selectedVariant.value.id, selectedImage.value.id);
+      } else if (selectedCharacter.value && selectedVariant.value) {
+        updateUrl(selectedCharacter.value.id, selectedVariant.value.id);
+      } else if (selectedCharacter.value) {
+        updateUrl(selectedCharacter.value.id);
+      }
+      return;
+    }
+  }
+
+  isInitializingFromUrl.value = false;
+  // 如果没有URL参数或找不到对应的角色，选择第一个角色
   if (characterProfiles.value.length > 0) {
     selectCharacter(characterProfiles.value[0]);
   }
+};
+
+// 组件挂载时根据URL参数初始化或选择第一个角色
+onMounted(() => {
+  initializeFromUrl();
 
   // 设置 ResizeObserver 监听容器大小变化
   if (characterScrollContainer.value) {
@@ -378,6 +467,37 @@ onMounted(() => {
   // 初始检查
   updateButtonVisibility();
 });
+
+// 监听路由变化，当URL参数改变时更新选择（仅在浏览器前进/后退时）
+watch(() => route.query, (newQuery, oldQuery) => {
+  // 如果正在初始化，跳过
+  if (isInitializingFromUrl.value) return;
+  
+  // 检查是否是外部URL变化（浏览器前进/后退）
+  const newCharacterId = newQuery.character as string | undefined;
+  const newVariantId = newQuery.variant as string | undefined;
+  const newImageId = newQuery.image as string | undefined;
+  
+  const oldCharacterId = oldQuery?.character as string | undefined;
+  const oldVariantId = oldQuery?.variant as string | undefined;
+  const oldImageId = oldQuery?.image as string | undefined;
+  
+  // 只有当URL参数真正改变时才重新初始化
+  if (
+    newCharacterId !== oldCharacterId ||
+    newVariantId !== oldVariantId ||
+    newImageId !== oldImageId
+  ) {
+    // 检查是否需要更新选择
+    if (
+      (newCharacterId && newCharacterId !== selectedCharacter.value?.id) ||
+      (newVariantId && newVariantId !== selectedVariant.value?.id) ||
+      (newImageId && newImageId !== selectedImage.value?.id)
+    ) {
+      initializeFromUrl();
+    }
+  }
+}, { deep: true });
 
 // 组件卸载时清理 ResizeObserver
 onUnmounted(() => {

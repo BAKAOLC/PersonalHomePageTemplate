@@ -43,13 +43,14 @@
                 :class="{ 'expanded': isVariantListExpanded }"
               >
                 <button
-                  v-for="variant in selectedCharacter.variants"
+                  v-for="(variant, index) in selectedCharacter.variants"
                   :key="variant.id"
                   :data-variant-id="variant.id"
                   @click="selectVariant(variant)"
                   class="selector-button"
                   :class="{ 'active': selectedVariant?.id === variant.id }"
                 >
+                  <span class="variant-number">{{ index + 1 }}.</span>
                   {{ getI18nText(variant.name, currentLanguage) }}
                 </button>
               </div>
@@ -557,6 +558,16 @@ onUnmounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.variant-number {
+  @apply text-gray-500 dark:text-gray-400;
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+.selector-button.active .variant-number {
+  @apply text-white opacity-90;
 }
 
 .selector-scroll-container {

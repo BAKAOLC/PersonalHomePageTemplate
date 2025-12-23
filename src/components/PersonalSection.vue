@@ -64,7 +64,10 @@
               target="_blank"
               rel="noopener noreferrer"
               class="social-link"
-              :style="{ '--link-color': link.color ?? '#333' }"
+              :style="{
+                '--link-color': link.color ?? '#333',
+                'animation-delay': `${(index + 1) * animationDelayInterval}s`
+              }"
               :aria-label="$t('personal.visitLink', { name: getI18nText(link.name, currentLanguage) })"
               :title="$t('personal.openInNewWindow', { name: getI18nText(link.name, currentLanguage) })"
               role="link"
@@ -86,7 +89,7 @@
           :aria-label="$t('personal.pageNavigation')"
         >
           <component
-            v-for="button in enabledActionButtons"
+            v-for="(button, index) in enabledActionButtons"
             :key="button.id"
             :is="button.type === 'internal' ? 'router-link' : 'a'"
             :to="button.type === 'internal' ? button.target : undefined"
@@ -94,7 +97,12 @@
             :target="button.type === 'external' ? '_blank' : undefined"
             :rel="button.type === 'external' ? 'noopener noreferrer' : undefined"
             class="action-button"
-            :style="{ '--button-color': button.color ?? '#667eea' }"
+            :style="{
+              '--button-color': button.color ?? '#667eea',
+              'animation-delay': actionButtonsWaitForLinks
+                ? `${actionButtonsInitialDelay + (personal.links.length * animationDelayInterval) + (index + 1) * actionButtonsAnimationDelayInterval}s`
+                : `${actionButtonsInitialDelay + (index + 1) * actionButtonsAnimationDelayInterval}s`
+            }"
             :aria-label="getI18nText(button.text, currentLanguage)"
             :title="button.type === 'external'
               ? $t('personal.openInNewWindow', { name: getI18nText(button.text, currentLanguage) })
@@ -132,6 +140,22 @@ const { t: $t } = useI18n();
 
 const { personal } = siteConfig;
 const currentLanguage = computed(() => languageStore.currentLanguage);
+
+// 动画延迟间隔（秒），默认 0.1
+const animationDelayInterval = computed(() => personal.animationDelayInterval ?? 0.1);
+
+// 操作按钮是否等待社交链接动画完成，默认 true
+const actionButtonsWaitForLinks = computed(() => personal.actionButtonsWaitForLinks ?? true);
+
+// 操作按钮动画延迟间隔（秒），默认使用通用的 animationDelayInterval
+const actionButtonsAnimationDelayInterval = computed(() => 
+  personal.actionButtonsAnimationDelayInterval !== undefined 
+    ? personal.actionButtonsAnimationDelayInterval 
+    : animationDelayInterval.value
+);
+
+// 操作按钮初始等待时间（秒），默认 0.1
+const actionButtonsInitialDelay = computed(() => personal.actionButtonsInitialDelay ?? 0.1);
 
 // 启用的操作按钮
 const enabledActionButtons = computed(() => {
@@ -335,12 +359,6 @@ onMounted(() => {
   }
 }
 
-.social-link:nth-child(1) { animation-delay: 0.1s; }
-.social-link:nth-child(2) { animation-delay: 0.2s; }
-.social-link:nth-child(3) { animation-delay: 0.3s; }
-.social-link:nth-child(4) { animation-delay: 0.4s; }
-.social-link:nth-child(5) { animation-delay: 0.5s; }
-.social-link:nth-child(6) { animation-delay: 0.6s; }
 
 /* 桌面端悬停效果 */
 @media (min-width: 641px) {
@@ -367,7 +385,6 @@ onMounted(() => {
   background-color: var(--button-color, #667eea);
   animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: both;
-  animation-delay: 0.7s;
   /* 焦点管理 */
   @apply focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50;
   @apply focus:ring-offset-2 focus:ring-offset-gray-800;

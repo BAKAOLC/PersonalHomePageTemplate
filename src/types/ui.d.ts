@@ -30,6 +30,10 @@ export interface PersonalInfo {
   avatar: string;
   name: I18nText;
   description: I18nText[];
+  animationDelayInterval?: number; // 社交链接动画延迟间隔（秒），默认 0.1
+  actionButtonsWaitForLinks?: boolean; // 操作按钮是否等待社交链接动画完成，默认 true
+  actionButtonsAnimationDelayInterval?: number; // 操作按钮动画延迟间隔（秒），默认使用 animationDelayInterval
+  actionButtonsInitialDelay?: number; // 操作按钮初始等待时间（秒），默认 0.1，无论是否等待前面的链接都会先等待这个时间
   links: SocialLink[];
   backgroundImages?: string[]; // 可选的随机背景图像列表
   actionButtons?: ActionButton[]; // 可选的操作按钮配置

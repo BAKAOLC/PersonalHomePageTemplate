@@ -54,6 +54,10 @@
       "color": "#ea4335"
     }
   ],
+  "animationDelayInterval": 0.1,
+  "actionButtonsWaitForLinks": true,
+  "actionButtonsInitialDelay": 0.1,
+  "actionButtonsAnimationDelayInterval": 0.1,
   "backgroundImages": [],
   "actionButtons": [
     {

@@ -121,13 +121,16 @@
             </div>
             <div class="social-links" role="list" :aria-label="$t('articles.socialLinks')">
               <a
-                v-for="link in personalInfo.links"
+                v-for="(link, index) in personalInfo.links"
                 :key="link.url"
                 :href="link.url"
                 :title="getI18nText(link.name, currentLanguage)"
                 :aria-label="getI18nText(link.name, currentLanguage)"
                 class="social-link"
-                :style="{ '--icon-color': link.color ?? '#333' }"
+                :style="{
+                  '--icon-color': link.color ?? '#333',
+                  'animation-delay': `${(index + 1) * animationDelayInterval}s`
+                }"
                 target="_blank"
                 rel="noopener noreferrer"
                 role="listitem"
@@ -630,6 +633,9 @@ const getCardImage = (image: string | { light: string; dark: string }): string =
 const articles = ref<Article[]>(articlesConfig);
 const articleCategories = ref<ArticleCategoriesConfig>(articleCategoriesConfig);
 const personalInfo = computed(() => siteConfig.personal);
+
+// 动画延迟间隔（秒），默认 0.1
+const animationDelayInterval = computed(() => personalInfo.value.animationDelayInterval ?? 0.1);
 const infoCards = ref(articlesPageConfig.infoCards);
 
 // 计算属性
@@ -1367,12 +1373,6 @@ onBeforeUnmount(() => {
   @apply w-4 h-4;
 }
 
-.social-link:nth-child(1) { animation-delay: 0.1s; }
-.social-link:nth-child(2) { animation-delay: 0.2s; }
-.social-link:nth-child(3) { animation-delay: 0.3s; }
-.social-link:nth-child(4) { animation-delay: 0.4s; }
-.social-link:nth-child(5) { animation-delay: 0.5s; }
-.social-link:nth-child(6) { animation-delay: 0.6s; }
 
 .category-filter {
   @apply bg-white dark:bg-gray-800;

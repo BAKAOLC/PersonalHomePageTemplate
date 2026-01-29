@@ -8,8 +8,8 @@
         "jp": "GitHub 統計"
       },
       "image": {
-        "light": "https://github-readme-stats.vercel.app/api?username=BAKAOLC&show_icons=true&theme=vue",
-        "dark": "https://github-readme-stats.vercel.app/api?username=BAKAOLC&show_icons=true&theme=react"
+        "light": "https://github.com/BAKAOLC/BAKAOLC/raw/main/profile/stats-light.svg",
+        "dark": "https://github.com/BAKAOLC/BAKAOLC/raw/main/profile/stats-dark.svg"
       }
     },
     {
@@ -20,8 +20,8 @@
         "jp": "GitHub トップ言語"
       },
       "image": {
-        "light": "https://github-readme-stats.vercel.app/api/top-langs/?username=BAKAOLC&layout=compact&theme=vue",
-        "dark": "https://github-readme-stats.vercel.app/api/top-langs/?username=BAKAOLC&layout=compact&theme=react"
+        "light": "https://github.com/BAKAOLC/BAKAOLC/raw/main/profile/top-langs-light.svg",
+        "dark": "https://github.com/BAKAOLC/BAKAOLC/raw/main/profile/top-langs-dark.svg"
       }
     }
   ]

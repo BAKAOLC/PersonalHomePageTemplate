@@ -1335,7 +1335,7 @@ onBeforeUnmount(() => {
 }
 
 .social-links {
-  @apply flex justify-center gap-3;
+  @apply flex flex-wrap justify-center gap-3;
 }
 
 .social-link {

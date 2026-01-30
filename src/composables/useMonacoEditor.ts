@@ -1,7 +1,7 @@
 import * as monaco from 'monaco-editor';
 import { getCurrentInstance, onBeforeUnmount, ref, type Ref } from 'vue';
 
-import monacoConfig from '@/config/monaco-editor.json';
+import monacoConfig from '@/config/monaco-editor.json5';
 import { useThemeStore } from '@/stores/theme';
 
 // 类型定义

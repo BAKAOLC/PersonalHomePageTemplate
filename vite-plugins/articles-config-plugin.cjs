@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { writeJSON5FileSync } = require(path.resolve(__dirname, '../scripts/json5-writer.cjs'));
 
 /**
  * Vite 插件：自动合并文章配置文件
@@ -8,7 +9,7 @@ const crypto = require('crypto');
 function articlesConfigPlugin() {
   const CONFIG = {
     articlesDir: path.resolve(process.cwd(), 'src/config/articles'),
-    outputFile: path.resolve(process.cwd(), 'src/config/articles.json'),
+    outputFile: path.resolve(process.cwd(), 'src/config/articles.json5'),
     cacheFile: path.resolve(process.cwd(), '.articles-cache.json'),
   };
 
@@ -206,7 +207,7 @@ function articlesConfigPlugin() {
       // 读取所有 JSON 文件
       const files = fs.readdirSync(CONFIG.articlesDir)
         .filter(file => {
-          if (!file.endsWith('.json')) return false;
+          if (!file.endsWith('.json5')) return false;
           if (file.startsWith('.')) return false;
           if (file.includes('.backup') || file.includes('.bak')) return false;
           if (file.includes('.tmp') || file.includes('.temp')) return false;
@@ -215,10 +216,10 @@ function articlesConfigPlugin() {
         .sort();
 
       if (files.length === 0) {
-        console.log('📁 [articles-config] 没有找到 JSON 文件，创建空的 articles.json');
+        console.log('📁 [articles-config] 没有找到 JSON 文件，创建空的 articles.json5');
         // 创建空的配置文件
-        fs.writeFileSync(CONFIG.outputFile, JSON.stringify([], null, 2), 'utf8');
-        console.log('✅ [articles-config] 已创建空的 articles.json 文件');
+        writeJSON5FileSync(CONFIG.outputFile, [], 'articles');
+        console.log('✅ [articles-config] 已创建空的 articles.json5 文件');
         // 清空缓存，因为没有文件
         await saveCache({});
         return true;
@@ -248,7 +249,7 @@ function articlesConfigPlugin() {
       // 合并所有文件
       for (const file of files) {
         const filePath = path.join(CONFIG.articlesDir, file);
-        const fileName = path.basename(file, '.json');
+        const fileName = path.basename(file, '.json5');
 
         try {
           const content = fs.readFileSync(filePath, 'utf8');
@@ -258,7 +259,7 @@ function articlesConfigPlugin() {
             const validArticles = data.filter(item => isValidArticleObject(item))
               .map(item => processArticle(item));
             if (validArticles.length !== data.length) {
-              console.warn(`⚠️  [articles-config] ${fileName}.json 中有 ${data.length - validArticles.length} 个无效文章对象被跳过`);
+              console.warn(`⚠️  [articles-config] ${fileName}.json5 中有 ${data.length - validArticles.length} 个无效文章对象被跳过`);
             }
             allArticles = allArticles.concat(validArticles);
             hasChanges = true;
@@ -278,10 +279,10 @@ function articlesConfigPlugin() {
       }
 
       if (!hasChanges) {
-        console.log('📁 [articles-config] 没有找到有效的文章配置，创建空的 articles.json');
+        console.log('📁 [articles-config] 没有找到有效的文章配置，创建空的 articles.json5');
         // 即使没有有效配置，也要创建空的配置文件
-        fs.writeFileSync(CONFIG.outputFile, JSON.stringify([], null, 2), 'utf8');
-        console.log('✅ [articles-config] 已创建空的 articles.json 文件');
+        writeJSON5FileSync(CONFIG.outputFile, [], 'articles');
+        console.log('✅ [articles-config] 已创建空的 articles.json5 文件');
         // 更新缓存
         cache[cacheKey] = currentHash;
         await saveCache(cache);
@@ -310,8 +311,8 @@ function articlesConfigPlugin() {
         return dateB - dateA;
       });
 
-      // 写入合并后的文件
-      fs.writeFileSync(CONFIG.outputFile, JSON.stringify(uniqueArticles, null, 2), 'utf8');
+      // 写入合并后的配置到输出文件
+      writeJSON5FileSync(CONFIG.outputFile, uniqueArticles, 'articles');
       console.log(`✅ [articles-config] 成功合并 ${files.length} 个文件，共 ${uniqueArticles.length} 篇文章`);
 
       // 更新缓存
@@ -344,7 +345,7 @@ function articlesConfigPlugin() {
       watcher.add(CONFIG.articlesDir);
 
       watcher.on('change', async (filePath) => {
-        if (filePath.startsWith(CONFIG.articlesDir) && filePath.endsWith('.json')) {
+        if (filePath.startsWith(CONFIG.articlesDir) && filePath.endsWith('.json5')) {
           console.log(`🔄 [articles-config] 检测到配置文件变化: ${path.basename(filePath)}`);
           if (await mergeArticlesConfig()) {
             // 触发热重载
@@ -356,7 +357,7 @@ function articlesConfigPlugin() {
       });
 
       watcher.on('add', async (filePath) => {
-        if (filePath.startsWith(CONFIG.articlesDir) && filePath.endsWith('.json')) {
+        if (filePath.startsWith(CONFIG.articlesDir) && filePath.endsWith('.json5')) {
           console.log(`➕ [articles-config] 检测到新配置文件: ${path.basename(filePath)}`);
           if (await mergeArticlesConfig()) {
             server.ws.send({
@@ -367,7 +368,7 @@ function articlesConfigPlugin() {
       });
 
       watcher.on('unlink', async (filePath) => {
-        if (filePath.startsWith(CONFIG.articlesDir) && filePath.endsWith('.json')) {
+        if (filePath.startsWith(CONFIG.articlesDir) && filePath.endsWith('.json5')) {
           console.log(`🗑️  [articles-config] 检测到配置文件删除: ${path.basename(filePath)}`);
           if (await mergeArticlesConfig()) {
             server.ws.send({

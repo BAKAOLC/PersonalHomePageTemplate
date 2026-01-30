@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { writeJSON5FileSync } = require(path.resolve(__dirname, '../scripts/json5-writer.cjs'));
 
 /**
  * Vite 插件：自动合并图片配置文件
@@ -8,7 +9,7 @@ const crypto = require('crypto');
 function imagesConfigPlugin() {
   const CONFIG = {
     imagesDir: path.resolve(process.cwd(), 'src/config/images'),
-    outputFile: path.resolve(process.cwd(), 'src/config/images.json'),
+    outputFile: path.resolve(process.cwd(), 'src/config/images.json5'),
     cacheFile: path.resolve(process.cwd(), '.images-cache.json'),
   };
 
@@ -95,7 +96,7 @@ function imagesConfigPlugin() {
       // 读取所有 JSON 文件
       const files = fs.readdirSync(CONFIG.imagesDir)
         .filter(file => {
-          if (!file.endsWith('.json')) return false;
+          if (!file.endsWith('.json5')) return false;
           if (file.startsWith('.')) return false;
           if (file.includes('.backup') || file.includes('.bak')) return false;
           if (file.includes('.tmp') || file.includes('.temp')) return false;
@@ -104,10 +105,10 @@ function imagesConfigPlugin() {
         .sort();
 
       if (files.length === 0) {
-        console.log('📁 [images-config] 没有找到 JSON 文件，创建空的 images.json');
+        console.log('📁 [images-config] 没有找到 JSON 文件，创建空的 images.json5');
         // 创建空的配置文件
-        fs.writeFileSync(CONFIG.outputFile, JSON.stringify([], null, 2), 'utf8');
-        console.log('✅ [images-config] 已创建空的 images.json 文件');
+        writeJSON5FileSync(CONFIG.outputFile, [], 'images');
+        console.log('✅ [images-config] 已创建空的 images.json5 文件');
         // 清空缓存，因为没有文件
         await saveCache({});
         return true;
@@ -137,7 +138,7 @@ function imagesConfigPlugin() {
       // 合并所有文件
       for (const file of files) {
         const filePath = path.join(CONFIG.imagesDir, file);
-        const fileName = path.basename(file, '.json');
+        const fileName = path.basename(file, '.json5');
 
         try {
           const content = fs.readFileSync(filePath, 'utf8');
@@ -146,7 +147,7 @@ function imagesConfigPlugin() {
           if (Array.isArray(data)) {
             const validImages = data.filter(item => isValidImageObject(item));
             if (validImages.length !== data.length) {
-              console.warn(`⚠️  [images-config] ${fileName}.json 中有 ${data.length - validImages.length} 个无效图片对象被跳过`);
+              console.warn(`⚠️  [images-config] ${fileName}.json5 中有 ${data.length - validImages.length} 个无效图片对象被跳过`);
             }
             allImages = allImages.concat(validImages);
             hasChanges = true;
@@ -166,10 +167,10 @@ function imagesConfigPlugin() {
       }
 
       if (!hasChanges) {
-        console.log('📁 [images-config] 没有找到有效的图片配置，创建空的 images.json');
+        console.log('📁 [images-config] 没有找到有效的图片配置，创建空的 images.json5');
         // 即使没有有效配置，也要创建空的配置文件
-        fs.writeFileSync(CONFIG.outputFile, JSON.stringify([], null, 2), 'utf8');
-        console.log('✅ [images-config] 已创建空的 images.json 文件');
+        writeJSON5FileSync(CONFIG.outputFile, [], 'images');
+        console.log('✅ [images-config] 已创建空的 images.json5 文件');
         // 更新缓存
         cache[cacheKey] = currentHash;
         await saveCache(cache);
@@ -198,8 +199,8 @@ function imagesConfigPlugin() {
         return dateB - dateA;
       });
 
-      // 写入合并后的文件
-      fs.writeFileSync(CONFIG.outputFile, JSON.stringify(uniqueImages, null, 2), 'utf8');
+      // 写入合并后的配置到输出文件
+      writeJSON5FileSync(CONFIG.outputFile, uniqueImages, 'images');
       console.log(`✅ [images-config] 成功合并 ${files.length} 个文件，共 ${uniqueImages.length} 个图片`);
 
       // 更新缓存

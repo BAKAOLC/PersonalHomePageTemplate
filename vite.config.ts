@@ -11,6 +11,7 @@ const articlesConfigPlugin = require('./vite-plugins/articles-config-plugin.cjs'
 const characterProfilesConfigPlugin = require('./vite-plugins/character-profiles-config-plugin.cjs');
 const htmlConfigPlugin = require('./vite-plugins/html-config-plugin.cjs');
 const imagesConfigPlugin = require('./vite-plugins/images-config-plugin.cjs');
+const json5Plugin = require('./vite-plugins/json5-plugin.cjs');
 const { thumbnailPlugin } = require('./vite-plugins/thumbnail-plugin.cjs');
 const utf8EncodingPlugin = require('./vite-plugins/utf8-encoding-plugin.cjs');
 
@@ -21,10 +22,11 @@ export default defineConfig({
       // 可以自定义配置选项
       verbose: true,
       autoConvert: true,
-      extensions: ['.vue', '.js', '.ts', '.json', '.css', '.scss', '.less', '.html', '.md', '.txt', '.cjs'],
+      extensions: ['.vue', '.js', '.ts', '.json', '.json5', '.css', '.scss', '.less', '.html', '.md', '.txt', '.cjs'],
       excludeDirs: ['node_modules', 'dist', '.git', '.vscode'],
       minConfidence: 0.8,
     }),
+    json5Plugin(),
     htmlConfigPlugin(),
     imagesConfigPlugin(),
     articlesConfigPlugin(),

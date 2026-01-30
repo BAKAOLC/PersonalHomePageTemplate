@@ -2,7 +2,7 @@
  * 语言处理工具函数
  */
 
-import languagesConfig from '@/config/languages.json';
+import languagesConfig from '@/config/languages.json5';
 import type { LanguagesConfig } from '@/types';
 
 /**

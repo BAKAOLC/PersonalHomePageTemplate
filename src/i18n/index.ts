@@ -4,7 +4,7 @@ import type { Language } from '@/types';
 import { getDefaultLanguage, getEnabledLanguages, getFallbackLanguage, getLanguagesConfig, isValidLanguage } from '@/utils/language';
 
 // 使用 Vite 的 glob 导入功能动态加载所有语言文件
-const languageModules = import.meta.glob('./*.json', { eager: true });
+const languageModules = import.meta.glob('./*.json5', { eager: true });
 
 // 动态构建语言消息映射
 const messages: Record<string, any> = {};
@@ -12,13 +12,13 @@ const enabledLanguages = getEnabledLanguages();
 
 // 加载所有启用的语言文件
 for (const lang of enabledLanguages) {
-  const modulePath = `./${lang}.json`;
+  const modulePath = `./${lang}.json5`;
   const module = languageModules[modulePath];
 
   if (module) {
     messages[lang] = (module as any).default ?? module;
   } else {
-    console.warn(`Language file '${lang}.json' not found.`);
+    console.warn(`Language file '${lang}.json5' not found.`);
   }
 }
 

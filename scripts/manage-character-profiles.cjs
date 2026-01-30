@@ -1,11 +1,12 @@
 const fs = require('fs');
 const path = require('path');
+const { writeJSON5FileSync } = require('./json5-writer.cjs');
 
 // 配置
 const CONFIG = {
   characterProfilesDir: path.join(__dirname, '../src/config/character-profiles'),
-  outputFile: path.join(__dirname, '../src/config/character-profiles.json'),
-  backupFile: path.join(__dirname, '../src/config/character-profiles.json.backup'),
+  outputFile: path.join(__dirname, '../src/config/character-profiles.json5'),
+  backupFile: path.join(__dirname, '../src/config/character-profiles.json5.backup'),
 };
 
 /**
@@ -207,8 +208,8 @@ function mergeCharacterProfiles() {
     // 读取所有 JSON 文件，排除隐藏文件和特殊文件
     const files = fs.readdirSync(CONFIG.characterProfilesDir)
       .filter(file => {
-        // 只处理 .json 文件
-        if (!file.endsWith('.json')) return false;
+        // 只处理 .json5 文件
+        if (!file.endsWith('.json5')) return false;
         // 排除隐藏文件（以 . 开头）
         if (file.startsWith('.')) return false;
         // 排除备份文件
@@ -227,7 +228,7 @@ function mergeCharacterProfiles() {
     // 备份现有文件
     if (fs.existsSync(CONFIG.outputFile)) {
       fs.copyFileSync(CONFIG.outputFile, CONFIG.backupFile);
-      console.log('💾 已备份现有的 character-profiles.json');
+      console.log('💾 已备份现有的 character-profiles.json5');
     }
 
     let allCharacterProfiles = [];
@@ -236,7 +237,7 @@ function mergeCharacterProfiles() {
     // 合并所有文件
     for (const file of files) {
       const filePath = path.join(CONFIG.characterProfilesDir, file);
-      const fileName = path.basename(file, '.json');
+      const fileName = path.basename(file, '.json5');
 
       try {
         const content = fs.readFileSync(filePath, 'utf8');
@@ -249,17 +250,17 @@ function mergeCharacterProfiles() {
             return validation.valid;
           });
           if (validProfiles.length !== data.length) {
-            console.warn(`⚠️  ${fileName}.json 中有 ${data.length - validProfiles.length} 个无效角色配置对象被跳过`);
+            console.warn(`⚠️  ${fileName}.json5 中有 ${data.length - validProfiles.length} 个无效角色配置对象被跳过`);
           }
           allCharacterProfiles = allCharacterProfiles.concat(validProfiles);
-          console.log(`✅ 已合并 ${fileName}.json (${validProfiles.length} 个角色)`);
+          console.log(`✅ 已合并 ${fileName}.json5 (${validProfiles.length} 个角色)`);
           totalCount += validProfiles.length;
         } else if (typeof data === 'object' && data !== null) {
           // 如果是单个对象，验证并包装成数组
           const validation = isValidCharacterProfileObject(data);
           if (validation.valid) {
             allCharacterProfiles.push(data);
-            console.log(`✅ 已合并 ${fileName}.json (1 个角色)`);
+            console.log(`✅ 已合并 ${fileName}.json5 (1 个角色)`);
             totalCount += 1;
           } else {
             console.warn(`⚠️  跳过 ${file}: 角色配置对象格式无效`);
@@ -294,10 +295,10 @@ function mergeCharacterProfiles() {
       return 0;
     });
 
-    // 写入合并后的文件
-    fs.writeFileSync(CONFIG.outputFile, JSON.stringify(uniqueProfiles, null, 2), 'utf8');
+    // 写入合并后的配置到输出文件
+    writeJSON5FileSync(CONFIG.outputFile, uniqueProfiles, 'characterProfiles');
 
-    console.log(`\n🎉 成功合并 ${files.length} 个文件，共 ${uniqueProfiles.length} 个角色到 character-profiles.json！`);
+    console.log(`\n🎉 成功合并 ${files.length} 个文件，共 ${uniqueProfiles.length} 个角色到 character-profiles.json5！`);
     if (totalCount !== uniqueProfiles.length) {
       console.log(`📝 去重了 ${totalCount - uniqueProfiles.length} 个重复项`);
     }
@@ -315,12 +316,12 @@ function mergeCharacterProfiles() {
 }
 
 /**
- * 将大的 character-profiles.json 拆分成多个小文件，以角色 ID 为文件名
+ * 将大的 character-profiles.json5 拆分成多个小文件，以角色 ID 为文件名
  */
 function splitCharacterProfiles() {
   try {
     if (!fs.existsSync(CONFIG.outputFile)) {
-      console.error('❌ character-profiles.json 不存在，无法拆分');
+      console.error('❌ character-profiles.json5 不存在，无法拆分');
       process.exit(1);
     }
 
@@ -343,7 +344,7 @@ function splitCharacterProfiles() {
 
       // 清理文件名，移除不安全的字符
       const safeFileName = profile.id.replace(/[<>:"/\\|?*]/g, '-');
-      const fileName = `${safeFileName}.json`;
+      const fileName = `${safeFileName}.json5`;
       const filePath = path.join(CONFIG.characterProfilesDir, fileName);
 
       try {

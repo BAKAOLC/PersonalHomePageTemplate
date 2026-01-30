@@ -37,7 +37,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import MonacoEditorToolbar from '@/components/MonacoEditorToolbar.vue';
 import { useMonacoEditor, type MonacoEditorOptions } from '@/composables/useMonacoEditor';
-import type monacoConfig from '@/config/monaco-editor.json';
+import type monacoConfig from '@/config/monaco-editor.json5';
 
 interface Props {
   modelValue?: string;

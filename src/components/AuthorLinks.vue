@@ -27,7 +27,7 @@ import { ExternalLinkIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import siteNames from '@/config/sites.json';
+import siteNames from '@/config/sites.json5';
 import { useLanguageStore } from '@/stores/language';
 import type { AuthorLink, SitesConfig } from '@/types';
 import { getI18nText } from '@/utils/i18nText';

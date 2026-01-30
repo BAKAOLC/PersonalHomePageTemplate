@@ -1,12 +1,13 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { writeJSON5FileSync } = require('./json5-writer.cjs');
 
 // 配置
 const CONFIG = {
   imagesDir: path.join(__dirname, '../src/config/images'),
-  outputFile: path.join(__dirname, '../src/config/images.json'),
-  backupFile: path.join(__dirname, '../src/config/images.json.backup'),
+  outputFile: path.join(__dirname, '../src/config/images.json5'),
+  backupFile: path.join(__dirname, '../src/config/images.json5.backup'),
   cacheFile: path.join(__dirname, '../.images-cache.json'),
 };
 
@@ -106,8 +107,8 @@ async function mergeImages() {
     // 读取所有 JSON 文件，排除隐藏文件和特殊文件
     const files = fs.readdirSync(CONFIG.imagesDir)
       .filter(file => {
-        // 只处理 .json 文件
-        if (!file.endsWith('.json')) return false;
+        // 只处理 .json5 文件
+        if (!file.endsWith('.json5')) return false;
         // 排除隐藏文件（以 . 开头）
         if (file.startsWith('.')) return false;
         // 排除备份文件
@@ -119,10 +120,10 @@ async function mergeImages() {
       .sort(); // 按文件名排序以保证一致性
 
     if (files.length === 0) {
-      console.log('📁 没有找到 JSON 文件，创建空的 images.json');
+        console.log('📁 没有找到 JSON5 文件，创建空的 images.json5');
       // 创建空的配置文件
-      fs.writeFileSync(CONFIG.outputFile, JSON.stringify([], null, 2), 'utf8');
-      console.log('✅ 已创建空的 images.json 文件');
+      writeJSON5FileSync(CONFIG.outputFile, [], 'images');
+      console.log('✅ 已创建空的 images.json5 文件');
       // 清空缓存，因为没有文件
       await saveCache({});
       return;
@@ -149,7 +150,7 @@ async function mergeImages() {
     // 备份现有文件
     if (fs.existsSync(CONFIG.outputFile)) {
       fs.copyFileSync(CONFIG.outputFile, CONFIG.backupFile);
-      console.log('💾 已备份现有的 images.json');
+      console.log('💾 已备份现有的 images.json5');
     }
 
     let allImages = [];
@@ -158,7 +159,7 @@ async function mergeImages() {
     // 合并所有文件
     for (const file of files) {
       const filePath = path.join(CONFIG.imagesDir, file);
-      const fileName = path.basename(file, '.json');
+      const fileName = path.basename(file, '.json5');
 
       try {
         const content = fs.readFileSync(filePath, 'utf8');
@@ -168,16 +169,16 @@ async function mergeImages() {
           // 验证数组中的每个对象
           const validImages = data.filter(item => isValidImageObject(item));
           if (validImages.length !== data.length) {
-            console.warn(`⚠️  ${fileName}.json 中有 ${data.length - validImages.length} 个无效图片对象被跳过`);
+            console.warn(`⚠️  ${fileName}.json5 中有 ${data.length - validImages.length} 个无效图片对象被跳过`);
           }
           allImages = allImages.concat(validImages);
-          console.log(`✅ 已合并 ${fileName}.json (${validImages.length} 个图片)`);
+          console.log(`✅ 已合并 ${fileName}.json5 (${validImages.length} 个图片)`);
           totalCount += validImages.length;
         } else if (typeof data === 'object' && data !== null) {
           // 如果是单个对象，验证并包装成数组
           if (isValidImageObject(data)) {
             allImages.push(data);
-            console.log(`✅ 已合并 ${fileName}.json (1 个图片)`);
+            console.log(`✅ 已合并 ${fileName}.json5 (1 个图片)`);
             totalCount += 1;
           } else {
             console.warn(`⚠️  跳过 ${file}: 图片对象格式无效`);
@@ -212,10 +213,10 @@ async function mergeImages() {
       return dateB - dateA;
     });
 
-    // 写入合并后的文件
-    fs.writeFileSync(CONFIG.outputFile, JSON.stringify(uniqueImages, null, 2), 'utf8');
+    // 写入合并后的配置到输出文件
+    writeJSON5FileSync(CONFIG.outputFile, uniqueImages, 'images');
 
-    console.log(`\n🎉 成功合并 ${files.length} 个文件，共 ${uniqueImages.length} 个图片到 images.json！`);
+    console.log(`\n🎉 成功合并 ${files.length} 个文件，共 ${uniqueImages.length} 个图片到 images.json5！`);
     if (totalCount !== uniqueImages.length) {
       console.log(`📝 去重了 ${totalCount - uniqueImages.length} 个重复项`);
     }
@@ -237,12 +238,12 @@ async function mergeImages() {
 }
 
 /**
- * 将大的 images.json 拆分成多个小文件，以图像 ID 为文件名
+ * 将大的 images.json5 拆分成多个小文件，以图像 ID 为文件名
  */
 function splitImages() {
   try {
     if (!fs.existsSync(CONFIG.outputFile)) {
-      console.error('❌ images.json 不存在，无法拆分');
+      console.error('❌ images.json5 不存在，无法拆分');
       process.exit(1);
     }
 
@@ -265,7 +266,7 @@ function splitImages() {
 
       // 清理文件名，移除不安全的字符
       const safeFileName = image.id.replace(/[<>:"/\\|?*]/g, '-');
-      const fileName = `${safeFileName}.json`;
+      const fileName = `${safeFileName}.json5`;
       const filePath = path.join(CONFIG.imagesDir, fileName);
 
       try {

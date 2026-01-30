@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { writeJSON5FileSync } = require(path.resolve(__dirname, '../scripts/json5-writer.cjs'));
 
 /**
  * Vite 插件：自动合并角色配置文件
@@ -7,7 +8,7 @@ const path = require('path');
 function characterProfilesConfigPlugin() {
   const CONFIG = {
     characterProfilesDir: path.resolve(process.cwd(), 'src/config/character-profiles'),
-    outputFile: path.resolve(process.cwd(), 'src/config/character-profiles.json'),
+    outputFile: path.resolve(process.cwd(), 'src/config/character-profiles.json5'),
   };
 
   /**
@@ -216,7 +217,7 @@ function characterProfilesConfigPlugin() {
       // 读取所有 JSON 文件
       const files = fs.readdirSync(CONFIG.characterProfilesDir)
         .filter(file => {
-          if (!file.endsWith('.json')) return false;
+          if (!file.endsWith('.json5')) return false;
           if (file.startsWith('.')) return false;
           if (file.includes('.backup') || file.includes('.bak')) return false;
           if (file.includes('.tmp') || file.includes('.temp')) return false;
@@ -251,7 +252,7 @@ function characterProfilesConfigPlugin() {
       // 合并所有文件
       for (const file of files) {
         const filePath = path.join(CONFIG.characterProfilesDir, file);
-        const fileName = path.basename(file, '.json');
+        const fileName = path.basename(file, '.json5');
 
         try {
           const content = fs.readFileSync(filePath, 'utf8');
@@ -263,7 +264,7 @@ function characterProfilesConfigPlugin() {
               return validation.valid;
             });
             if (validProfiles.length !== data.length) {
-              console.warn(`⚠️  [character-profiles-config] ${fileName}.json 中有 ${data.length - validProfiles.length} 个无效角色配置对象被跳过`);
+              console.warn(`⚠️  [character-profiles-config] ${fileName}.json5 中有 ${data.length - validProfiles.length} 个无效角色配置对象被跳过`);
             }
             allCharacterProfiles = allCharacterProfiles.concat(validProfiles);
             hasChanges = true;
@@ -309,11 +310,8 @@ function characterProfilesConfigPlugin() {
         return 0;
       });
 
-      // 写入合并后的文件
-      fs.writeFileSync(CONFIG.outputFile, JSON.stringify(uniqueProfiles, null, 2), 'utf8');
-      console.log(`✅ [character-profiles-config] 成功合并 ${files.length} 个文件，共 ${uniqueProfiles.length} 个角色`);
-
-      return true;
+    // 写入合并后的配置到输出文件
+    writeJSON5FileSync(CONFIG.outputFile, uniqueProfiles, 'characterProfiles');
     } catch (error) {
       console.error('❌ [character-profiles-config] 合并失败:', error.message);
       return false;
@@ -339,7 +337,7 @@ function characterProfilesConfigPlugin() {
       watcher.add(CONFIG.characterProfilesDir);
 
       watcher.on('change', (filePath) => {
-        if (filePath.startsWith(CONFIG.characterProfilesDir) && filePath.endsWith('.json')) {
+        if (filePath.startsWith(CONFIG.characterProfilesDir) && filePath.endsWith('.json5')) {
           console.log(`🔄 [character-profiles-config] 检测到配置文件变化: ${path.basename(filePath)}`);
           if (mergeCharacterProfilesConfig()) {
             // 触发热重载
@@ -351,7 +349,7 @@ function characterProfilesConfigPlugin() {
       });
 
       watcher.on('add', (filePath) => {
-        if (filePath.startsWith(CONFIG.characterProfilesDir) && filePath.endsWith('.json')) {
+        if (filePath.startsWith(CONFIG.characterProfilesDir) && filePath.endsWith('.json5')) {
           console.log(`➕ [character-profiles-config] 检测到新配置文件: ${path.basename(filePath)}`);
           if (mergeCharacterProfilesConfig()) {
             server.ws.send({
@@ -362,7 +360,7 @@ function characterProfilesConfigPlugin() {
       });
 
       watcher.on('unlink', (filePath) => {
-        if (filePath.startsWith(CONFIG.characterProfilesDir) && filePath.endsWith('.json')) {
+        if (filePath.startsWith(CONFIG.characterProfilesDir) && filePath.endsWith('.json5')) {
           console.log(`🗑️  [character-profiles-config] 检测到配置文件删除: ${path.basename(filePath)}`);
           if (mergeCharacterProfilesConfig()) {
             server.ws.send({

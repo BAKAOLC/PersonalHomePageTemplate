@@ -156,7 +156,7 @@ import GiscusComments from '@/components/GiscusComments.vue';
 import { useEventManager } from '@/composables/useEventManager';
 import { useNotificationManager } from '@/composables/useNotificationManager';
 import { useScreenManager } from '@/composables/useScreenManager';
-import articleCategoriesConfig from '@/config/articles-categories.json';
+import articleCategoriesConfig from '@/config/articles-categories.json5';
 import { siteConfig } from '@/config/site';
 import { useLanguageStore } from '@/stores/language';
 import type { Article, ArticleCategoriesConfig } from '@/types';

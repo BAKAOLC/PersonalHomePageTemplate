@@ -1,0 +1,23 @@
+{
+  // 功能开关配置
+  "gallery": true,      // 图库功能
+  "links": true,        // 友链功能
+  "articles": true,     // 文章功能
+  "characterProfiles": true,  // 角色档案功能
+  "comments": true,     // 评论功能
+  
+  // 查看器UI配置（新版）
+  "viewerUI": {
+    "imageList": true,           // 显示图片列表
+    "imageGroupList": true,      // 显示图片组列表
+    "viewerTitle": true,         // 显示查看器标题
+    "infoPanel": {
+      "title": true,             // 显示标题
+      "description": true,       // 显示描述
+      "artist": true,            // 显示作者
+      "date": true,              // 显示日期
+      "tags": true,              // 显示标签
+    },
+    "commentsButton": true,      // 显示评论按钮
+  },
+}

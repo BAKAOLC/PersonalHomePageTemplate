@@ -157,7 +157,7 @@ import { useRoute, useRouter } from 'vue-router';
 import ProgressiveImage from '@/components/ProgressiveImage.vue';
 import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
 import { useModalManager } from '@/composables/useModalManager';
-import characterProfilesData from '@/config/character-profiles.json';
+import characterProfilesData from '@/config/character-profiles.json5';
 import { useLanguageStore } from '@/stores/language';
 import type { CharacterProfile, CharacterVariant, CharacterVariantImage } from '@/types';
 import { CharacterConfigManager } from '@/utils/characterConfigManager';

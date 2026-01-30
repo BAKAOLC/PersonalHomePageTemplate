@@ -11,7 +11,7 @@ function htmlConfigPlugin() {
     transformIndexHtml(html, context) {
       try {
         // 读取 HTML 配置文件
-        const configPath = path.resolve(process.cwd(), 'src/config/html.json');
+        const configPath = path.resolve(process.cwd(), 'src/config/html.json5');
         const htmlConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
         // 替换 HTML 中的占位符
@@ -38,7 +38,7 @@ function htmlConfigPlugin() {
     generateBundle() {
       try {
         // 处理 404.html 文件
-        const configPath = path.resolve(process.cwd(), 'src/config/html.json');
+        const configPath = path.resolve(process.cwd(), 'src/config/html.json5');
         const htmlConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
         const html404Path = path.resolve(process.cwd(), 'public/404.html');

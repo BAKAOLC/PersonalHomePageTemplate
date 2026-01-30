@@ -12,26 +12,24 @@ node_modules
 .pnp
 .pnp.js
 
-# Generated thumbnails and cache (should be generated on each build)
-public/assets/thumbnails/
-.thumbnail-cache.json
-src/assets/thumbnail-map.json
-
 # Config generation cache files
+public/assets/thumbnails/
+src/assets/thumbnail-map.json
+.thumbnail-cache.json
 .articles-cache.json
 .images-cache.json
 
 # Images config files (auto-generated from src/config/images/)
-src/config/images.json
-src/config/images.json.backup
+src/config/images.json5
+src/config/images.json5.backup
 
 # Articles config files (auto-generated from src/config/articles/)
-src/config/articles.json
-src/config/articles.json.backup
+src/config/articles.json5
+src/config/articles.json5.backup
 
 # Character profiles config files (auto-generated from src/config/character-profiles/)
-src/config/character-profiles.json
-src/config/character-profiles.json.backup
+src/config/character-profiles.json5
+src/config/character-profiles.json5.backup
 
 # Local env files
 .env

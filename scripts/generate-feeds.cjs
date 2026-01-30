@@ -92,9 +92,9 @@ function generateRSSFeed(articles, siteConfig, language = 'en') {
     .map(article => {
       const title = escapeXml(getText(article.title, language));
       const description = escapeXml(getText(article.summary || article.content || '', language));
-      const link = `${baseUrl}/#/articles/${article.id}`;
+      const link = `${baseUrl}/#/articles/${encodeURIComponent(article.id)}`;
       const pubDate = new Date(article.date).toUTCString();
-      const guid = `${baseUrl}/articles/${article.id}`;
+      const guid = `${baseUrl}/articles/${encodeURIComponent(article.id)}`;
 
       return `    <item>
       <title>${title}</title>
@@ -131,8 +131,8 @@ function generateAtomFeed(articles, siteConfig, language = 'en') {
     .map(article => {
       const title = escapeXml(getText(article.title, language));
       const summary = escapeXml(getText(article.summary || article.content || '', language));
-      const link = `${baseUrl}/#/articles/${article.id}`;
-      const id = `${baseUrl}/articles/${article.id}`;
+      const link = `${baseUrl}/#/articles/${encodeURIComponent(article.id)}`;
+      const id = `${baseUrl}/articles/${encodeURIComponent(article.id)}`;
       const updated = new Date(article.date).toISOString();
 
       return `  <entry>
@@ -165,8 +165,8 @@ function generateJsonFeed(articles, siteConfig, language = 'en') {
   const items = articles
     .slice(0, 50)
     .map(article => ({
-      id: `${baseUrl}/articles/${article.id}`,
-      url: `${baseUrl}/#/articles/${article.id}`,
+      id: `${baseUrl}/articles/${encodeURIComponent(article.id)}`,
+      url: `${baseUrl}/#/articles/${encodeURIComponent(article.id)}`,
       title: getText(article.title, language),
       summary: getText(article.summary || article.content || '', language),
       date_published: article.date,

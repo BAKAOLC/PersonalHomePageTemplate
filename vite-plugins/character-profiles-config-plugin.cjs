@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const JSON5 = require('json5');
 const { writeJSON5FileSync } = require(path.resolve(__dirname, '../scripts/json5-writer.cjs'));
 
 /**
@@ -10,6 +11,47 @@ function characterProfilesConfigPlugin() {
     characterProfilesDir: path.resolve(process.cwd(), 'src/config/character-profiles'),
     outputFile: path.resolve(process.cwd(), 'src/config/character-profiles.json5'),
   };
+
+  /**
+   * 递归读取目录中的所有 JSON5 文件
+   * @param {string} dir - 目录路径
+   * @param {string} baseDir - 基础目录路径（用于计算相对路径）
+   * @returns {{ filePath: string, relativePath: string }[]} 文件路径和相对路径对象数组
+   */
+  function getAllJsonFiles(dir, baseDir = dir) {
+    const results = [];
+    
+    if (!fs.existsSync(dir)) {
+      return results;
+    }
+
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        // 排除隐藏目录
+        if (!entry.name.startsWith('.')) {
+          results.push(...getAllJsonFiles(fullPath, baseDir));
+        }
+      } else if (entry.isFile()) {
+        // 只处理 .json5 文件
+        if (!entry.name.endsWith('.json5')) continue;
+        // 排除隐藏文件（以 . 开头）
+        if (entry.name.startsWith('.')) continue;
+        // 排除备份文件
+        if (entry.name.includes('.backup') || entry.name.includes('.bak')) continue;
+        // 排除临时文件
+        if (entry.name.includes('.tmp') || entry.name.includes('.temp')) continue;
+
+        const relativePath = path.relative(baseDir, fullPath);
+        results.push({ filePath: fullPath, relativePath });
+      }
+    }
+
+    return results.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  }
 
   /**
    * 验证I18nText字段
@@ -214,18 +256,10 @@ function characterProfilesConfigPlugin() {
         return false;
       }
 
-      // 读取所有 JSON 文件
-      const files = fs.readdirSync(CONFIG.characterProfilesDir)
-        .filter(file => {
-          if (!file.endsWith('.json5')) return false;
-          if (file.startsWith('.')) return false;
-          if (file.includes('.backup') || file.includes('.bak')) return false;
-          if (file.includes('.tmp') || file.includes('.temp')) return false;
-          return true;
-        })
-        .sort();
+      // 读取所有 JSON 文件（包括子目录）
+      const fileObjects = getAllJsonFiles(CONFIG.characterProfilesDir);
 
-      if (files.length === 0) {
+      if (fileObjects.length === 0) {
         console.log('📁 [character-profiles-config] 没有找到 JSON 文件，跳过合并');
         return false;
       }
@@ -237,8 +271,7 @@ function characterProfilesConfigPlugin() {
       const outputExists = fs.existsSync(CONFIG.outputFile);
       if (outputExists) {
         const outputStat = fs.statSync(CONFIG.outputFile);
-        const needsUpdate = files.some(file => {
-          const filePath = path.join(CONFIG.characterProfilesDir, file);
+        const needsUpdate = fileObjects.some(({ filePath }) => {
           const fileStat = fs.statSync(filePath);
           return fileStat.mtime > outputStat.mtime;
         });
@@ -250,37 +283,46 @@ function characterProfilesConfigPlugin() {
       }
 
       // 合并所有文件
-      for (const file of files) {
-        const filePath = path.join(CONFIG.characterProfilesDir, file);
-        const fileName = path.basename(file, '.json5');
-
+      for (const { filePath, relativePath } of fileObjects) {
         try {
           const content = fs.readFileSync(filePath, 'utf8');
-          const data = JSON.parse(content);
+          const data = JSON5.parse(content);
 
           if (Array.isArray(data)) {
-                        const validProfiles = data.filter(item => {
+            const validProfiles = data.filter(item => {
               const validation = isValidCharacterProfileObject(item);
               return validation.valid;
+            }).map(item => {
+              const processed = { ...item };
+              if (!processed.$meta) {
+                processed.$meta = {};
+              }
+              processed.$meta.sourceFile = relativePath;
+              return processed;
             });
             if (validProfiles.length !== data.length) {
-              console.warn(`⚠️  [character-profiles-config] ${fileName}.json5 中有 ${data.length - validProfiles.length} 个无效角色配置对象被跳过`);
+              console.warn(`⚠️  [character-profiles-config] ${relativePath} 中有 ${data.length - validProfiles.length} 个无效角色配置对象被跳过`);
             }
             allCharacterProfiles = allCharacterProfiles.concat(validProfiles);
             hasChanges = true;
           } else if (typeof data === 'object' && data !== null) {
             const validation = isValidCharacterProfileObject(data);
             if (validation.valid) {
-              allCharacterProfiles.push(data);
+              const processed = { ...data };
+              if (!processed.$meta) {
+                processed.$meta = {};
+              }
+              processed.$meta.sourceFile = relativePath;
+              allCharacterProfiles.push(processed);
               hasChanges = true;
             } else {
-              console.warn(`⚠️  [character-profiles-config] 跳过 ${file}: 角色配置对象格式无效`);
+              console.warn(`⚠️  [character-profiles-config] 跳过 ${relativePath}: 角色配置对象格式无效`);
             }
           } else {
-            console.warn(`⚠️  [character-profiles-config] 跳过 ${file}: 不是有效的角色配置数据格式`);
+            console.warn(`⚠️  [character-profiles-config] 跳过 ${relativePath}: 不是有效的角色配置数据格式`);
           }
         } catch (error) {
-          console.error(`❌ [character-profiles-config] 读取 ${file} 失败:`, error.message);
+          console.error(`❌ [character-profiles-config] 读取 ${relativePath} 失败:`, error.message);
         }
       }
 

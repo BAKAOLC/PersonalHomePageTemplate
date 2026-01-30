@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const JSON5 = require('json5');
 const { writeJSON5FileSync } = require('./json5-writer.cjs');
 
 // 配置
@@ -97,6 +98,47 @@ function isValidArticleObject(obj) {
 }
 
 /**
+ * 递归读取目录中的所有 JSON5 文件
+ * @param {string} dir - 目录路径
+ * @param {string} baseDir - 基础目录路径（用于计算相对路径）
+ * @returns {{ filePath: string, relativePath: string }[]} 文件路径和相对路径对象数组
+ */
+function getAllJsonFiles(dir, baseDir = dir) {
+  const results = [];
+  
+  if (!fs.existsSync(dir)) {
+    return results;
+  }
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      // 排除隐藏目录
+      if (!entry.name.startsWith('.')) {
+        results.push(...getAllJsonFiles(fullPath, baseDir));
+      }
+    } else if (entry.isFile()) {
+      // 只处理 .json5 文件
+      if (!entry.name.endsWith('.json5')) continue;
+      // 排除隐藏文件（以 . 开头）
+      if (entry.name.startsWith('.')) continue;
+      // 排除备份文件
+      if (entry.name.includes('.backup') || entry.name.includes('.bak')) continue;
+      // 排除临时文件
+      if (entry.name.includes('.tmp') || entry.name.includes('.temp')) continue;
+
+      const relativePath = path.relative(baseDir, fullPath);
+      results.push({ filePath: fullPath, relativePath });
+    }
+  }
+
+  return results.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+}
+
+/**
  * 从Markdown内容生成摘要
  */
 function generateSummaryFromMarkdown(content, maxLength = 150) {
@@ -180,8 +222,16 @@ function tryGenerateSummaryFromMarkdown(markdownPath) {
 /**
  * 处理文章对象，设置默认值
  */
-function processArticle(article) {
+function processArticle(article, sourceFilePath = null) {
   const processed = { ...article };
+
+  // 如果提供了源文件路径，保存为元数据（用于拆分时恢复目录结构）
+  if (sourceFilePath) {
+    if (!processed.$meta) {
+      processed.$meta = {};
+    }
+    processed.$meta.sourceFile = sourceFilePath;
+  }
 
   // 设置默认值
   if (processed.allowComments === undefined) {
@@ -215,22 +265,10 @@ async function mergeArticles() {
       return;
     }
 
-    // 读取所有 JSON 文件，排除隐藏文件和特殊文件
-    const files = fs.readdirSync(CONFIG.articlesDir)
-      .filter(file => {
-        // 只处理 .json5 文件
-        if (!file.endsWith('.json5')) return false;
-        // 排除隐藏文件（以 . 开头）
-        if (file.startsWith('.')) return false;
-        // 排除备份文件
-        if (file.includes('.backup') || file.includes('.bak')) return false;
-        // 排除临时文件
-        if (file.includes('.tmp') || file.includes('.temp')) return false;
-        return true;
-      })
-      .sort(); // 按文件名排序以保证一致性
+    // 读取所有 JSON 文件（包括子目录），排除隐藏文件和特殊文件
+    const fileObjects = getAllJsonFiles(CONFIG.articlesDir);
 
-    if (files.length === 0) {
+    if (fileObjects.length === 0) {
       console.log('📁 没有找到 JSON 文件，创建空的 articles.json5');
       // 创建空的配置文件
       writeJSON5FileSync(CONFIG.outputFile, [], 'articles');
@@ -244,7 +282,7 @@ async function mergeArticles() {
     const cache = await loadCache();
 
     // 计算所有配置文件的路径
-    const filePaths = files.map(file => path.join(CONFIG.articlesDir, file));
+    const filePaths = fileObjects.map(obj => obj.filePath);
 
     // 计算当前目录的哈希
     const currentHash = await calculateDirectoryHash(filePaths);
@@ -268,38 +306,38 @@ async function mergeArticles() {
     let totalCount = 0;
 
     // 合并所有文件
-    for (const file of files) {
-      const filePath = path.join(CONFIG.articlesDir, file);
-      const fileName = path.basename(file, '.json5');
+    for (const { filePath, relativePath } of fileObjects) {
+      const fileName = path.basename(relativePath, '.json5');
+      const fileDir = path.dirname(relativePath);
 
       try {
         const content = fs.readFileSync(filePath, 'utf8');
-        const data = JSON.parse(content);
+        const data = JSON5.parse(content);
 
         if (Array.isArray(data)) {
           // 验证数组中的每个对象
           const validArticles = data.filter(item => isValidArticleObject(item))
-            .map(item => processArticle(item));
+            .map(item => processArticle(item, relativePath));
           if (validArticles.length !== data.length) {
-            console.warn(`⚠️  ${fileName}.json5 中有 ${data.length - validArticles.length} 个无效文章对象被跳过`);
+            console.warn(`⚠️  ${relativePath} 中有 ${data.length - validArticles.length} 个无效文章对象被跳过`);
           }
           allArticles = allArticles.concat(validArticles);
-          console.log(`✅ 已合并 ${fileName}.json5 (${validArticles.length} 篇文章)`);
+          console.log(`✅ 已合并 ${relativePath} (${validArticles.length} 篇文章)`);
           totalCount += validArticles.length;
         } else if (typeof data === 'object' && data !== null) {
           // 如果是单个对象，验证并包装成数组
           if (isValidArticleObject(data)) {
-            allArticles.push(processArticle(data));
-            console.log(`✅ 已合并 ${fileName}.json5 (1 篇文章)`);
+            allArticles.push(processArticle(data, relativePath));
+            console.log(`✅ 已合并 ${relativePath} (1 篇文章)`);
             totalCount += 1;
           } else {
-            console.warn(`⚠️  跳过 ${file}: 文章对象格式无效`);
+            console.warn(`⚠️  跳过 ${relativePath}: 文章对象格式无效`);
           }
         } else {
-          console.warn(`⚠️  跳过 ${file}: 不是有效的文章数据格式`);
+          console.warn(`⚠️  跳过 ${relativePath}: 不是有效的文章数据格式`);
         }
       } catch (error) {
-        console.error(`❌ 读取 ${file} 失败:`, error.message);
+        console.error(`❌ 读取 ${relativePath} 失败:`, error.message);
       }
     }
 
@@ -329,9 +367,9 @@ async function mergeArticles() {
     writeJSON5FileSync(CONFIG.outputFile, uniqueArticles, 'articles');
 
     if (uniqueArticles.length === 0) {
-      console.log(`\n📝 成功处理 ${files.length} 个文件，但没有找到有效的文章配置，已创建空的 articles.json5！`);
+      console.log(`\n📝 成功处理 ${fileObjects.length} 个文件，但没有找到有效的文章配置，已创建空的 articles.json5！`);
     } else {
-      console.log(`\n🎉 成功合并 ${files.length} 个文件，共 ${uniqueArticles.length} 篇文章到 articles.json5！`);
+      console.log(`\n🎉 成功合并 ${fileObjects.length} 个文件，共 ${uniqueArticles.length} 篇文章到 articles.json5！`);
       if (totalCount !== uniqueArticles.length) {
         console.log(`📝 去重了 ${totalCount - uniqueArticles.length} 个重复项`);
       }
@@ -373,21 +411,38 @@ function splitArticles() {
 
     let createdFiles = 0;
 
-    // 为每篇文章创建单独的文件，以 ID 为文件名
+    // 为每篇文章创建单独的文件
     for (const article of articlesData) {
       if (!article.id) {
         console.warn('⚠️  跳过没有 ID 的文章');
         continue;
       }
 
-      // 清理文件名，移除不安全的字符
-      const safeFileName = article.id.replace(/[<>:"/\\|?*]/g, '-');
-      const fileName = `${safeFileName}.json5`;
-      const filePath = path.join(CONFIG.articlesDir, fileName);
+      // 创建输出对象的副本，移除元数据
+      const outputArticle = { ...article };
+      let targetPath;
+
+      // 如果有源文件路径元数据，使用它来保持目录结构
+      if (article.$meta?.sourceFile) {
+        targetPath = path.join(CONFIG.articlesDir, article.$meta.sourceFile);
+        delete outputArticle.$meta;
+      } else {
+        // 否则使用 ID 作为文件名放在根目录
+        const safeFileName = article.id.replace(/[<>:"/\\|?*]/g, '-');
+        const fileName = `${safeFileName}.json5`;
+        targetPath = path.join(CONFIG.articlesDir, fileName);
+      }
 
       try {
-        fs.writeFileSync(filePath, JSON.stringify(article, null, 2), 'utf8');
-        console.log(`✅ 已创建 ${fileName}`);
+        // 确保目标目录存在
+        const targetDir = path.dirname(targetPath);
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true });
+        }
+
+        fs.writeFileSync(targetPath, JSON.stringify(outputArticle, null, 2), 'utf8');
+        const relativePath = path.relative(CONFIG.articlesDir, targetPath);
+        console.log(`✅ 已创建 ${relativePath}`);
         createdFiles++;
       } catch (error) {
         console.error(`❌ 创建 ${fileName} 失败:`, error.message);

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const JSON5 = require('json5');
 const { writeJSON5FileSync } = require(path.resolve(__dirname, '../scripts/json5-writer.cjs'));
 
 /**
@@ -69,6 +70,47 @@ function imagesConfigPlugin() {
   }
 
   /**
+   * 递归读取目录中的所有 JSON5 文件
+   * @param {string} dir - 目录路径
+   * @param {string} baseDir - 基础目录路径（用于计算相对路径）
+   * @returns {{ filePath: string, relativePath: string }[]} 文件路径和相对路径对象数组
+   */
+  function getAllJsonFiles(dir, baseDir = dir) {
+    const results = [];
+    
+    if (!fs.existsSync(dir)) {
+      return results;
+    }
+
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        // 排除隐藏目录
+        if (!entry.name.startsWith('.')) {
+          results.push(...getAllJsonFiles(fullPath, baseDir));
+        }
+      } else if (entry.isFile()) {
+        // 只处理 .json5 文件
+        if (!entry.name.endsWith('.json5')) continue;
+        // 排除隐藏文件（以 . 开头）
+        if (entry.name.startsWith('.')) continue;
+        // 排除备份文件
+        if (entry.name.includes('.backup') || entry.name.includes('.bak')) continue;
+        // 排除临时文件
+        if (entry.name.includes('.tmp') || entry.name.includes('.temp')) continue;
+
+        const relativePath = path.relative(baseDir, fullPath);
+        results.push({ filePath: fullPath, relativePath });
+      }
+    }
+
+    return results.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  }
+
+  /**
    * 验证图片对象是否有效
    */
   function isValidImageObject(obj) {
@@ -93,18 +135,10 @@ function imagesConfigPlugin() {
         return false;
       }
 
-      // 读取所有 JSON 文件
-      const files = fs.readdirSync(CONFIG.imagesDir)
-        .filter(file => {
-          if (!file.endsWith('.json5')) return false;
-          if (file.startsWith('.')) return false;
-          if (file.includes('.backup') || file.includes('.bak')) return false;
-          if (file.includes('.tmp') || file.includes('.temp')) return false;
-          return true;
-        })
-        .sort();
+      // 读取所有 JSON 文件（包括子目录）
+      const fileObjects = getAllJsonFiles(CONFIG.imagesDir);
 
-      if (files.length === 0) {
+      if (fileObjects.length === 0) {
         console.log('📁 [images-config] 没有找到 JSON 文件，创建空的 images.json5');
         // 创建空的配置文件
         writeJSON5FileSync(CONFIG.outputFile, [], 'images');
@@ -118,7 +152,7 @@ function imagesConfigPlugin() {
       const cache = await loadCache();
       
       // 计算所有配置文件的路径
-      const filePaths = files.map(file => path.join(CONFIG.imagesDir, file));
+      const filePaths = fileObjects.map(obj => obj.filePath);
       
       // 计算当前目录的哈希
       const currentHash = await calculateDirectoryHash(filePaths);
@@ -136,32 +170,43 @@ function imagesConfigPlugin() {
       let hasChanges = false;
 
       // 合并所有文件
-      for (const file of files) {
-        const filePath = path.join(CONFIG.imagesDir, file);
-        const fileName = path.basename(file, '.json5');
-
+      for (const { filePath, relativePath } of fileObjects) {
         try {
           const content = fs.readFileSync(filePath, 'utf8');
-          const data = JSON.parse(content);
+          const data = JSON5.parse(content);
 
           if (Array.isArray(data)) {
-            const validImages = data.filter(item => isValidImageObject(item));
+            // 验证数组中的每个对象并添加元数据
+            const validImages = data.filter(item => isValidImageObject(item)).map(item => {
+              const processed = { ...item };
+              if (!processed.$meta) {
+                processed.$meta = {};
+              }
+              processed.$meta.sourceFile = relativePath;
+              return processed;
+            });
             if (validImages.length !== data.length) {
-              console.warn(`⚠️  [images-config] ${fileName}.json5 中有 ${data.length - validImages.length} 个无效图片对象被跳过`);
+              console.warn(`⚠️  [images-config] ${relativePath} 中有 ${data.length - validImages.length} 个无效图片对象被跳过`);
             }
             allImages = allImages.concat(validImages);
             hasChanges = true;
           } else if (typeof data === 'object' && data !== null) {
             if (isValidImageObject(data)) {
-              allImages.push(data);
+              const processed = { ...data };
+              if (!processed.$meta) {
+                processed.$meta = {};
+              }
+              processed.$meta.sourceFile = relativePath;
+              allImages.push(processed);
               hasChanges = true;
             } else {
-              console.warn(`⚠️  [images-config] 跳过 ${file}: 图片对象格式无效`);
+              console.warn(`⚠️  [images-config] 跳过 ${relativePath}: 图片对象格式无效`);
             }
           } else {
-            console.warn(`⚠️  [images-config] 跳过 ${file}: 不是有效的图片数据格式`);
+            console.warn(`⚠️  [images-config] 跳过 ${relativePath}: 不是有效的图片数据格式`);
           }
         } catch (error) {
+          console.error(`❌ [images-config] 读取 ${relativePath} 失败:`, error.message);
           console.error(`❌ [images-config] 读取 ${file} 失败:`, error.message);
         }
       }
@@ -201,7 +246,7 @@ function imagesConfigPlugin() {
 
       // 写入合并后的配置到输出文件
       writeJSON5FileSync(CONFIG.outputFile, uniqueImages, 'images');
-      console.log(`✅ [images-config] 成功合并 ${files.length} 个文件，共 ${uniqueImages.length} 个图片`);
+      console.log(`✅ [images-config] 成功合并 ${fileObjects.length} 个文件，共 ${uniqueImages.length} 个图片`);
 
       // 更新缓存
       cache[cacheKey] = currentHash;

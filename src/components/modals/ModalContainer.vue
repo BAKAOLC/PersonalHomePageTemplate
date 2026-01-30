@@ -100,6 +100,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .modal-container {
   @apply fixed inset-0;
   @apply pointer-events-none;
@@ -123,7 +125,7 @@ onBeforeUnmount(() => {
 
 .modal-mask {
   @apply absolute inset-0;
-  @apply bg-black bg-opacity-50;
+  @apply bg-black/50;
   @apply backdrop-blur-sm;
   @apply transition-all duration-300;
 }

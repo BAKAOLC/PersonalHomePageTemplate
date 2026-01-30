@@ -15,6 +15,8 @@ const { t } = useI18n();
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .not-found {
   @apply min-h-screen flex items-center justify-center;
   @apply bg-gray-50 dark:bg-gray-900;

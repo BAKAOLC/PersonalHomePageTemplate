@@ -713,6 +713,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .gallery-page {
   display: flex;
   flex-direction: column;

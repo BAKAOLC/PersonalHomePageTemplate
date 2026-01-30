@@ -86,6 +86,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .loading-screen {
   position: fixed;
   inset: 0;

@@ -387,6 +387,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .progressive-image {
   position: relative;
   width: 100%;

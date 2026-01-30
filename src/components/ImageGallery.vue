@@ -289,6 +289,8 @@ const viewImage = (image: DisplayImage): void => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .image-gallery {
   @apply w-full;
 }

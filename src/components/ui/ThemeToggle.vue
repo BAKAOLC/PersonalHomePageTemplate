@@ -49,6 +49,8 @@ const getThemeLabel = (): string => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";;
+
 .theme-toggle {
   @apply p-2 rounded-full transition-all duration-300;
   @apply text-gray-500 hover:text-gray-700;

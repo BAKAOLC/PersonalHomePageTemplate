@@ -247,6 +247,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .monaco-editor-wrapper {
   @apply w-full;
   @apply border border-gray-200 dark:border-gray-600;

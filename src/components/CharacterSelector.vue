@@ -92,6 +92,8 @@ const selectCharacter = (id: string): void => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .character-selector {
   margin-bottom: 0;
 }

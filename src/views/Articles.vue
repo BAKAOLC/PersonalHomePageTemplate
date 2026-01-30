@@ -1023,6 +1023,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .articles-page {
   @apply h-screen flex flex-col;
   @apply bg-gray-50 dark:bg-gray-900;

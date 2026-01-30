@@ -199,6 +199,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
 
 .personal-section {
   @apply h-full flex flex-col justify-center;
@@ -333,7 +334,7 @@ onMounted(() => {
   width: 120px;
   position: relative;
   /* 焦点管理 */
-  @apply focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50;
+  @apply focus:outline-none focus:ring-2 focus:ring-white/50;
   @apply focus:ring-offset-2 focus:ring-offset-gray-800;
   /* 键盘导航支持 */
   cursor: pointer;
@@ -386,7 +387,7 @@ onMounted(() => {
   animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: both;
   /* 焦点管理 */
-  @apply focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50;
+  @apply focus:outline-none focus:ring-2 focus:ring-white/50;
   @apply focus:ring-offset-2 focus:ring-offset-gray-800;
   /* 键盘导航支持 */
   text-decoration: none;

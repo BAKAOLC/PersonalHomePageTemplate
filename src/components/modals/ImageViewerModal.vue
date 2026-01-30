@@ -111,6 +111,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .image-viewer-modal {
   @apply w-full h-full;
 }

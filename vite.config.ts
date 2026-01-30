@@ -1,6 +1,7 @@
 import { createRequire } from 'module';
 import { resolve } from 'path';
 
+import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
@@ -33,6 +34,7 @@ export default defineConfig({
     characterProfilesConfigPlugin(),
     thumbnailPlugin(),
     vue(),
+    tailwindcss(),
     monacoEditorPlugin({
       languageWorkers: ['editorWorkerService', 'json'],
     }),

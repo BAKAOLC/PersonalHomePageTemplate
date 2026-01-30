@@ -87,6 +87,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .sort-selector {
   @apply relative;
 }

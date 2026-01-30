@@ -2729,6 +2729,8 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .fullscreen-viewer {
   position: fixed;
   inset: 0;

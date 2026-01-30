@@ -201,6 +201,8 @@ const handleFaviconError = (event: Event): void => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .author-links {
   @apply flex flex-wrap gap-2;
 }

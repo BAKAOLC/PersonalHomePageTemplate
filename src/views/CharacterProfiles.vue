@@ -512,6 +512,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 /* 页面基础样式 */
 .character-profiles-page {
   display: flex;

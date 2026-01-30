@@ -218,6 +218,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .json-viewer-modal {
   @apply w-[calc(100vw-1rem)] max-w-6xl;
   @apply min-h-[200px];

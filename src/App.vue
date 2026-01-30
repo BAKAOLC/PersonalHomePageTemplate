@@ -206,6 +206,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .app {
   @apply flex flex-col h-screen;
   @apply overflow-hidden;

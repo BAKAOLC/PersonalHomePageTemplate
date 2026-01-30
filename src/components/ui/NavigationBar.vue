@@ -247,6 +247,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";;
+
 .navigation-bar {
   @apply flex items-center justify-center;
   @apply w-full;

@@ -93,6 +93,8 @@ const selectTag = (id: string): void => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .tag-selector {
   margin-bottom: 0;
 }

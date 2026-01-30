@@ -590,6 +590,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .links-page {
   display: flex;
   flex-direction: column;

@@ -99,6 +99,8 @@ const onLeave = (el: Element): void => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .notification-container {
   position: fixed;
   top: 20px;

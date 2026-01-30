@@ -488,13 +488,15 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .article-viewer-modal {
   @apply relative;
   @apply w-full h-full;
   @apply flex items-center justify-center;
   /* 覆盖 ModalContainer 的样式 */
-  @apply transform-none !important;
-  @apply p-0 !important;
+  @apply !transform-none;
+  @apply !p-0;
 }
 
 .viewer-mask {

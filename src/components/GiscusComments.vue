@@ -66,6 +66,8 @@ const lang = computed(() => getGiscusLanguage(languageStore.currentLanguage));
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";
+
 .giscus-comments {
   width: 100%;
   height: 100%;

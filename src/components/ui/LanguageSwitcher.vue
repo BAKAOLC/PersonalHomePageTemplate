@@ -93,6 +93,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@reference "@/assets/styles/main.css";;
+
 .language-switcher {
   @apply relative;
 }

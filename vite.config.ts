@@ -10,6 +10,7 @@ const monacoEditorPlugin = require('vite-plugin-monaco-editor').default;
 
 const articlesConfigPlugin = require('./vite-plugins/articles-config-plugin.cjs');
 const characterProfilesConfigPlugin = require('./vite-plugins/character-profiles-config-plugin.cjs');
+const feedGeneratorPlugin = require('./vite-plugins/feed-generator-plugin.cjs');
 const htmlConfigPlugin = require('./vite-plugins/html-config-plugin.cjs');
 const imagesConfigPlugin = require('./vite-plugins/images-config-plugin.cjs');
 const json5Plugin = require('./vite-plugins/json5-plugin.cjs');
@@ -32,6 +33,7 @@ export default defineConfig({
     imagesConfigPlugin(),
     articlesConfigPlugin(),
     characterProfilesConfigPlugin(),
+    feedGeneratorPlugin(),
     thumbnailPlugin(),
     vue(),
     tailwindcss(),
@@ -49,6 +51,12 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
       },
+    },
+  },
+  server: {
+    middlewareMode: false,
+    fs: {
+      allow: ['.'],
     },
   },
 });

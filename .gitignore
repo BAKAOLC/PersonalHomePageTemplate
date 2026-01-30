@@ -31,6 +31,9 @@ src/config/articles.json5.backup
 src/config/character-profiles.json5
 src/config/character-profiles.json5.backup
 
+# Feed files (auto-generated)
+public/feeds/
+
 # Local env files
 .env
 .env.local

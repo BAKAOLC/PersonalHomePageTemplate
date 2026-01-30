@@ -236,6 +236,9 @@
           </div>
           </div>
 
+          <!-- Feed 链接 -->
+          <FeedLinks class="hidden md:block" />
+
           <!-- 移动端分类筛选切换按钮 - 在卡片下面 -->
           <div class="sidebar-toggle md:hidden" @click="toggleMobileSidebar">
             <i :class="getIconClass('filter')" class="icon"></i>
@@ -558,6 +561,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+import FeedLinks from '@/components/FeedLinks.vue';
 import ArticleViewerModal from '@/components/modals/ArticleViewerModal.vue';
 import { useEventManager } from '@/composables/useEventManager';
 import { useModalManager } from '@/composables/useModalManager';

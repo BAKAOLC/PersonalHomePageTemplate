@@ -73,6 +73,7 @@
           :alt="getI18nText(article.title, currentLanguage)"
           class="article-cover-image"
           role="img"
+          @click="openImageViewer(articleCover, getI18nText(article.title, currentLanguage))"
         />
       </div>
 
@@ -153,13 +154,15 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n';
 
 import GiscusComments from '@/components/GiscusComments.vue';
+import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
 import { useEventManager } from '@/composables/useEventManager';
+import { useModalManager } from '@/composables/useModalManager';
 import { useNotificationManager } from '@/composables/useNotificationManager';
 import { useScreenManager } from '@/composables/useScreenManager';
 import articleCategoriesConfig from '@/config/articles-categories.json5';
 import { siteConfig } from '@/config/site';
 import { useLanguageStore } from '@/stores/language';
-import type { Article, ArticleCategoriesConfig } from '@/types';
+import type { Article, ArticleCategoriesConfig, ExternalImageInfo } from '@/types';
 import { formatDate, getAdjacentArticles, getArticleContent, getArticleCover } from '@/utils/articles';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
@@ -199,6 +202,7 @@ const emit = defineEmits<Emits>();
 const languageStore = useLanguageStore();
 const notificationManager = useNotificationManager();
 const eventManager = useEventManager();
+const modalManager = useModalManager();
 const { t: $t } = useI18n();
 const { isMobile } = useScreenManager();
 
@@ -208,6 +212,7 @@ const viewerContent = ref<HTMLElement>();
 const isLoadingContent = ref(false);
 const contentLoadError = ref<string | null>(null);
 const articleContent = ref<string>('');
+const imageViewerModalId = ref<string | null>(null);
 
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
@@ -272,11 +277,96 @@ const renderMarkdown = (content: string): string => {
       return `<pre><code class="hljs">${highlighted}</code></pre>`;
     };
 
+    // 处理图片路径 - 将相对路径转换为绝对路径，并添加点击事件
+    renderer.image = (token: { href: string; title?: string | null; text: string }) => {
+      let { href } = token;
+      const { title, text } = token;
+
+      // 如果是相对路径（不以 / 或 http:// 或 https:// 开头）
+      if (href && !href.startsWith('/') && !href.startsWith('http://') && !href.startsWith('https://')) {
+        // 获取当前 markdown 文件的路径
+        const markdownPath = props.article.markdownPath;
+        if (markdownPath) {
+          // 获取当前语言的 markdown 路径
+          const currentPath =
+            typeof markdownPath === 'string'
+              ? markdownPath
+              : markdownPath[currentLanguage.value] || Object.values(markdownPath)[0];
+
+          if (currentPath) {
+            // 提取 markdown 文件所在的目录路径
+            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            // 构建完整的图片路径，添加前导斜杠
+            href = `/${dirPath}/${href}`;
+          }
+        }
+      }
+
+      // 构建 img 标签，添加点击事件的 data 属性
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<img src="${href}" alt="${text}"${titleAttr} loading="lazy" class="clickable-image" data-image-url="${href}" style="cursor: pointer;">`;
+    };
+
     return marked.parse(content, { renderer }) as string;
   } catch (error) {
     console.error('Markdown parsing error:', error);
     return content.replace(/\n/g, '<br>');
   }
+};
+
+// 打开图像查看器
+const openImageViewer = (imageUrl: string, altText: string): void => {
+  const externalImage: ExternalImageInfo = {
+    url: imageUrl,
+    name: altText || $t('common.image'),
+  };
+
+  imageViewerModalId.value = modalManager.open({
+    id: `article-image-viewer-${Date.now()}`,
+    component: ImageViewerModal,
+    props: {
+      externalImage: externalImage,
+      imageList: [],
+      viewerUIConfig: {
+        imageList: false,
+        imageGroupList: false,
+        viewerTitle: false,
+        infoPanel: {
+          title: false,
+          description: false,
+          artist: false,
+          date: false,
+          tags: false,
+        },
+        commentsButton: false,
+      },
+    },
+    options: {
+      fullscreen: true,
+      closable: true,
+      maskClosable: true,
+      escClosable: true,
+      destroyOnClose: true,
+    },
+    onClose: () => {
+      imageViewerModalId.value = null;
+    },
+  });
+};
+
+// 为 markdown 图片添加点击事件监听器
+const setupImageClickHandlers = (): void => {
+  if (!viewerContent.value) return;
+
+  const images = viewerContent.value.querySelectorAll('.markdown-content img.clickable-image');
+  images.forEach((img) => {
+    const imgElement = img as HTMLImageElement;
+    imgElement.addEventListener('click', () => {
+      const imageUrl = imgElement.getAttribute('data-image-url') || imgElement.src;
+      const altText = imgElement.alt || '';
+      openImageViewer(imageUrl, altText);
+    });
+  });
 };
 
 const close = (): void => {
@@ -361,6 +451,13 @@ watch(currentLanguage, () => {
   loadArticleContent();
 });
 
+// 监听内容渲染，设置图片点击事件
+watch(renderedContent, () => {
+  nextTick(() => {
+    setupImageClickHandlers();
+  });
+});
+
 // 键盘导航支持
 const handleKeydown = (event: KeyboardEvent): void => {
   if (event.key === 'Escape') {
@@ -378,6 +475,10 @@ onMounted(() => {
   if (viewerContainer.value) {
     viewerContainer.value.focus();
   }
+  // 初始设置图片点击事件
+  nextTick(() => {
+    setupImageClickHandlers();
+  });
 });
 
 onBeforeUnmount(() => {
@@ -513,6 +614,14 @@ onBeforeUnmount(() => {
   @apply w-full h-auto object-contain;
   @apply rounded-lg;
   @apply max-h-[60vh];
+  @apply cursor-pointer;
+  @apply transition-all duration-300;
+  @apply border border-gray-200 dark:border-gray-700;
+}
+
+.article-cover-image:hover {
+  @apply shadow-lg scale-[1.02];
+  @apply border-primary-400 dark:border-primary-600;
 }
 
 .article-content-section {
@@ -652,6 +761,16 @@ onBeforeUnmount(() => {
   @apply max-w-full h-auto rounded-lg mb-4;
   @apply border border-gray-200 dark:border-gray-700;
   @apply shadow-sm;
+}
+
+/* 可点击图片的悬停效果 */
+.markdown-content :deep(img.clickable-image) {
+  @apply transition-all duration-300;
+}
+
+.markdown-content :deep(img.clickable-image:hover) {
+  @apply shadow-lg scale-[1.02];
+  @apply border-primary-400 dark:border-primary-600;
 }
 
 .markdown-content :deep(table) {

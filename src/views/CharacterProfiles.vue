@@ -255,20 +255,20 @@ watch(displayInfoCards, () => {
 // 是否正在从URL初始化（避免循环更新）
 const isInitializingFromUrl = ref(false);
 
-// 更新URL参数
+// 更新URL参数（使用路径参数）
 const updateUrl = (characterId?: string, variantId?: string, imageId?: string): void => {
   // 如果正在从URL初始化，不更新URL
   if (isInitializingFromUrl.value) return;
 
-  const query: Record<string, string> = {};
-  if (characterId) query.character = characterId;
-  if (variantId) query.variant = variantId;
-  if (imageId) query.image = imageId;
+  const params: Record<string, string> = {};
+  if (characterId) params.character = characterId;
+  if (variantId) params.variant = variantId;
+  if (imageId) params.image = imageId;
 
   // 检查是否需要更新URL（避免不必要的更新）
-  const currentCharacter = route.query.character as string | undefined;
-  const currentVariant = route.query.variant as string | undefined;
-  const currentImage = route.query.image as string | undefined;
+  const currentCharacter = route.params.character as string | undefined;
+  const currentVariant = route.params.variant as string | undefined;
+  const currentImage = route.params.image as string | undefined;
 
   if (
     currentCharacter !== characterId
@@ -277,7 +277,7 @@ const updateUrl = (characterId?: string, variantId?: string, imageId?: string): 
   ) {
     router.replace({
       name: 'character-profiles',
-      query,
+      params,
     });
   }
 };
@@ -401,9 +401,9 @@ watch(selectedCharacter, () => {
 const initializeFromUrl = (): void => {
   isInitializingFromUrl.value = true;
 
-  const characterId = route.query.character as string | undefined;
-  const variantId = route.query.variant as string | undefined;
-  const imageId = route.query.image as string | undefined;
+  const characterId = route.params.character as string | undefined;
+  const variantId = route.params.variant as string | undefined;
+  const imageId = route.params.image as string | undefined;
 
   if (characterId && characterProfiles.value.length > 0) {
     const character = characterProfiles.value.find(c => c.id === characterId);
@@ -470,18 +470,18 @@ onMounted(() => {
 });
 
 // 监听路由变化，当URL参数改变时更新选择（仅在浏览器前进/后退时）
-watch(() => route.query, (newQuery, oldQuery) => {
+watch(() => route.params, (newParams, oldParams) => {
   // 如果正在初始化，跳过
   if (isInitializingFromUrl.value) return;
 
   // 检查是否是外部URL变化（浏览器前进/后退）
-  const newCharacterId = newQuery.character as string | undefined;
-  const newVariantId = newQuery.variant as string | undefined;
-  const newImageId = newQuery.image as string | undefined;
+  const newCharacterId = newParams.character as string | undefined;
+  const newVariantId = newParams.variant as string | undefined;
+  const newImageId = newParams.image as string | undefined;
 
-  const oldCharacterId = oldQuery?.character as string | undefined;
-  const oldVariantId = oldQuery?.variant as string | undefined;
-  const oldImageId = oldQuery?.image as string | undefined;
+  const oldCharacterId = oldParams?.character as string | undefined;
+  const oldVariantId = oldParams?.variant as string | undefined;
+  const oldImageId = oldParams?.image as string | undefined;
 
   // 只有当URL参数真正改变时才重新初始化
   if (

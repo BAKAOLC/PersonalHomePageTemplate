@@ -49,7 +49,7 @@ const router = createRouter({
       },
     },
     {
-      path: '/character-profiles',
+      path: '/character-profiles/:character?/:variant?/:image?',
       name: 'character-profiles',
       component: () => import('@/views/CharacterProfiles.vue'),
       meta: {
@@ -57,7 +57,7 @@ const router = createRouter({
       },
     },
     {
-      path: '/viewer/:imageId',
+      path: '/gallery/:imageId',
       name: 'image-viewer',
       component: () => import('@/views/Gallery.vue'),
       props: true,
@@ -66,7 +66,7 @@ const router = createRouter({
       },
     },
     {
-      path: '/viewer/:imageId/:childImageId',
+      path: '/gallery/:imageId/:childImageId',
       name: 'image-viewer-child',
       component: () => import('@/views/Gallery.vue'),
       props: true,

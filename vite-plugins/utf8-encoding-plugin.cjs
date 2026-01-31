@@ -11,7 +11,7 @@ const jschardet = require('jschardet');
 function utf8EncodingPlugin(options = {}) {
   const defaultOptions = {
     // 需要检查的文件扩展名
-    extensions: ['.vue', '.js', '.ts', '.json', '.css', '.scss', '.less', '.html', '.md', '.txt', '.cjs'],
+    extensions: ['.vue', '.js', '.ts', '.json', '.json5', '.css', '.scss', '.less', '.html', '.md', '.txt', '.cjs'],
     // 需要排除的目录
     excludeDirs: ['node_modules', 'dist', '.git', '.vscode'],
     // 是否在控制台显示详细信息

@@ -169,6 +169,7 @@ import { siteConfig } from '@/config/site';
 import { useGalleryStore } from '@/stores/gallery';
 import type { ExternalImageInfo, GroupImage, ImageBase } from '@/types';
 import { getIconClass } from '@/utils/icons';
+import { encodeKey, parseParam } from '@/utils/idHashMap';
 
 // Props for route parameters
 interface Props {
@@ -427,69 +428,78 @@ const toggleSortOrder = (): void => {
 };
 
 // 打开查看器
-const openViewer = (event: CustomEvent): void => {
-  if (event.detail && event.detail.imageId && typeof event.detail.imageId === 'string') {
-    const { imageId } = event.detail;
-    let childImageId: string | undefined;
+const openViewer = async (event: CustomEvent): Promise<void> => {
+  if (!(event.detail && event.detail.imageId && typeof event.detail.imageId === 'string')) {
+    console.warn('Invalid image ID, cannot open viewer');
+    return;
+  }
 
-    // 检查是否为图像组，如果是则导航到第一个子图像
-    const image = galleryStore.getImageById(imageId);
-    if (image && 'childImages' in image) {
-      // 图像组：设置子图像ID
-      const groupImage = image as GroupImage;
-      const firstValidChildId = galleryStore.getFirstValidChildId(groupImage);
-      if (firstValidChildId) {
-        childImageId = firstValidChildId;
-        router.push({
+  const { imageId } = event.detail;
+  let childImageId: string | undefined;
+
+  // 检查是否为图像组，如果是则导航到第一个子图像
+  const image = galleryStore.getImageById(imageId);
+  if (image && 'childImages' in image) {
+    // 图像组：设置子图像ID
+    const groupImage = image as GroupImage;
+    const firstValidChildId = galleryStore.getFirstValidChildId(groupImage);
+
+    if (firstValidChildId) {
+      childImageId = firstValidChildId;
+      // 尝试使用 hash 映射
+      const hashed = encodeKey([imageId, firstValidChildId]);
+      if (hashed) {
+        await router.push({ name: 'image-viewer', params: { imageId: hashed } });
+      } else {
+        await router.push({
           name: 'image-viewer-child',
           params: {
             imageId: imageId,
             childImageId: firstValidChildId,
           },
         });
-      } else {
-        // 如果没有有效的子图像，这个组图应该不会在过滤列表中出现
-        console.warn('Image group has no valid children, cannot open viewer');
-        return;
       }
     } else {
-      // 普通图像：导航到 /viewer/:imageId
-      router.push({
-        name: 'image-viewer',
-        params: { imageId: imageId },
-      });
+      // 如果没有有效的子图像，这个组图应该不会在过滤列表中出现
+      console.warn('Image group has no valid children, cannot open viewer');
+      return;
     }
-
-    // 设置模态框来源为画廊
-    isModalFromGallery.value = true;
-
-    // 使用模态管理器打开图像查看器
-    imageViewerModalId.value = modalManager.open({
-      id: `image-viewer-${Date.now()}`,
-      component: ImageViewerModal,
-      props: {
-        imageId: imageId,
-        childImageId: childImageId,
-        imageList: characterImages.value, // 画廊过滤后的图像列表
-        viewerUIConfig: siteConfig.features.viewerUI,
-        commentsUniqueId: imageId, // 使用图像ID作为评论区唯一ID
-        commentsPrefix: 'gallery-comment', // 使用gallery-comment前缀
-        onNavigate: handleViewerNavigate,
-      },
-      options: {
-        fullscreen: true,
-        closable: true,
-        maskClosable: true,
-        escClosable: true,
-        destroyOnClose: true,
-      },
-      onClose: closeViewer,
-    });
   } else {
-    console.warn('Invalid image ID, cannot open viewer');
+    // 普通图像：导航到 /gallery/:imageId
+    const hashed = encodeKey([imageId]);
+    if (hashed) {
+      await router.push({ name: 'image-viewer', params: { imageId: hashed } });
+    } else {
+      await router.push({ name: 'image-viewer', params: { imageId } });
+    }
   }
-};
 
+  // 设置模态框来源为画廊
+  isModalFromGallery.value = true;
+
+  // 使用模态管理器打开图像查看器（在导航完成后打开，避免被路由变更影响）
+  imageViewerModalId.value = modalManager.open({
+    id: `image-viewer-${Date.now()}`,
+    component: ImageViewerModal,
+    props: {
+      imageId: imageId,
+      childImageId: childImageId,
+      imageList: characterImages.value, // 画廊过滤后的图像列表
+      viewerUIConfig: siteConfig.features.viewerUI,
+      commentsUniqueId: imageId, // 使用图像ID作为评论区唯一ID
+      commentsPrefix: 'gallery-comment', // 使用gallery-comment前缀
+      onNavigate: handleViewerNavigate,
+    },
+    options: {
+      fullscreen: true,
+      closable: true,
+      maskClosable: true,
+      escClosable: true,
+      destroyOnClose: true,
+    },
+    onClose: closeViewer,
+  });
+};
 // 打开URL直接访问的查看器
 const openUrlViewer = (): void => {
   const urlData = getUrlImageData();
@@ -502,11 +512,11 @@ const openUrlViewer = (): void => {
     id: `url-image-viewer-${Date.now()}`,
     component: ImageViewerModal,
     props: {
-      imageId: props.imageId,
-      childImageId: props.childImageId,
+      imageId: urlData.lookupImageId ?? props.imageId,
+      childImageId: urlData.lookupChildId ?? props.childImageId,
       imageList: urlData.imageList,
       viewerUIConfig: urlData.viewerUIConfig,
-      commentsUniqueId: props.imageId ?? props.childImageId, // 使用图像ID或子图像ID作为评论区唯一ID
+      commentsUniqueId: urlData.lookupChildId ?? urlData.lookupImageId ?? props.imageId ?? props.childImageId, // 使用解码后的图像ID或子图像ID作为评论区唯一ID
       commentsPrefix: 'gallery-comment', // 使用gallery-comment前缀
       onNavigate: handleViewerNavigate,
     },
@@ -557,21 +567,15 @@ const openExternalImageViewer = (externalImage: any): void => {
 };
 
 // 处理查看器导航事件
-const handleViewerNavigate = (imageId: string, childImageId?: string): void => {
-  // 更新路由
-  if (childImageId) {
-    router.push({
-      name: 'image-viewer-child',
-      params: { imageId, childImageId },
-    });
-  } else {
-    router.push({
-      name: 'image-viewer',
-      params: { imageId },
-    });
+const handleViewerNavigate = async (imageId: string, childImageId?: string): Promise<void> => {
+  // 如果 childId 与 imageId 相同，但该 image 实际没有 childImages，则忽略 childId
+  if (childImageId && childImageId === imageId) {
+    const possibleImage = galleryStore.getImageById(imageId);
+    if (possibleImage && !('childImages' in possibleImage)) {
+      childImageId = undefined;
+    }
   }
 
-  // 更新模态框的props
   if (imageViewerModalId.value) {
     const modal = modalManager.getModal(imageViewerModalId.value);
     if (modal) {
@@ -582,6 +586,22 @@ const handleViewerNavigate = (imageId: string, childImageId?: string): void => {
         childImageId: childImageId,
         commentsUniqueId: currentViewingImageId,
       };
+    }
+  }
+
+  if (childImageId) {
+    const hashed = encodeKey([imageId, childImageId]);
+    if (hashed) {
+      await router.push({ name: 'image-viewer', params: { imageId: hashed } });
+    } else {
+      await router.push({ name: 'image-viewer-child', params: { imageId, childImageId } });
+    }
+  } else {
+    const hashed = encodeKey([imageId]);
+    if (hashed) {
+      await router.push({ name: 'image-viewer', params: { imageId: hashed } });
+    } else {
+      await router.push({ name: 'image-viewer', params: { imageId } });
     }
   }
 };
@@ -601,7 +621,12 @@ const closeViewer = (): void => {
 let unsubscribeScreenChange: (() => void) | null = null;
 
 // 处理URL直接访问的图像数据
-const getUrlImageData = (): { imageList: ImageBase[]; viewerUIConfig: any } => {
+const getUrlImageData = (): {
+  imageList: ImageBase[];
+  viewerUIConfig: any;
+  lookupImageId?: string;
+  lookupChildId?: string;
+} => {
   // URL直接访问的配置：隐藏图像列表，显示子图像列表
   const urlViewerConfig = {
     ...siteConfig.features.viewerUI,
@@ -613,9 +638,29 @@ const getUrlImageData = (): { imageList: ImageBase[]; viewerUIConfig: any } => {
     return { imageList: [], viewerUIConfig: urlViewerConfig };
   }
 
-  const image = galleryStore.getImageById(props.imageId);
+  // 统一解析路由参数（支持哈希或原始 id）
+  const parsedParam = parseParam(props.imageId);
+  let lookupImageId = parsedParam.parts[0] as string | undefined;
+  const lookupChildId: string | undefined = parsedParam.parts[1];
+  if (!lookupImageId && props.imageId) lookupImageId = props.imageId as string;
+  if (!lookupImageId) {
+    return { imageList: [], viewerUIConfig: urlViewerConfig };
+  }
+
+  const image = galleryStore.getImageById(lookupImageId);
   if (!image) {
     return { imageList: [], viewerUIConfig: urlViewerConfig };
+  }
+
+  // 如果存在 child id，优先返回包含该子图的组
+  if (lookupChildId) {
+    const childImage = galleryStore.getValidImagesInGroupWithoutFilter(image).filter(i => i.id === lookupChildId);
+    const resultImage: GroupImage = {
+      ...image,
+      childImages: childImage as ImageBase[],
+    };
+
+    return { imageList: [resultImage], viewerUIConfig: urlViewerConfig, lookupImageId, lookupChildId };
   }
 
   const childImage = galleryStore.getValidImagesInGroupWithoutFilter(image);
@@ -628,6 +673,8 @@ const getUrlImageData = (): { imageList: ImageBase[]; viewerUIConfig: any } => {
   const result = {
     imageList: [resultImage],
     viewerUIConfig: urlViewerConfig,
+    lookupImageId,
+    lookupChildId,
   };
   return result;
 };
@@ -639,10 +686,19 @@ const isModalFromGallery = ref(false);
 watch([() => props.imageId, () => props.childImageId, characterImages], () => {
   // 如果模态框已打开，更新其props
   if (imageViewerModalId.value) {
+    // 统一解析传入的 route props（支持哈希或原始 id），保证模态接收到原始 id
+    const parsedImage = parseParam(props.imageId);
+    const decodedImageId = parsedImage.parts[0] ?? props.imageId;
+    let decodedChildId: string | undefined = parsedImage.parts[1];
+    if (!decodedChildId && props.childImageId) {
+      const parsedChild = parseParam(props.childImageId);
+      decodedChildId = parsedChild.parts[0] ?? parsedChild.parts[1] ?? props.childImageId;
+    }
+
     const targetProps = {
-      imageId: props.imageId,
-      childImageId: props.childImageId,
-      commentsUniqueId: props.childImageId ?? props.imageId,
+      imageId: decodedImageId,
+      childImageId: decodedChildId,
+      commentsUniqueId: decodedChildId ?? decodedImageId,
       commentsPrefix: 'gallery-comment',
       onNavigate: handleViewerNavigate,
     };

@@ -31,6 +31,9 @@ src/config/articles.json5.backup
 src/config/character-profiles.json5
 src/config/character-profiles.json5.backup
 
+# ID hash map file (auto-generated)
+src/config/id-hash-map.json
+
 # Feed files (auto-generated)
 public/feeds/
 

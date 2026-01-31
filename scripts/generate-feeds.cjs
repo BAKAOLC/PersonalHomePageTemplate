@@ -93,7 +93,20 @@ function generateRSSFeed(articles, siteConfig, language = 'en') {
     .map(article => {
       const title = escapeXml(getText(article.title, language));
       const description = escapeXml(getText(article.summary || article.content || '', language));
-      const link = `${baseUrl}/#/articles/${encodeURIComponent(article.id)}`;
+      // 使用 id-hash-map（如存在）替换 id 部分
+      let idPart = encodeURIComponent(article.id);
+      try {
+        const mapPath = path.resolve(__dirname, '../src/config/id-hash-map.json');
+        if (fs.existsSync(mapPath)) {
+          const map = JSON5.parse(fs.readFileSync(mapPath, 'utf8'));
+          // 优先使用未编码的原始 id 查找，其次尝试编码后的 key
+          if (map[article.id]) idPart = map[article.id];
+          else if (map[encodeURIComponent(article.id)]) idPart = map[encodeURIComponent(article.id)];
+        }
+      } catch {
+        // ignore
+      }
+      const link = `${baseUrl}/#/articles/${idPart}`;
       const pubDate = new Date(article.date).toUTCString();
       const guid = `${baseUrl}/articles/${encodeURIComponent(article.id)}`;
 
@@ -132,7 +145,18 @@ function generateAtomFeed(articles, siteConfig, language = 'en') {
     .map(article => {
       const title = escapeXml(getText(article.title, language));
       const summary = escapeXml(getText(article.summary || article.content || '', language));
-      const link = `${baseUrl}/#/articles/${encodeURIComponent(article.id)}`;
+      let idPart = encodeURIComponent(article.id);
+      try {
+        const mapPath = path.resolve(__dirname, '../src/config/id-hash-map.json');
+        if (fs.existsSync(mapPath)) {
+          const map = JSON5.parse(fs.readFileSync(mapPath, 'utf8'));
+          if (map[article.id]) idPart = map[article.id];
+          else if (map[encodeURIComponent(article.id)]) idPart = map[encodeURIComponent(article.id)];
+        }
+      } catch {
+        // ignore
+      }
+      const link = `${baseUrl}/#/articles/${idPart}`;
       const id = `${baseUrl}/articles/${encodeURIComponent(article.id)}`;
       const updated = new Date(article.date).toISOString();
 
@@ -167,7 +191,18 @@ function generateJsonFeed(articles, siteConfig, language = 'en') {
     .slice(0, 50)
     .map(article => ({
       id: `${baseUrl}/articles/${encodeURIComponent(article.id)}`,
-      url: `${baseUrl}/#/articles/${encodeURIComponent(article.id)}`,
+      url: (() => {
+        try {
+          const mapPath = path.resolve(__dirname, '../src/config/id-hash-map.json');
+          if (fs.existsSync(mapPath)) {
+            const map = JSON5.parse(fs.readFileSync(mapPath, 'utf8'));
+            if (map[article.id]) return `${baseUrl}/#/articles/${map[article.id]}`;
+            if (map[encodeURIComponent(article.id)]) return `${baseUrl}/#/articles/${map[encodeURIComponent(article.id)]}`;
+          }
+        } catch {
+          return `${baseUrl}/#/articles/${encodeURIComponent(article.id)}`;
+        }
+      })(),
       title: getText(article.title, language),
       summary: getText(article.summary || article.content || '', language),
       date_published: article.date,

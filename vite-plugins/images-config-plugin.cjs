@@ -280,7 +280,7 @@ function imagesConfigPlugin() {
       watcher.add(CONFIG.imagesDir);
 
       watcher.on('change', async (filePath) => {
-        if (filePath.startsWith(CONFIG.imagesDir) && filePath.endsWith('.json')) {
+        if (filePath.startsWith(CONFIG.imagesDir) && filePath.endsWith('.json5')) {
           console.log(`🔄 [images-config] 检测到配置文件变化: ${path.basename(filePath)}`);
           if (await mergeImagesConfig()) {
             // 触发热重载
@@ -292,7 +292,7 @@ function imagesConfigPlugin() {
       });
 
       watcher.on('add', async (filePath) => {
-        if (filePath.startsWith(CONFIG.imagesDir) && filePath.endsWith('.json')) {
+        if (filePath.startsWith(CONFIG.imagesDir) && filePath.endsWith('.json5')) {
           console.log(`➕ [images-config] 检测到新配置文件: ${path.basename(filePath)}`);
           if (await mergeImagesConfig()) {
             server.ws.send({
@@ -303,7 +303,7 @@ function imagesConfigPlugin() {
       });
 
       watcher.on('unlink', async (filePath) => {
-        if (filePath.startsWith(CONFIG.imagesDir) && filePath.endsWith('.json')) {
+        if (filePath.startsWith(CONFIG.imagesDir) && filePath.endsWith('.json5')) {
           console.log(`🗑️  [images-config] 检测到配置文件删除: ${path.basename(filePath)}`);
           if (await mergeImagesConfig()) {
             server.ws.send({

@@ -585,6 +585,7 @@ import {
 } from '@/utils/articles';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
+import { encodeKey, parseParam } from '@/utils/idHashMap';
 
 // Props for route parameters
 interface Props {
@@ -852,7 +853,9 @@ const paginationButtons = computed(() => {
 // 创建文章查看器模态框的辅助函数
 const createArticleViewerModal = (article: Article): ModalConfig => {
   // 生成文章链接
-  const articleLink = `${window.location.origin}${window.location.pathname}#/articles/${article.id}`;
+  const hashedArticle = encodeKey([article.id]);
+  const articleParam = hashedArticle ?? article.id;
+  const articleLink = `${window.location.origin}${window.location.pathname}#/articles/${articleParam}`;
   return {
     id: `article-viewer-${Date.now()}`,
     component: ArticleViewerModal,
@@ -883,7 +886,8 @@ const openArticle = (article: Article): void => {
   articleViewerModalId.value = modalManager.open(createArticleViewerModal(article));
 
   // 更新URL但不刷新页面
-  router.push({ name: 'article-detail', params: { articleId: article.id } });
+  const articleParam = encodeKey([article.id]) ?? article.id;
+  router.push({ name: 'article-detail', params: { articleId: articleParam } });
 };
 
 const closeArticle = (): void => {
@@ -912,24 +916,29 @@ const navigateToArticle = (articleId: string): void => {
     // 打开新文章模态框
     articleViewerModalId.value = modalManager.open(createArticleViewerModal(article));
 
-    // 更新URL
-    router.push({ name: 'article-detail', params: { articleId: article.id } });
+    // 更新URL（优先使用哈希）
+    const hashed = encodeKey([article.id]);
+    router.push({ name: 'article-detail', params: { articleId: hashed ?? article.id } });
   }
 };
 
 // 从URL参数打开文章
 const openArticleFromRoute = (): void => {
-  const articleId = props.articleId ?? route.params.articleId as string;
-  if (articleId) {
-    const article = articles.value.find(a => a.id === articleId);
-    if (article) {
-      selectedArticle.value = article;
+  const rawParam = props.articleId ?? route.params.articleId as string;
+  if (rawParam) {
+    const parsed = parseParam(rawParam);
+    const articleId = parsed.parts.length > 0 ? parsed.parts.join('/') : rawParam;
+    if (articleId) {
+      const article = articles.value.find(a => a.id === articleId);
+      if (article) {
+        selectedArticle.value = article;
 
-      // 使用模态管理器打开文章查看器
-      articleViewerModalId.value = modalManager.open(createArticleViewerModal(article));
-    } else {
-      // 如果文章不存在，重定向到文章列表
-      router.replace({ name: 'articles' });
+        // 使用模态管理器打开文章查看器
+        articleViewerModalId.value = modalManager.open(createArticleViewerModal(article));
+      } else {
+        // 如果文章不存在，重定向到文章列表
+        router.replace({ name: 'articles' });
+      }
     }
   }
 };

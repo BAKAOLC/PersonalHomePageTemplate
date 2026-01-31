@@ -3,6 +3,7 @@ import { createRouter, createWebHashHistory, type NavigationGuardNext, type Rout
 import { siteConfig } from '@/config/site';
 import { titleManager } from '@/services/titleManager';
 import { useGalleryStore } from '@/stores/gallery';
+import { parseParam } from '@/utils/idHashMap';
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -140,26 +141,37 @@ router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized, 
 
   // 检查是否访问单个图像路由且imageId是图像组
   if (to.name === 'image-viewer' && to.params.imageId) {
-    const imageId = to.params.imageId as string;
-    const image = siteConfig.images.find(img => img.id === imageId);
+    const rawParam = to.params.imageId as string;
+
+    // 统一解析路由参数（支持哈希或原始 id）
+    const parsed = parseParam(rawParam);
+
+    // 如果参数是哈希，保持当前路由（不要将哈希替换为原始 id 的重定向），由视图组件解码并处理
+    if (parsed.isHash) {
+      return next();
+    }
+
+    const lookupImageId = parsed.parts[0];
+    const lookupChildId: string | undefined = parsed.parts[1];
+    const image = siteConfig.images.find(img => img.id === lookupImageId);
 
     // 如果是图像组（有childImages），自动重定向到第一个可用子图像
     if (image?.childImages) {
       const galleryStore = useGalleryStore();
       const firstValidChildId = galleryStore.getFirstValidChildId(image);
 
-      if (firstValidChildId && firstValidChildId !== imageId) {
-        console.log(`Redirect image group to child image: ${imageId} -> ${firstValidChildId}`);
-      }
+      const targetChild = lookupChildId ?? firstValidChildId;
 
-      return next({
-        name: 'image-viewer-child',
-        params: {
-          imageId: imageId,
-          childImageId: firstValidChildId,
-        },
-        replace: true, // 使用replace避免在历史记录中留下无效的路由
-      });
+      if (targetChild && targetChild !== lookupImageId) {
+        return next({
+          name: 'image-viewer-child',
+          params: {
+            imageId: lookupImageId,
+            childImageId: targetChild,
+          },
+          replace: true,
+        });
+      }
     }
   }
 

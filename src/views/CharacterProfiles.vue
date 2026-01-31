@@ -163,6 +163,7 @@ import type { CharacterProfile, CharacterVariant, CharacterVariantImage } from '
 import { CharacterConfigManager } from '@/utils/characterConfigManager';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
+import { encodeKey, parseParam } from '@/utils/idHashMap';
 
 // 导入角色设定配置
 
@@ -261,9 +262,18 @@ const updateUrl = (characterId?: string, variantId?: string, imageId?: string): 
   if (isInitializingFromUrl.value) return;
 
   const params: Record<string, string> = {};
-  if (characterId) params.character = characterId;
-  if (variantId) params.variant = variantId;
-  if (imageId) params.image = imageId;
+  // 采用合并 key 的方式查询 hash
+  const keyParts = [characterId, variantId, imageId].filter(Boolean) as string[];
+  if (keyParts.length > 0) {
+    const hashed = encodeKey(keyParts);
+    if (hashed) {
+      params.character = hashed;
+    } else if (characterId) {
+      params.character = characterId;
+      if (variantId) params.variant = variantId;
+      if (imageId) params.image = imageId;
+    }
+  }
 
   // 检查是否需要更新URL（避免不必要的更新）
   const currentCharacter = route.params.character as string | undefined;
@@ -271,9 +281,9 @@ const updateUrl = (characterId?: string, variantId?: string, imageId?: string): 
   const currentImage = route.params.image as string | undefined;
 
   if (
-    currentCharacter !== characterId
-    || currentVariant !== variantId
-    || currentImage !== imageId
+    currentCharacter !== params.character
+    || currentVariant !== params.variant
+    || currentImage !== params.image
   ) {
     router.replace({
       name: 'character-profiles',
@@ -401,9 +411,20 @@ watch(selectedCharacter, () => {
 const initializeFromUrl = (): void => {
   isInitializingFromUrl.value = true;
 
-  const characterId = route.params.character as string | undefined;
-  const variantId = route.params.variant as string | undefined;
-  const imageId = route.params.image as string | undefined;
+  // 支持以 hash 作为单一参数（优先）或老式的分段参数
+  let characterId = route.params.character as string | undefined;
+  let variantId = route.params.variant as string | undefined;
+  let imageId = route.params.image as string | undefined;
+
+  // 如果 characterId 看起来像 hash，尝试解码为原始 key
+  if (characterId) {
+    const parsed = parseParam(characterId);
+    if (parsed.isHash && parsed.parts.length > 0) {
+      characterId = parsed.parts[0];
+      variantId = parsed.parts[1];
+      imageId = parsed.parts[2];
+    }
+  }
 
   if (characterId && characterProfiles.value.length > 0) {
     const character = characterProfiles.value.find(c => c.id === characterId);

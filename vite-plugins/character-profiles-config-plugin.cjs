@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+
 const JSON5 = require('json5');
+
 const { writeJSON5FileSync } = require(path.resolve(__dirname, '../scripts/json5-writer.cjs'));
 
 /**
@@ -20,7 +22,7 @@ function characterProfilesConfigPlugin() {
    */
   function getAllJsonFiles(dir, baseDir = dir) {
     const results = [];
-    
+
     if (!fs.existsSync(dir)) {
       return results;
     }
@@ -236,7 +238,7 @@ function characterProfilesConfigPlugin() {
       console.error(`❌ [character-profiles-config] 角色 ${obj.id} 验证失败:`);
       errors.forEach(error => console.error(`   ${error}`));
     }
-    
+
     if (warnings.length > 0) {
       console.warn(`⚠️  [character-profiles-config] 角色 ${obj.id} 验证警告:`);
       warnings.forEach(warning => console.warn(`   ${warning}`));
@@ -352,8 +354,8 @@ function characterProfilesConfigPlugin() {
         return 0;
       });
 
-    // 写入合并后的配置到输出文件
-    writeJSON5FileSync(CONFIG.outputFile, uniqueProfiles, 'characterProfiles');
+      // 写入合并后的配置到输出文件
+      writeJSON5FileSync(CONFIG.outputFile, uniqueProfiles, 'characterProfiles');
     } catch (error) {
       console.error('❌ [character-profiles-config] 合并失败:', error.message);
       return false;

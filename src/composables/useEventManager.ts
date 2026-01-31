@@ -13,13 +13,13 @@ export interface EventManager {
     eventName: string,
     handler: (event: T) => void,
     options?: AddEventListenerOptions,
-    target?: EventTarget
+    target?: EventTarget,
   ) => void;
   removeEventListener: <T extends Event = Event>(
     eventName: string,
     handler: (event: T) => void,
     options?: boolean | { passive?: boolean; capture?: boolean },
-    target?: EventTarget
+    target?: EventTarget,
   ) => void;
   removeAllListeners: (target?: EventTarget) => void;
   getActiveListenersCount: (target?: EventTarget) => number;

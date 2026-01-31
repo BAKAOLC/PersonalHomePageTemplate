@@ -131,6 +131,23 @@ const baseQualityRules = {
   semi: 'off', // 使用 @stylistic 版本
 };
 
+// JSON/JSON5 使用规则
+const json5Rules = {
+  'no-restricted-properties': [
+    'error',
+    {
+      object: 'JSON',
+      property: 'parse',
+      message: '请使用 JSON5.parse 替代 JSON.parse，除非必须解析严格 JSON',
+    },
+    {
+      object: 'JSON',
+      property: 'stringify',
+      message: '请使用 JSON5.stringify 替代 JSON.stringify，除非必须生成严格 JSON',
+    },
+  ],
+};
+
 // TypeScript 规则
 const typescriptRules = {
   '@typescript-eslint/no-empty-function': 'warn',
@@ -326,6 +343,7 @@ export default [
       ...vuePlugin.configs['flat/recommended'].rules,
       ...baseQualityRules,
       ...baseStylisticRules,
+      ...json5Rules,
       ...typescriptRules,
       ...vueRules,
       ...importRules,
@@ -375,6 +393,7 @@ export default [
       ...vuePlugin.configs['flat/recommended'].rules,
       ...baseQualityRules,
       ...baseStylisticRules,
+      ...json5Rules,
       ...vueTypescriptRules, // 使用 Vue 专用的 TypeScript 规则
       ...vueRules,
       ...importRules,
@@ -420,6 +439,7 @@ export default [
       ...js.configs.recommended.rules,
       ...baseQualityRules,
       ...baseStylisticRules,
+      ...json5Rules,
       ...typescriptRules,
       ...importRules,
       // 行长度限制
@@ -465,6 +485,7 @@ export default [
       ...js.configs.recommended.rules,
       ...baseQualityRules,
       ...baseStylisticRules,
+      ...json5Rules,
       ...importRules,
       // 禁用 TypeScript 相关规则
       '@typescript-eslint/explicit-function-return-type': 'off',
@@ -498,6 +519,7 @@ export default [
       ...js.configs.recommended.rules,
       ...baseQualityRules,
       ...baseStylisticRules,
+      ...json5Rules,
       ...importRules,
       // 禁用 TypeScript 相关规则
       '@typescript-eslint/explicit-function-return-type': 'off',
@@ -522,7 +544,6 @@ export default [
       '.eslintcache',
       'eslint_output.log',
       'public/**',
-      'vite-plugins/**',
     ],
   },
 ];

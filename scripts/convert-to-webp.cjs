@@ -1,6 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const readline = require('readline');
+
 const sharp = require('sharp');
 
 const CONFIG = {
@@ -205,7 +206,7 @@ if (require.main === module) {
   // 解析命令行参数
   const args = process.argv.slice(2);
   const skipConfirmation = args.includes('--yes') || args.includes('-y');
-  
+
   main(skipConfirmation).catch((error) => {
     console.error('转换图像时发生错误:', error);
     process.exit(1);

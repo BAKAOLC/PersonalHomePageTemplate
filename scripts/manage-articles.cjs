@@ -1,7 +1,9 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
 const JSON5 = require('json5');
+
 const { writeJSON5FileSync } = require('./json5-writer.cjs');
 
 // 配置
@@ -33,7 +35,7 @@ async function getFileHash(filePath) {
 async function loadCache() {
   try {
     const cacheData = await fs.promises.readFile(CONFIG.cacheFile, 'utf8');
-    return JSON.parse(cacheData);
+    return JSON5.parse(cacheData);
   } catch {
     return {};
   }
@@ -45,6 +47,7 @@ async function loadCache() {
  * @returns {Promise<void>}
  */
 async function saveCache(cache) {
+  // eslint-disable-next-line no-restricted-properties
   await fs.promises.writeFile(CONFIG.cacheFile, JSON.stringify(cache, null, 2));
 }
 
@@ -105,7 +108,7 @@ function isValidArticleObject(obj) {
  */
 function getAllJsonFiles(dir, baseDir = dir) {
   const results = [];
-  
+
   if (!fs.existsSync(dir)) {
     return results;
   }
@@ -307,8 +310,8 @@ async function mergeArticles() {
 
     // 合并所有文件
     for (const { filePath, relativePath } of fileObjects) {
-      const fileName = path.basename(relativePath, '.json5');
-      const fileDir = path.dirname(relativePath);
+      const _fileName = path.basename(relativePath, '.json5');
+      const _fileDir = path.dirname(relativePath);
 
       try {
         const content = fs.readFileSync(filePath, 'utf8');
@@ -406,7 +409,7 @@ function splitArticles() {
       fs.mkdirSync(CONFIG.articlesDir, { recursive: true });
     }
 
-    const articlesData = JSON.parse(fs.readFileSync(CONFIG.outputFile, 'utf8'));
+    const articlesData = JSON5.parse(fs.readFileSync(CONFIG.outputFile, 'utf8'));
     console.log(`📖 读取到 ${articlesData.length} 篇文章`);
 
     let createdFiles = 0;
@@ -440,12 +443,12 @@ function splitArticles() {
           fs.mkdirSync(targetDir, { recursive: true });
         }
 
-        fs.writeFileSync(targetPath, JSON.stringify(outputArticle, null, 2), 'utf8');
+        fs.writeFileSync(targetPath, JSON5.stringify(outputArticle, null, 2), 'utf8');
         const relativePath = path.relative(CONFIG.articlesDir, targetPath);
         console.log(`✅ 已创建 ${relativePath}`);
         createdFiles++;
       } catch (error) {
-        console.error(`❌ 创建 ${fileName} 失败:`, error.message);
+        console.error(`❌ 创建 ${path.basename(targetPath)} 失败:`, error.message);
       }
     }
 

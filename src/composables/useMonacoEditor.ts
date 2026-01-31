@@ -1,3 +1,4 @@
+import JSON5 from 'json5';
 import * as monaco from 'monaco-editor';
 import { getCurrentInstance, onBeforeUnmount, ref, type Ref } from 'vue';
 
@@ -194,8 +195,8 @@ export function useMonacoEditor(): MonacoEditorInstance {
       const language = editor.value.getModel()?.getLanguageId();
 
       if (language === 'json') {
-        const parsed = JSON.parse(content);
-        const formatted = JSON.stringify(parsed, null, 2);
+        const parsed = JSON5.parse(content);
+        const formatted = JSON5.stringify(parsed, null, 2);
         editor.value.setValue(formatted);
       } else {
         // 使用Monaco Editor的格式化功能

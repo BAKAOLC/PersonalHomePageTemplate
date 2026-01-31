@@ -1379,7 +1379,6 @@ onBeforeUnmount(() => {
   @apply w-4 h-4;
 }
 
-
 .category-filter {
   @apply bg-white dark:bg-gray-800;
   @apply border border-gray-200 dark:border-gray-700;

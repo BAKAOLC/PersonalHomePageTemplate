@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+
 const JSON5 = require('json5');
 
 const CONFIG = {
@@ -173,6 +174,7 @@ function generateJsonFeed(articles, siteConfig, language = 'en') {
       content_html: getText(article.content || '', language),
     }));
 
+  // eslint-disable-next-line no-restricted-properties
   return JSON.stringify(
     {
       version: 'https://jsonfeed.org/version/1.1',
@@ -183,7 +185,7 @@ function generateJsonFeed(articles, siteConfig, language = 'en') {
       items,
     },
     null,
-    2
+    2,
   );
 }
 

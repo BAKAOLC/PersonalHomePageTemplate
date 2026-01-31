@@ -14,15 +14,15 @@ const JSON5 = require('json5');
 function formatJSON5(data, fileType = 'config') {
   // 生成头部注释
   const header = generateHeader(fileType);
-  
+
   // 使用 JSON5.stringify 生成基础 JSON5
   // 注意：JSON5.stringify 不会自动添加尾随逗号，我们需要手动处理
-  const jsonString = JSON.stringify(data, null, 2);
-  
+  const jsonString = JSON5.stringify(data, null, 2);
+
   // 添加尾随逗号
   const json5String = addTrailingCommas(jsonString);
-  
-  return header + json5String + '\n';
+
+  return `${header + json5String}\n`;
 }
 
 /**
@@ -32,7 +32,7 @@ function formatJSON5(data, fileType = 'config') {
  */
 function generateHeader(fileType) {
   const now = new Date().toISOString().replace('T', ' ').replace('Z', '');
-  
+
   const headers = {
     images: `// 图片配置文件
 // 此文件由脚本自动生成，请勿手动编辑
@@ -61,7 +61,7 @@ function generateHeader(fileType) {
 
 `,
   };
-  
+
   return headers[fileType] || headers.config;
 }
 

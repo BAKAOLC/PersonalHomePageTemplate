@@ -1,7 +1,9 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
 const JSON5 = require('json5');
+
 const { writeJSON5FileSync } = require('./json5-writer.cjs');
 
 // 配置
@@ -33,7 +35,7 @@ async function getFileHash(filePath) {
 async function loadCache() {
   try {
     const cacheData = await fs.promises.readFile(CONFIG.cacheFile, 'utf8');
-    return JSON.parse(cacheData);
+    return JSON5.parse(cacheData);
   } catch {
     return {};
   }
@@ -45,6 +47,7 @@ async function loadCache() {
  * @returns {Promise<void>}
  */
 async function saveCache(cache) {
+  // eslint-disable-next-line no-restricted-properties
   await fs.promises.writeFile(CONFIG.cacheFile, JSON.stringify(cache, null, 2));
 }
 
@@ -75,7 +78,7 @@ async function calculateDirectoryHash(filePaths) {
  */
 function getAllJsonFiles(dir, baseDir = dir) {
   const results = [];
-  
+
   if (!fs.existsSync(dir)) {
     return results;
   }
@@ -150,7 +153,7 @@ async function mergeImages() {
     const fileObjects = getAllJsonFiles(CONFIG.imagesDir);
 
     if (fileObjects.length === 0) {
-        console.log('📁 没有找到 JSON5 文件，创建空的 images.json5');
+      console.log('📁 没有找到 JSON5 文件，创建空的 images.json5');
       // 创建空的配置文件
       writeJSON5FileSync(CONFIG.outputFile, [], 'images');
       console.log('✅ 已创建空的 images.json5 文件');
@@ -291,7 +294,7 @@ function splitImages() {
       fs.mkdirSync(CONFIG.imagesDir, { recursive: true });
     }
 
-    const imagesData = JSON.parse(fs.readFileSync(CONFIG.outputFile, 'utf8'));
+    const imagesData = JSON5.parse(fs.readFileSync(CONFIG.outputFile, 'utf8'));
     console.log(`📖 读取到 ${imagesData.length} 个图片`);
 
     let createdFiles = 0;
@@ -325,12 +328,12 @@ function splitImages() {
           fs.mkdirSync(targetDir, { recursive: true });
         }
 
-        fs.writeFileSync(targetPath, JSON.stringify(outputImage, null, 2), 'utf8');
+        fs.writeFileSync(targetPath, JSON5.stringify(outputImage, null, 2), 'utf8');
         const relativePath = path.relative(CONFIG.imagesDir, targetPath);
         console.log(`✅ 已创建 ${relativePath}`);
         createdFiles++;
       } catch (error) {
-        console.error(`❌ 创建 ${fileName} 失败:`, error.message);
+        console.error(`❌ 创建 ${path.basename(targetPath)} 失败:`, error.message);
       }
     }
 

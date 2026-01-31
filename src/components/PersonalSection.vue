@@ -97,12 +97,7 @@
             :target="button.type === 'external' ? '_blank' : undefined"
             :rel="button.type === 'external' ? 'noopener noreferrer' : undefined"
             class="action-button"
-            :style="{
-              '--button-color': button.color ?? '#667eea',
-              'animation-delay': actionButtonsWaitForLinks
-                ? `${actionButtonsInitialDelay + (personal.links.length * animationDelayInterval) + (index + 1) * actionButtonsAnimationDelayInterval}s`
-                : `${actionButtonsInitialDelay + (index + 1) * actionButtonsAnimationDelayInterval}s`
-            }"
+            :style="computeActionButtonStyle(button, index)"
             :aria-label="getI18nText(button.text, currentLanguage)"
             :title="button.type === 'external'
               ? $t('personal.openInNewWindow', { name: getI18nText(button.text, currentLanguage) })
@@ -148,11 +143,9 @@ const animationDelayInterval = computed(() => personal.animationDelayInterval ??
 const actionButtonsWaitForLinks = computed(() => personal.actionButtonsWaitForLinks ?? true);
 
 // 操作按钮动画延迟间隔（秒），默认使用通用的 animationDelayInterval
-const actionButtonsAnimationDelayInterval = computed(() => 
-  personal.actionButtonsAnimationDelayInterval !== undefined 
-    ? personal.actionButtonsAnimationDelayInterval 
-    : animationDelayInterval.value
-);
+const actionButtonsAnimationDelayInterval = computed(() => personal.actionButtonsAnimationDelayInterval !== undefined
+  ? personal.actionButtonsAnimationDelayInterval
+  : animationDelayInterval.value);
 
 // 操作按钮初始等待时间（秒），默认 0.1
 const actionButtonsInitialDelay = computed(() => personal.actionButtonsInitialDelay ?? 0.1);
@@ -195,6 +188,19 @@ const selectRandomBackground = (): void => {
 onMounted(() => {
   selectRandomBackground();
 });
+
+const computeActionButtonStyle = (button: any, index: number): Record<string, string> => {
+  const baseDelay = actionButtonsInitialDelay.value + (index + 1) * actionButtonsAnimationDelayInterval.value;
+  const extraLinksDelay = actionButtonsWaitForLinks.value
+    ? ((personal.links?.length ?? 0) * animationDelayInterval.value)
+    : 0;
+  const delay = baseDelay + extraLinksDelay;
+
+  return {
+    '--button-color': button.color ?? '#667eea',
+    'animation-delay': `${delay}s`,
+  } as Record<string, string>;
+};
 
 </script>
 
@@ -359,7 +365,6 @@ onMounted(() => {
     animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1), layoutTransition 0.3s ease-in-out 0.1s;
   }
 }
-
 
 /* 桌面端悬停效果 */
 @media (min-width: 641px) {

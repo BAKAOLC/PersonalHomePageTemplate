@@ -285,13 +285,13 @@ const renderMarkdown = (content: string): string => {
       // 如果是相对路径（不以 / 或 http:// 或 https:// 开头）
       if (href && !href.startsWith('/') && !href.startsWith('http://') && !href.startsWith('https://')) {
         // 获取当前 markdown 文件的路径
-        const markdownPath = props.article.markdownPath;
+        const { markdownPath } = props.article;
         if (markdownPath) {
           // 获取当前语言的 markdown 路径
-          const currentPath =
-            typeof markdownPath === 'string'
+          const currentPath
+            = typeof markdownPath === 'string'
               ? markdownPath
-              : markdownPath[currentLanguage.value] || Object.values(markdownPath)[0];
+              : markdownPath[currentLanguage.value] ?? Object.values(markdownPath)[0];
 
           if (currentPath) {
             // 提取 markdown 文件所在的目录路径
@@ -318,7 +318,7 @@ const renderMarkdown = (content: string): string => {
 const openImageViewer = (imageUrl: string, altText: string): void => {
   const externalImage: ExternalImageInfo = {
     url: imageUrl,
-    name: altText || $t('common.image'),
+    name: altText ?? $t('common.image'),
   };
 
   imageViewerModalId.value = modalManager.open({
@@ -362,8 +362,8 @@ const setupImageClickHandlers = (): void => {
   images.forEach((img) => {
     const imgElement = img as HTMLImageElement;
     imgElement.addEventListener('click', () => {
-      const imageUrl = imgElement.getAttribute('data-image-url') || imgElement.src;
-      const altText = imgElement.alt || '';
+      const imageUrl = imgElement.getAttribute('data-image-url') ?? imgElement.src;
+      const altText = imgElement.alt ?? '';
       openImageViewer(imageUrl, altText);
     });
   });

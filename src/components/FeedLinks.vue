@@ -12,7 +12,7 @@ const feeds = computed(() => {
   const currentLang = languageStore.currentLanguage;
   // 假设英语是默认语言，其他语言添加后缀
   const langSuffix = currentLang === 'en' ? '' : `.${currentLang}`;
-  
+
   return [
     {
       name: 'RSS',

@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const fs = require('fs').promises;
 const path = require('path');
 
+const JSON5 = require('json5');
 const sharp = require('sharp');
 
 // 配置
@@ -63,7 +64,7 @@ async function getFileHash(filePath) {
 async function loadCache() {
   try {
     const cacheData = await fs.readFile(CONFIG.cacheFile, 'utf8');
-    return JSON.parse(cacheData);
+    return JSON5.parse(cacheData);
   } catch {
     return {};
   }
@@ -75,6 +76,7 @@ async function loadCache() {
  * @returns {Promise<void>}
  */
 async function saveCache(cache) {
+  // eslint-disable-next-line no-restricted-properties
   await fs.writeFile(CONFIG.cacheFile, JSON.stringify(cache, null, 2));
 }
 
@@ -366,6 +368,7 @@ async function generateThumbnailMap(imageFiles) {
   }
 
   const mapPath = path.resolve(__dirname, '../src/assets/thumbnail-map.json');
+  // eslint-disable-next-line no-restricted-properties
   await fs.writeFile(mapPath, JSON.stringify(thumbnailMap, null, 2));
   console.log(`生成缩略图映射文件: ${path.relative(process.cwd(), mapPath)}`);
 }

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+
 const JSON5 = require('json5');
 
 /**
@@ -14,7 +15,7 @@ function htmlConfigPlugin() {
     try {
       const languagesConfigPath = path.resolve(process.cwd(), 'src/config/languages.json5');
       const languagesConfig = JSON5.parse(fs.readFileSync(languagesConfigPath, 'utf8'));
-      
+
       const enabledLanguages = Object.entries(languagesConfig.languages)
         .filter(([_, lang]) => lang.enabled)
         .map(([code, lang]) => ({ code, ...lang }));
@@ -47,13 +48,13 @@ function htmlConfigPlugin() {
       try {
         // 读取 HTML 配置文件
         const configPath = path.resolve(process.cwd(), 'src/config/html.json5');
-        const htmlConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        const htmlConfig = JSON5.parse(fs.readFileSync(configPath, 'utf-8'));
 
         // 生成多语言 Feed 链接
         const feedLinks = generateFeedLinks();
 
         // 替换 HTML 中的占位符
-        let transformedHtml = html
+        const transformedHtml = html
           // 替换占位符
           .replace(/\{\{SITE_TITLE\}\}/g, htmlConfig.title)
           .replace(/\{\{SITE_DESCRIPTION\}\}/g, htmlConfig.description)
@@ -79,7 +80,7 @@ function htmlConfigPlugin() {
       try {
         // 处理 404.html 文件
         const configPath = path.resolve(process.cwd(), 'src/config/html.json5');
-        const htmlConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        const htmlConfig = JSON5.parse(fs.readFileSync(configPath, 'utf-8'));
 
         const html404Path = path.resolve(process.cwd(), 'public/404.html');
         if (fs.existsSync(html404Path)) {

@@ -275,6 +275,7 @@
 </template>
 
 <script setup lang="ts">
+import JSON5 from 'json5';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -489,7 +490,7 @@ const generateFriendLinkInfo = (): void => {
     logo: avatarUrl,
   };
 
-  const jsonString = JSON.stringify(friendLinkInfo, null, 2);
+  const jsonString = JSON5.stringify(friendLinkInfo, null, 2);
   // 复制到剪贴板
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(jsonString).then(() => {

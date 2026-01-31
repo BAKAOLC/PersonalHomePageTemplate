@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+
 const JSON5 = require('json5');
+
 const { writeJSON5FileSync } = require('./json5-writer.cjs');
 
 // 配置
@@ -18,7 +20,7 @@ const CONFIG = {
  */
 function getAllJsonFiles(dir, baseDir = dir) {
   const results = [];
-  
+
   if (!fs.existsSync(dir)) {
     return results;
   }
@@ -369,7 +371,7 @@ function splitCharacterProfiles() {
       fs.mkdirSync(CONFIG.characterProfilesDir, { recursive: true });
     }
 
-    const profilesData = JSON.parse(fs.readFileSync(CONFIG.outputFile, 'utf8'));
+    const profilesData = JSON5.parse(fs.readFileSync(CONFIG.outputFile, 'utf8'));
     console.log(`📖 读取到 ${profilesData.length} 个角色配置`);
 
     let createdFiles = 0;
@@ -403,12 +405,12 @@ function splitCharacterProfiles() {
           fs.mkdirSync(targetDir, { recursive: true });
         }
 
-        fs.writeFileSync(targetPath, JSON.stringify(outputProfile, null, 2), 'utf8');
+        fs.writeFileSync(targetPath, JSON5.stringify(outputProfile, null, 2), 'utf8');
         const relativePath = path.relative(CONFIG.characterProfilesDir, targetPath);
         console.log(`✅ 已创建 ${relativePath}`);
         createdFiles++;
       } catch (error) {
-        console.error(`❌ 创建 ${fileName} 失败:`, error.message);
+        console.error(`❌ 创建 ${path.basename(targetPath)} 失败:`, error.message);
       }
     }
 

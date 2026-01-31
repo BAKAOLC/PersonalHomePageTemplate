@@ -2,6 +2,8 @@
  * i18n文本处理工具函数
  */
 
+import JSON5 from 'json5';
+
 import { getDefaultLanguage, getFallbackLanguage } from './language';
 
 import i18n from '@/i18n';
@@ -115,8 +117,8 @@ const resolveI18nReference = (value: string, t: any, params?: Record<string, any
  */
 const parseParameterArray = (paramsString: string): string[] => {
   try {
-    // 直接使用 JSON.parse 解析参数数组
-    const params = JSON.parse(paramsString);
+    // 使用 JSON5.parse 解析参数数组（支持更宽松的 JSON5 格式）
+    const params = JSON5.parse(paramsString);
 
     // 确保返回的是字符串数组
     if (Array.isArray(params)) {
@@ -137,8 +139,8 @@ const parseParameterArray = (paramsString: string): string[] => {
  */
 const parseKeyValueParams = (paramsString: string): Record<string, string> => {
   try {
-    // 使用 JSON.parse 解析键值对
-    const params = JSON.parse(paramsString);
+    // 使用 JSON5.parse 解析键值对（支持更宽松的 JSON5 格式）
+    const params = JSON5.parse(paramsString);
 
     // 确保返回的是对象
     if (typeof params === 'object' && params !== null && !Array.isArray(params)) {

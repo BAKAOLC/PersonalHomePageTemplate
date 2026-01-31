@@ -139,11 +139,11 @@ export class CharacterCardResolver {
     currentLanguage: string,
     visitedCards: Set<string>,
   ): {
-      title?: I18nText | string;
-      content?: I18nText | string;
-      color?: string;
-      variables: CardTemplateVariables;
-    } {
+    title?: I18nText | string;
+    content?: I18nText | string;
+    color?: string;
+    variables: CardTemplateVariables;
+  } {
     // 防止循环引用
     if (visitedCards.has(card.id)) {
       throw new Error(`Circular reference detected in getCardTemplateInfo: ${card.id}`);

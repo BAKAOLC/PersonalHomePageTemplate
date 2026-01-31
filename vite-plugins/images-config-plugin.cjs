@@ -1,7 +1,9 @@
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
+
 const JSON5 = require('json5');
+
 const { writeJSON5FileSync } = require(path.resolve(__dirname, '../scripts/json5-writer.cjs'));
 
 /**
@@ -35,7 +37,7 @@ function imagesConfigPlugin() {
   async function loadCache() {
     try {
       const cacheData = await fs.promises.readFile(CONFIG.cacheFile, 'utf8');
-      return JSON.parse(cacheData);
+      return JSON5.parse(cacheData);
     } catch {
       return {};
     }
@@ -47,6 +49,7 @@ function imagesConfigPlugin() {
    * @returns {Promise<void>}
    */
   async function saveCache(cache) {
+    // eslint-disable-next-line no-restricted-properties
     await fs.promises.writeFile(CONFIG.cacheFile, JSON.stringify(cache, null, 2));
   }
 
@@ -77,7 +80,7 @@ function imagesConfigPlugin() {
    */
   function getAllJsonFiles(dir, baseDir = dir) {
     const results = [];
-    
+
     if (!fs.existsSync(dir)) {
       return results;
     }
@@ -150,10 +153,10 @@ function imagesConfigPlugin() {
 
       // 加载缓存
       const cache = await loadCache();
-      
+
       // 计算所有配置文件的路径
       const filePaths = fileObjects.map(obj => obj.filePath);
-      
+
       // 计算当前目录的哈希
       const currentHash = await calculateDirectoryHash(filePaths);
       const cacheKey = 'images_directory_hash';
@@ -207,7 +210,6 @@ function imagesConfigPlugin() {
           }
         } catch (error) {
           console.error(`❌ [images-config] 读取 ${relativePath} 失败:`, error.message);
-          console.error(`❌ [images-config] 读取 ${file} 失败:`, error.message);
         }
       }
 

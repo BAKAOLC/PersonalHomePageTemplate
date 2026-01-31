@@ -1,4 +1,5 @@
 const path = require('path');
+
 const { main: generateThumbnails } = require(path.resolve(__dirname, '../scripts/generate-thumbnails.cjs'));
 
 /**

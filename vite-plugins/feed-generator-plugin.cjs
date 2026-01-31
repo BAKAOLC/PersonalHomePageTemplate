@@ -1,4 +1,3 @@
-const fs = require('fs');
 const path = require('path');
 
 function feedGeneratorPlugin() {
@@ -37,10 +36,10 @@ function feedGeneratorPlugin() {
 
       watcher.on('change', (filePath) => {
         if (
-          filePath === CONFIG.configFile ||
-          filePath === CONFIG.htmlConfigFile ||
-          filePath === CONFIG.languagesConfigFile ||
-          filePath.startsWith(CONFIG.articlesDir)
+          filePath === CONFIG.configFile
+          || filePath === CONFIG.htmlConfigFile
+          || filePath === CONFIG.languagesConfigFile
+          || filePath.startsWith(CONFIG.articlesDir)
         ) {
           handleChange();
         }

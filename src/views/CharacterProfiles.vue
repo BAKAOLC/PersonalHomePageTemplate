@@ -9,7 +9,7 @@
           <div class="selector-container">
             <!-- 角色选择器 -->
             <div class="character-selector">
-              <div 
+              <div
                 ref="characterScrollContainer"
                 class="selector-scroll-container"
                 :class="{ 'expanded': isCharacterListExpanded }"
@@ -37,7 +37,7 @@
 
             <!-- 差分选择器 -->
             <div v-if="selectedCharacter" class="variant-selector">
-              <div 
+              <div
                 ref="variantScrollContainer"
                 class="selector-scroll-container"
                 :class="{ 'expanded': isVariantListExpanded }"
@@ -271,9 +271,9 @@ const updateUrl = (characterId?: string, variantId?: string, imageId?: string): 
   const currentImage = route.query.image as string | undefined;
 
   if (
-    currentCharacter !== characterId ||
-    currentVariant !== variantId ||
-    currentImage !== imageId
+    currentCharacter !== characterId
+    || currentVariant !== variantId
+    || currentImage !== imageId
   ) {
     router.replace({
       name: 'character-profiles',
@@ -400,7 +400,7 @@ watch(selectedCharacter, () => {
 // 根据URL参数初始化选择
 const initializeFromUrl = (): void => {
   isInitializingFromUrl.value = true;
-  
+
   const characterId = route.query.character as string | undefined;
   const variantId = route.query.variant as string | undefined;
   const imageId = route.query.image as string | undefined;
@@ -409,12 +409,12 @@ const initializeFromUrl = (): void => {
     const character = characterProfiles.value.find(c => c.id === characterId);
     if (character) {
       selectCharacter(character, true);
-      
+
       if (variantId && character.variants.length > 0) {
         const variant = character.variants.find(v => v.id === variantId);
         if (variant) {
           selectVariant(variant, true);
-          
+
           if (imageId && variant.images.length > 0) {
             const image = variant.images.find(img => img.id === imageId);
             if (image) {
@@ -425,7 +425,7 @@ const initializeFromUrl = (): void => {
           }
         }
       }
-      
+
       isInitializingFromUrl.value = false;
       // 如果URL参数不完整，更新URL
       if (selectedCharacter.value && selectedVariant.value && selectedImage.value) {
@@ -473,27 +473,27 @@ onMounted(() => {
 watch(() => route.query, (newQuery, oldQuery) => {
   // 如果正在初始化，跳过
   if (isInitializingFromUrl.value) return;
-  
+
   // 检查是否是外部URL变化（浏览器前进/后退）
   const newCharacterId = newQuery.character as string | undefined;
   const newVariantId = newQuery.variant as string | undefined;
   const newImageId = newQuery.image as string | undefined;
-  
+
   const oldCharacterId = oldQuery?.character as string | undefined;
   const oldVariantId = oldQuery?.variant as string | undefined;
   const oldImageId = oldQuery?.image as string | undefined;
-  
+
   // 只有当URL参数真正改变时才重新初始化
   if (
-    newCharacterId !== oldCharacterId ||
-    newVariantId !== oldVariantId ||
-    newImageId !== oldImageId
+    newCharacterId !== oldCharacterId
+    || newVariantId !== oldVariantId
+    || newImageId !== oldImageId
   ) {
     // 检查是否需要更新选择
     if (
-      (newCharacterId && newCharacterId !== selectedCharacter.value?.id) ||
-      (newVariantId && newVariantId !== selectedVariant.value?.id) ||
-      (newImageId && newImageId !== selectedImage.value?.id)
+      (newCharacterId && newCharacterId !== selectedCharacter.value?.id)
+      || (newVariantId && newVariantId !== selectedVariant.value?.id)
+      || (newImageId && newImageId !== selectedImage.value?.id)
     ) {
       initializeFromUrl();
     }
@@ -714,7 +714,6 @@ onUnmounted(() => {
   /* 确保按钮不会超出容器，但允许滚动 */
   position: relative;
 }
-
 
 .selector-button.active {
   @apply bg-primary-500 text-white;
@@ -1272,4 +1271,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

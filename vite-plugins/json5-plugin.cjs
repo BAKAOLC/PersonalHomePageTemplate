@@ -1,11 +1,10 @@
 /**
  * Vite plugin to support importing .json5 files
- * 
+ *
  * This plugin allows importing JSON5 files (JSON with comments and trailing commas)
  * and converts them to standard JSON during the build process.
  */
 
-const fs = require('fs');
 const JSON5 = require('json5');
 
 /**
@@ -15,7 +14,7 @@ const JSON5 = require('json5');
 function json5Plugin() {
   return {
     name: 'vite-plugin-json5',
-    
+
     /**
      * Transform .json5 files to JavaScript modules
      */
@@ -28,9 +27,10 @@ function json5Plugin() {
       try {
         // Parse JSON5 and convert to standard JSON
         const parsed = JSON5.parse(code);
-        
+
         // Export as ES module
         return {
+          // eslint-disable-next-line no-restricted-properties
           code: `export default ${JSON.stringify(parsed, null, 2)}`,
           map: null,
         };
@@ -38,7 +38,7 @@ function json5Plugin() {
         this.error(`Failed to parse JSON5 file: ${id}\n${error.message}`);
       }
     },
-    
+
     /**
      * Handle hot module replacement for .json5 files
      */

@@ -23,7 +23,7 @@ export default defineConfig({
   plugins: [
     utf8EncodingPlugin({
       // 可以自定义配置选项
-      verbose: true,
+      verbose: false,
       autoConvert: true,
       extensions: ['.vue', '.js', '.ts', '.json', '.json5', '.css', '.scss', '.less', '.html', '.md', '.txt', '.cjs'],
       excludeDirs: ['node_modules', 'dist', '.git', '.vscode'],

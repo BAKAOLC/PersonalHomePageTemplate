@@ -75,29 +75,90 @@ export function filterArticles(
   }
 
   // 排序
-  filtered.sort((a, b) => {
-    switch (filterState.sortBy) {
-      case 'date-asc':
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      case 'date-desc':
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      case 'title-asc': {
-        const titleA = getI18nText(a.title, currentLanguage);
-        const titleB = getI18nText(b.title, currentLanguage);
-        return titleA.localeCompare(titleB);
+  if (filterState.sortBy) {
+    filtered.sort((a, b) => {
+      switch (filterState.sortBy) {
+        case 'date-asc':
+          return getArticleDateTime(a.date) - getArticleDateTime(b.date);
+        case 'date-desc':
+          return getArticleDateTime(b.date) - getArticleDateTime(a.date);
+        case 'title-asc': {
+          const titleA = getI18nText(a.title, currentLanguage);
+          const titleB = getI18nText(b.title, currentLanguage);
+          return titleA.localeCompare(titleB);
+        }
+        case 'title-desc': {
+          const titleA = getI18nText(a.title, currentLanguage);
+          const titleB = getI18nText(b.title, currentLanguage);
+          return titleB.localeCompare(titleA);
+        }
+        default:
+          return 0;
       }
-      case 'title-desc': {
-        const titleA = getI18nText(a.title, currentLanguage);
-        const titleB = getI18nText(b.title, currentLanguage);
-        return titleB.localeCompare(titleA);
-      }
-      default:
-        return 0;
-    }
-  });
+    });
+  }
 
   return filtered;
 }
+
+const parseArticleDate = (dateString: string): Date | null => {
+  const parsed = new Date(dateString);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed;
+  }
+
+  const trimmed = dateString.trim();
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const month = Number(dateOnlyMatch[2]);
+    const day = Number(dateOnlyMatch[3]);
+    const localDate = new Date(year, month - 1, day);
+    return Number.isNaN(localDate.getTime()) ? null : localDate;
+  }
+
+  const dateTimeMatch = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?\s*(Z|[+-]\d{2}:?\d{2})?$/.exec(trimmed);
+  if (!dateTimeMatch) {
+    return null;
+  }
+
+  const year = Number(dateTimeMatch[1]);
+  const month = Number(dateTimeMatch[2]);
+  const day = Number(dateTimeMatch[3]);
+  const hour = Number(dateTimeMatch[4]);
+  const minute = Number(dateTimeMatch[5]);
+  const second = Number(dateTimeMatch[6] ?? '0');
+  const zone = dateTimeMatch[7];
+
+  if (!zone) {
+    const localDateTime = new Date(year, month - 1, day, hour, minute, second);
+    return Number.isNaN(localDateTime.getTime()) ? null : localDateTime;
+  }
+
+  if (zone === 'Z') {
+    const utcDateTime = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+    return Number.isNaN(utcDateTime.getTime()) ? null : utcDateTime;
+  }
+
+  const zoneMatch = /^([+-])(\d{2}):?(\d{2})$/.exec(zone);
+  if (!zoneMatch) {
+    return null;
+  }
+
+  const sign = zoneMatch[1] === '-' ? -1 : 1;
+  const offsetHours = Number(zoneMatch[2]);
+  const offsetMinutes = Number(zoneMatch[3]);
+  const totalOffsetMinutes = sign * (offsetHours * 60 + offsetMinutes);
+  const utcMs = Date.UTC(year, month - 1, day, hour, minute, second) - totalOffsetMinutes * 60 * 1000;
+  const utcDate = new Date(utcMs);
+  return Number.isNaN(utcDate.getTime()) ? null : utcDate;
+};
+
+const getArticleDateTime = (dateString: string): number => {
+  const parsed = parseArticleDate(dateString);
+  return parsed ? parsed.getTime() : 0;
+};
 
 /**
  * 计算分页信息
@@ -172,16 +233,16 @@ export function getAdjacentArticles(
  * 格式化日期
  */
 export function formatDate(dateString: string, locale = 'zh-CN'): string {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(locale, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  } catch {
+  const date = parseArticleDate(dateString);
+  if (!date) {
     return dateString;
   }
+
+  return date.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 }
 
 /**

@@ -178,9 +178,11 @@ import { useNotificationManager } from '@/composables/useNotificationManager';
 import { useScreenManager } from '@/composables/useScreenManager';
 import { useTimers } from '@/composables/useTimers';
 import articleCategoriesConfig from '@/config/articles-categories.json5';
+import personalConfig from '@/config/personal.json5';
 import { siteConfig } from '@/config/site';
 import { useLanguageStore } from '@/stores/language';
-import type { Article, ArticleCategoriesConfig, ExternalImageInfo } from '@/types';
+import { useThemeStore } from '@/stores/theme';
+import type { Article, ArticleCategoriesConfig, ExternalImageInfo, PersonalInfo } from '@/types';
 import { formatDate, getAdjacentArticles, getArticleContent, getArticleCover } from '@/utils/articles';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
@@ -218,6 +220,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 const languageStore = useLanguageStore();
+const themeStore = useThemeStore();
 const notificationManager = useNotificationManager();
 const eventManager = useEventManager();
 const modalManager = useModalManager();
@@ -623,6 +626,115 @@ const captureArticleScreenshot = async (): Promise<void> => {
         max-width: 100% !important;
         width: 100% !important;
       `;
+    }
+
+    // 在内容区域底部添加作者信息
+    const viewerContentEl = clone.querySelector('.viewer-content');
+    if (viewerContentEl) {
+      const personalInfo = personalConfig as PersonalInfo;
+      const authorName = getI18nText(personalInfo.name, currentLanguage.value);
+
+      // 生成文章链接
+      const articleLink = props.customLink || `${window.location.origin}${window.location.pathname}#/articles/${props.article.id}`;
+
+      // 根据主题设置颜色
+      const isDark = themeStore.isDarkMode;
+      const borderColor = isDark ? 'rgba(75, 85, 99, 0.3)' : 'rgba(156, 163, 175, 0.3)';
+      const textColor = isDark ? 'rgba(209, 213, 219, 1)' : 'rgba(75, 85, 99, 1)';
+      const labelColor = isDark ? 'rgba(156, 163, 175, 1)' : 'rgba(107, 114, 128, 1)';
+      const nameColor = isDark ? 'rgba(243, 244, 246, 1)' : 'rgba(31, 41, 55, 1)';
+      const bgColor = isDark ? 'rgba(31, 41, 55, 1)' : 'rgba(243, 244, 246, 1)';
+
+      // 创建作者信息栏
+      const authorInfoSection = document.createElement('div');
+      authorInfoSection.style.cssText = `
+        border-top: 2px solid ${borderColor} !important;
+        margin-top: 40px !important;
+        padding-top: 24px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        font-size: 14px !important;
+        color: ${textColor} !important;
+      `;
+
+      // 第一行：头像、作者信息和网站名称
+      const authorMainInfo = document.createElement('div');
+      authorMainInfo.style.cssText = `
+        display: flex !important;
+        align-items: center !important;
+        gap: 16px !important;
+      `;
+
+      // 添加头像
+      const avatar = document.createElement('img');
+      avatar.src = personalInfo.avatar;
+      avatar.alt = authorName;
+      avatar.style.cssText = `
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        flex-shrink: 0 !important;
+      `;
+      authorMainInfo.appendChild(avatar);
+
+      // 添加作者信息文本
+      const authorText = document.createElement('div');
+      authorText.style.cssText = `
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+      `;
+
+      const authorLabel = document.createElement('div');
+      authorLabel.textContent = $t('articles.author');
+      authorLabel.style.cssText = `
+        font-size: 12px !important;
+        color: ${labelColor} !important;
+      `;
+      authorText.appendChild(authorLabel);
+
+      const authorNameEl = document.createElement('div');
+      authorNameEl.textContent = authorName;
+      authorNameEl.style.cssText = `
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        color: ${nameColor} !important;
+      `;
+      authorText.appendChild(authorNameEl);
+
+      authorMainInfo.appendChild(authorText);
+
+      // 添加网站标识
+      const siteInfo = document.createElement('div');
+      siteInfo.textContent = getI18nText(siteConfig.app.title, currentLanguage.value);
+      siteInfo.style.cssText = `
+        font-size: 14px !important;
+        color: ${labelColor} !important;
+        font-weight: 500 !important;
+      `;
+      authorMainInfo.appendChild(siteInfo);
+
+      authorInfoSection.appendChild(authorMainInfo);
+
+      // 第二行：文章链接
+      const linkContainer = document.createElement('div');
+      linkContainer.style.cssText = `
+        font-size: 12px !important;
+        color: ${labelColor} !important;
+        word-break: break-all !important;
+        background: ${bgColor} !important;
+        padding: 8px 12px !important;
+        border-radius: 6px !important;
+        font-family: monospace !important;
+      `;
+      linkContainer.textContent = articleLink;
+
+      authorInfoSection.appendChild(linkContainer);
+
+      viewerContentEl.appendChild(authorInfoSection);
     }
 
     // 添加到DOM

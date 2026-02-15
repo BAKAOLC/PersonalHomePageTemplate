@@ -62,21 +62,21 @@
   "javascript.preferences.importModuleSpecifier": "non-relative",
   "typescript.preferences.importModuleSpecifier": "non-relative",
   "css.lint.unknownAtRules": "ignore",
-  "i18n-ally.localesPaths": [
+  "i18n-ally-next.localesPaths": [
     "src/i18n"
   ],
-  "i18n-ally.keystyle": "nested",
-  "i18n-ally.displayLanguage": "zh",
-  "i18n-ally.sourceLanguage": "zh",
-  "i18n-ally.enabledFrameworks": [
+  "i18n-ally-next.keystyle": "nested",
+  "i18n-ally-next.displayLanguage": "zh",
+  "i18n-ally-next.sourceLanguage": "zh",
+  "i18n-ally-next.enabledFrameworks": [
     "vue",
     "vue-sfc"
   ],
-  "i18n-ally.pathMatcher": "{locale}.json",
-  "i18n-ally.sortKeys": true,
-  "i18n-ally.namespace": false,
-  "i18n-ally.extract.autoDetect": true,
-  "i18n-ally.extract.keygenStyle": "camelCase",
-  "i18n-ally.review.enabled": true,
-  "i18n-ally.review.gutters": true,
+  "i18n-ally-next.pathMatcher": "{locale}.json5",
+  "i18n-ally-next.sortKeys": true,
+  "i18n-ally-next.namespace": false,
+  "i18n-ally-next.extract.autoDetect": true,
+  "i18n-ally-next.extract.keygenStyle": "camelCase",
+  "i18n-ally-next.review.enabled": true,
+  "i18n-ally-next.review.gutters": true,
 }

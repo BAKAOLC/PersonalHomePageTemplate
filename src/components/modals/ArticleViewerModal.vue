@@ -53,6 +53,22 @@
             <i :class="getIconClass('link')" class="icon" aria-hidden="true"></i>
           </button>
           <button
+            class="control-button screenshot-button"
+            @click="captureArticleScreenshot"
+            :aria-label="$t('articles.shareAsImage')"
+            type="button"
+            :disabled="isCapturingScreenshot"
+          >
+            <i
+              class="icon"
+              :class="[
+                getIconClass(isCapturingScreenshot ? 'spinner' : 'camera'),
+                { 'animate-spin': isCapturingScreenshot }
+              ]"
+              aria-hidden="true"
+            ></i>
+          </button>
+          <button
             class="control-button close-button"
             @click="close"
             :aria-label="$t('common.close')"
@@ -146,6 +162,7 @@
 </template>
 
 <script setup lang="ts">
+import { snapdom } from '@zumer/snapdom';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
@@ -159,6 +176,7 @@ import { useEventManager } from '@/composables/useEventManager';
 import { useModalManager } from '@/composables/useModalManager';
 import { useNotificationManager } from '@/composables/useNotificationManager';
 import { useScreenManager } from '@/composables/useScreenManager';
+import { useTimers } from '@/composables/useTimers';
 import articleCategoriesConfig from '@/config/articles-categories.json5';
 import { siteConfig } from '@/config/site';
 import { useLanguageStore } from '@/stores/language';
@@ -205,6 +223,7 @@ const eventManager = useEventManager();
 const modalManager = useModalManager();
 const { t: $t } = useI18n();
 const { isMobile } = useScreenManager();
+const { setTimeout, requestAnimationFrame } = useTimers();
 
 // 响应式数据
 const viewerContainer = ref<HTMLElement>();
@@ -213,6 +232,7 @@ const isLoadingContent = ref(false);
 const contentLoadError = ref<string | null>(null);
 const articleContent = ref<string>('');
 const imageViewerModalId = ref<string | null>(null);
+const isCapturingScreenshot = ref(false);
 
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
@@ -410,6 +430,255 @@ const copyArticleLink = async (): Promise<void> => {
   }
 };
 
+// 截图文章
+const captureArticleScreenshot = async (): Promise<void> => {
+  if (!viewerContainer.value || isCapturingScreenshot.value) {
+    return;
+  }
+
+  isCapturingScreenshot.value = true;
+
+  try {
+    const element = viewerContainer.value;
+    const clone = element.cloneNode(true) as HTMLElement;
+
+    // 添加截图标识,用于CSS优先级控制
+    clone.setAttribute('data-screenshot', 'true');
+
+    // 设置完整的固定样式，确保所有设备输出一致
+    clone.style.cssText = `
+      position: fixed !important;
+      left: -9999px !important;
+      top: 0 !important;
+      width: 895px !important;
+      height: auto !important;
+      max-height: none !important;
+      min-height: 0 !important;
+      max-width: none !important;
+      min-width: 0 !important;
+      overflow: visible !important;
+      transform: none !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-sizing: border-box !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border-radius: 8px !important;
+      font-size: 16px !important;
+      line-height: 1.5 !important;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    `;
+
+    // 移除遮罩层
+    const mask = clone.querySelector('.viewer-mask');
+    if (mask) {
+      mask.remove();
+    }
+
+    // 隐藏控制按钮
+    const controls = clone.querySelector('.viewer-controls');
+    if (controls) {
+      (controls as HTMLElement).style.display = 'none';
+    }
+
+    // 隐藏导航按钮
+    const navigation = clone.querySelector('.article-navigation');
+    if (navigation) {
+      (navigation as HTMLElement).style.display = 'none';
+    }
+
+    // 隐藏评论区
+    const comments = clone.querySelector('.comments-section');
+    if (comments) {
+      (comments as HTMLElement).style.display = 'none';
+    }
+
+    // 设置内容区域样式 - 使用固定padding
+    const viewerContent = clone.querySelector('.viewer-content');
+    if (viewerContent) {
+      const contentEl = viewerContent as HTMLElement;
+      contentEl.style.cssText = `
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        min-height: 0 !important;
+        max-width: none !important;
+        overflow: visible !important;
+        flex: none !important;
+        display: block !important;
+        box-sizing: border-box !important;
+        padding: 24px !important;
+        margin: 0 !important;
+      `;
+    }
+
+    // 设置头部样式 - 使用固定padding
+    const viewerHeader = clone.querySelector('.viewer-header');
+    if (viewerHeader) {
+      const headerEl = viewerHeader as HTMLElement;
+      headerEl.style.cssText = `
+        width: 100% !important;
+        position: relative !important;
+        flex: none !important;
+        box-sizing: border-box !important;
+        padding: 16px 24px !important;
+        margin: 0 !important;
+        display: block !important;
+      `;
+    }
+
+    // 设置头部内容容器样式
+    const headerContent = clone.querySelector('.header-content');
+    if (headerContent) {
+      const contentEl = headerContent as HTMLElement;
+      contentEl.style.cssText = `
+        display: flex !important;
+        align-items: flex-start !important;
+        justify-content: space-between !important;
+        gap: 16px !important;
+        width: 100% !important;
+      `;
+    }
+
+    // 设置文章头部信息容器样式
+    const articleHeaderInfo = clone.querySelector('.article-header-info');
+    if (articleHeaderInfo) {
+      const infoEl = articleHeaderInfo as HTMLElement;
+      infoEl.style.cssText = `
+        flex: 1 !important;
+        min-width: 0 !important;
+      `;
+    }
+
+    // 设置文章标题固定样式
+    const articleTitle = clone.querySelector('.article-title');
+    if (articleTitle) {
+      const titleEl = articleTitle as HTMLElement;
+      titleEl.style.cssText = `
+        font-size: 24px !important;
+        line-height: 1.4 !important;
+        margin: 0 0 8px 0 !important;
+        max-width: 100% !important;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
+      `;
+    }
+
+    // 设置文章元数据样式
+    const articleMeta = clone.querySelector('.article-meta');
+    if (articleMeta) {
+      const metaEl = articleMeta as HTMLElement;
+      metaEl.style.cssText = `
+        font-size: 14px !important;
+        line-height: 1.5 !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 16px !important;
+      `;
+    }
+
+    // 确保所有图片使用固定样式
+    const images = clone.querySelectorAll('img');
+    images.forEach((img) => {
+      const imgEl = img as HTMLElement;
+      imgEl.style.cssText = `
+        max-width: 100% !important;
+        height: auto !important;
+        display: block !important;
+        margin: 0 auto !important;
+      `;
+    });
+
+    // 特别处理文章封面图片
+    const coverImage = clone.querySelector('.article-cover-image');
+    if (coverImage) {
+      const coverEl = coverImage as HTMLElement;
+      coverEl.style.cssText = `
+        width: 100% !important;
+        height: auto !important;
+        max-width: 100% !important;
+        object-fit: contain !important;
+        display: block !important;
+        margin: 0 auto !important;
+      `;
+    }
+
+    // 设置封面区域容器样式
+    const coverSection = clone.querySelector('.article-cover-section');
+    if (coverSection) {
+      const sectionEl = coverSection as HTMLElement;
+      sectionEl.style.cssText = `
+        width: 100% !important;
+        margin-bottom: 32px !important;
+      `;
+    }
+
+    // 设置markdown内容区域固定样式
+    const markdownContent = clone.querySelector('.markdown-content');
+    if (markdownContent) {
+      const contentEl = markdownContent as HTMLElement;
+      contentEl.style.cssText = `
+        font-size: 16px !important;
+        line-height: 1.75 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+      `;
+    }
+
+    // 添加到DOM
+    document.body.appendChild(clone);
+
+    await nextTick();
+
+    // 等待所有图片加载完成
+    const imageElements = Array.from(clone.querySelectorAll('img')) as HTMLImageElement[];
+    await Promise.all(
+      imageElements.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve(); // 即使加载失败也继续
+          setTimeout(() => resolve(), 3000); // 设置超时，避免无限等待
+        });
+      }),
+    );
+
+    // 重排布局
+    void clone.offsetHeight;
+    void clone.offsetWidth;
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    const actualHeight = clone.scrollHeight;
+
+    // 使用snapdom截图，固定参数确保输出一致
+    const result = await snapdom(clone, {
+      scale: 2,
+      width: 895,
+      height: actualHeight,
+      embedFonts: true,
+      fast: false,
+    });
+
+    // 清理克隆元素
+    document.body.removeChild(clone);
+
+    // 下载截图
+    const fileName = `${getI18nText(props.article.title, currentLanguage.value).replace(/[/\\?%*:|"<>]/g, '-')}-${Date.now()}`;
+    await result.download({
+      format: 'png',
+      filename: fileName,
+      quality: 1.0,
+    });
+
+    // 显示成功通知
+    notificationManager.success($t('articles.imageSaved'));
+  } catch (err) {
+    console.error('Failed to capture screenshot:', err);
+    notificationManager.error($t('articles.imageCaptureFailed'));
+  } finally {
+    isCapturingScreenshot.value = false;
+  }
+};
+
 // 方法
 const loadArticleContent = async (): Promise<void> => {
   isLoadingContent.value = true;
@@ -591,6 +860,17 @@ onBeforeUnmount(() => {
   @apply bg-blue-100 dark:bg-blue-900/20;
   @apply text-blue-600 dark:text-blue-400;
   @apply hover:bg-blue-200 dark:hover:bg-blue-900/40;
+}
+
+.screenshot-button {
+  @apply bg-green-100 dark:bg-green-900/20;
+  @apply text-green-600 dark:text-green-400;
+  @apply hover:bg-green-200 dark:hover:bg-green-900/40;
+}
+
+.screenshot-button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+  @apply hover:bg-green-100 dark:hover:bg-green-900/20;
 }
 
 .close-button {

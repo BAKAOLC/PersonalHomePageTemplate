@@ -40,6 +40,7 @@
   "dependencies": {
     "@giscus/vue": "^3.1.1",
     "@vueuse/core": "^14.1.0",
+    "@zumer/snapdom": "^2.0.2",
     "dayjs": "^1.11.19",
     "dompurify": "^3.3.1",
     "highlight.js": "^11.11.1",

@@ -45,6 +45,9 @@
 
     <!-- 通知容器 -->
     <NotificationContainer />
+
+    <!-- BGM播放器 -->
+    <BgmPlayer />
   </div>
 </template>
 
@@ -52,6 +55,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import BgmPlayer from '@/components/BgmPlayer.vue';
 import LoadingScreen from '@/components/LoadingScreen.vue';
 import NotificationContainer from '@/components/NotificationContainer.vue';
 import ModalContainer from '@/components/modals/ModalContainer.vue';

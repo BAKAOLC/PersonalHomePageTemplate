@@ -25,6 +25,7 @@ export function useBgmPlayer(config: BgmConfig) {
   const analyser = ref<AnalyserNode | null>(null);
   const audioContext = ref<AudioContext | null>(null);
   const audioSource = ref<MediaElementAudioSourceNode | null>(null);
+  const connectedAudioElement = ref<HTMLAudioElement | null>(null);
 
   const loadUserPreference = (): void => {
     try {
@@ -103,21 +104,27 @@ export function useBgmPlayer(config: BgmConfig) {
 
       const audioElement = sound._node as HTMLAudioElement;
 
+      if (connectedAudioElement.value === audioElement && analyser.value) return;
+
       if (!audioContext.value) {
         const AudioContextClass = window.AudioContext ?? (window as any).webkitAudioContext;
         audioContext.value = new AudioContextClass();
       }
 
-      if (!audioSource.value) {
-        audioSource.value = audioContext.value.createMediaElementSource(audioElement);
-
-        analyser.value = audioContext.value.createAnalyser();
-        analyser.value.fftSize = 64;
-        analyser.value.smoothingTimeConstant = 0.8;
-
-        audioSource.value.connect(analyser.value);
-        analyser.value.connect(audioContext.value.destination);
+      if (audioSource.value) {
+        try { audioSource.value.disconnect(); } catch (_) { /* ignore */ }
+        audioSource.value = null;
       }
+
+      audioSource.value = audioContext.value.createMediaElementSource(audioElement);
+      connectedAudioElement.value = audioElement;
+
+      analyser.value = audioContext.value.createAnalyser();
+      analyser.value.fftSize = 64;
+      analyser.value.smoothingTimeConstant = 0.8;
+
+      audioSource.value.connect(analyser.value);
+      analyser.value.connect(audioContext.value.destination);
     } catch (e) {
       console.warn('Failed to setup audio analyser:', e);
     }
@@ -159,9 +166,6 @@ export function useBgmPlayer(config: BgmConfig) {
       currentHowl.value = null;
     }
 
-    audioSource.value = null;
-    analyser.value = null;
-
     currentTrackIndex.value = index;
     const track = config.tracks[index];
 
@@ -173,10 +177,8 @@ export function useBgmPlayer(config: BgmConfig) {
       volume: volume.value,
       html5: true,
       loop: shouldLoopWholeSong,
-      onload: () => {
-        setupAnalyser(howl);
-      },
       onplay: () => {
+        setupAnalyser(howl);
         isPlaying.value = true;
         if (shouldUseLoopPoint) {
           setupLoopCheck(howl, track);
@@ -213,9 +215,7 @@ export function useBgmPlayer(config: BgmConfig) {
   };
 
   const playNext = (): void => {
-    if (currentMode.value === 'single-loop') {
-      playTrack(currentTrackIndex.value);
-    } else if (currentMode.value === 'list-shuffle') {
+    if (currentMode.value === 'list-shuffle') {
       playTrack(getRandomTrackIndex());
     } else {
       playTrack((currentTrackIndex.value + 1) % config.tracks.length);
@@ -223,9 +223,7 @@ export function useBgmPlayer(config: BgmConfig) {
   };
 
   const playPrevious = (): void => {
-    if (currentMode.value === 'single-loop') {
-      playTrack(currentTrackIndex.value);
-    } else if (currentMode.value === 'list-shuffle') {
+    if (currentMode.value === 'list-shuffle') {
       playTrack(getRandomTrackIndex());
     } else {
       const prevIndex = currentTrackIndex.value - 1;

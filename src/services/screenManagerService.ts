@@ -240,7 +240,9 @@ class ScreenManagerService implements ScreenManager {
 
   getScreenInfo(): ScreenInfo {
     this.checkDestroyed();
-    this.checkInitialized();
+    if (!this.isInitialized) {
+      this.initialize();
+    }
     return this.calculateScreenInfo();
   }
 

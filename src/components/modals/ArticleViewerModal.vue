@@ -249,7 +249,9 @@ const renderedContent = computed(() => {
     return '';
   }
   const html = renderMarkdown(articleContent.value);
-  return DOMPurify.sanitize(html);
+  return DOMPurify.sanitize(html, {
+    ADD_ATTR: ['target', 'rel'],
+  });
 });
 
 const adjacentArticles = computed(() => {

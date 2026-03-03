@@ -2,6 +2,7 @@ import type { Character } from './character';
 import type { FontAwesomeConfig } from './fontawesome';
 import type { GroupImage, ImageTag } from './image';
 import type { I18nText } from './language';
+import type { Live2DWidgetConfig } from './live2d';
 import type { PersonalInfo } from './ui';
 
 // 路由元数据类型
@@ -59,6 +60,7 @@ export interface FeaturesConfig {
   links: boolean;
   characterProfiles: boolean;
   comments: boolean;
+  live2d: boolean;
   viewer: ViewerInfoConfig; // Viewer信息栏配置（向后兼容）
   viewerUI: ViewerUIConfig; // 新的结构化Viewer配置
 }
@@ -87,6 +89,7 @@ export interface SiteConfig {
   giscus: GiscusConfig;
   fontawesome: FontAwesomeConfig;
   features: FeaturesConfig;
+  live2d: Live2DWidgetConfig;
 }
 
 export interface LoadingConfig {

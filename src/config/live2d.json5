@@ -1,0 +1,40 @@
+{
+  // Live2D 全局挂件配置（仅控制页面右下角那个挂件的模型、位置和交互）
+  // Cubism 4 运行时（SDK）配置见 live2d-engine.json5
+  // Cubism 2 模型使用 .model.json，Cubism 4 模型使用 .model3.json
+
+  // 模型配置
+  model: {
+    url: "",         // 模型文件 URL，留空则不显示 Live2D 挂件
+    // 例如: "/live2d/hiyori/hiyori_pro_t10.model3.json"
+    // 例如: "/live2d/shizuku/shizuku.model.json"
+
+    scale: 1.0,       // 模型缩放倍率（1.0 = 自动适配 canvas，<1 缩小，>1 放大）
+    x: 0,            // 模型 X 轴偏移（0 = 居中）
+    y: 0,            // 模型 Y 轴偏移（0 = 居中）
+  },
+
+  // 显示设置
+  display: {
+    width: 200,          // 挂件宽度（像素）
+    height: 260,         // 挂件高度（像素）
+    // 9 点锚点：按照 "垂直-水平" 格式填写
+    // 垂直： top / middle / bottom，水平： left / center / right
+    anchor: "bottom-right",
+    // 相对锚点方向的额外偏移（像素）
+    // offsetX: 水平方向偏移，对于 right 锚点正数表示向内（即远离右边界）
+    // offsetY: 垂直方向偏移，对于 bottom 锚点正数表示向上（即远离底部）
+    offsetX: 0,
+    offsetY: 0,
+    opacity: 1.0,        // 透明度（0.0 ~ 1.0）
+  },
+
+  // 交互设置
+  interaction: {
+    cursorTracking: true,      // 视角跟踪鼠标（调整 EyeBall/FaceAngle 参数）
+    clickExpression: true,     // 点击模型随机切换表情
+    expressionInterval: 0,     // 自动切换表情间隔（毫秒），0 = 仅手动触发
+    expressionResetDelay: 5000, // 点击切换表情后自动恢复默认表情的延迟（毫秒），0 = 不自动恢复
+    idleMotionGroup: "Idle",   // 待机动作组名称（留空则不播放待机动作）
+  },
+}

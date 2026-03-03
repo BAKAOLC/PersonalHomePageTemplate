@@ -26,3 +26,6 @@ export * from './config';
 
 // State management types
 export * from './state';
+
+// Live2D types
+export * from './live2d';

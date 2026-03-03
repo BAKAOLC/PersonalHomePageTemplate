@@ -282,5 +282,10 @@
     "visitAuthorPage": "Visit {name}",
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out"
+  },
+  "live2d": {
+    "close": "Close Live2D Widget",
+    "show": "Show Live2D Widget",
+    "loadError": "Failed to load model"
   }
 }

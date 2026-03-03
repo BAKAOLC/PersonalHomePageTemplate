@@ -10,6 +10,8 @@ const STORAGE_KEY = 'bgm-player-state';
 interface PlayerState {
   mode: PlayMode;
   autoplayEnabled: boolean;
+  currentTrackIndex: number;
+  volume: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -26,6 +28,7 @@ export function useBgmPlayer(config: BgmConfig) {
   const audioContext = ref<AudioContext | null>(null);
   const audioSource = ref<MediaElementAudioSourceNode | null>(null);
   const connectedAudioElement = ref<HTMLAudioElement | null>(null);
+  const volumeSaveTimeoutId = ref<number | null>(null);
 
   const loadUserPreference = (): void => {
     try {
@@ -38,6 +41,17 @@ export function useBgmPlayer(config: BgmConfig) {
         if (state.autoplayEnabled !== undefined) {
           autoplayEnabled.value = state.autoplayEnabled;
         }
+        if (
+          state.currentTrackIndex !== undefined &&
+          Number.isInteger(state.currentTrackIndex) &&
+          state.currentTrackIndex >= 0 &&
+          state.currentTrackIndex < config.tracks.length
+        ) {
+          currentTrackIndex.value = state.currentTrackIndex;
+        }
+        if (typeof state.volume === 'number' && Number.isFinite(state.volume)) {
+          volume.value = Math.max(0, Math.min(1, state.volume));
+        }
       }
     } catch (e) {
       console.error('Failed to load BGM state:', e);
@@ -49,6 +63,8 @@ export function useBgmPlayer(config: BgmConfig) {
       const state: PlayerState = {
         mode: currentMode.value,
         autoplayEnabled: autoplayEnabled.value,
+        currentTrackIndex: currentTrackIndex.value,
+        volume: volume.value,
       };
       localStorage.setItem(STORAGE_KEY, JSON5.stringify(state));
     } catch (e) {
@@ -138,6 +154,22 @@ export function useBgmPlayer(config: BgmConfig) {
     return dataArray;
   };
 
+  const updateMediaSession = (track: BgmTrack): void => {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.name,
+      artist: track.artist ?? '',
+      album: track.album ?? '',
+      artwork: track.artwork ?? [],
+    });
+  };
+
+  const clearMediaSession = (): void => {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
+  };
+
   const updateLoopBehavior = (): void => {
     if (!currentHowl.value) return;
 
@@ -167,6 +199,7 @@ export function useBgmPlayer(config: BgmConfig) {
     }
 
     currentTrackIndex.value = index;
+    saveUserPreference();
     const track = config.tracks[index];
 
     const shouldUseLoopPoint = currentMode.value === 'single-loop' && track.loop;
@@ -186,14 +219,24 @@ export function useBgmPlayer(config: BgmConfig) {
         if (audioContext.value?.state === 'suspended') {
           audioContext.value.resume();
         }
+        updateMediaSession(track);
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing';
+        }
       },
       onpause: () => {
         isPlaying.value = false;
         clearLoopCheck();
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'paused';
+        }
       },
       onstop: () => {
         isPlaying.value = false;
         clearLoopCheck();
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'none';
+        }
       },
       onend: () => {
         if (currentMode.value !== 'single-loop') {
@@ -268,6 +311,14 @@ export function useBgmPlayer(config: BgmConfig) {
     if (currentHowl.value) {
       currentHowl.value.volume(volume.value);
     }
+    if (volumeSaveTimeoutId.value !== null) {
+      window.clearTimeout(volumeSaveTimeoutId.value);
+      volumeSaveTimeoutId.value = null;
+    }
+    volumeSaveTimeoutId.value = window.setTimeout(() => {
+      saveUserPreference();
+      volumeSaveTimeoutId.value = null;
+    }, 200);
   };
 
   const getCurrentTime = (): number => {
@@ -285,18 +336,49 @@ export function useBgmPlayer(config: BgmConfig) {
     currentHowl.value.seek(time);
   };
 
+  const setupMediaSessionHandlers = (): void => {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (!currentHowl.value) {
+        if (currentMode.value === 'list-shuffle') {
+          playTrack(getRandomTrackIndex());
+        } else {
+          playTrack(currentTrackIndex.value);
+        }
+      } else {
+        currentHowl.value.play();
+      }
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      currentHowl.value?.pause();
+    });
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      playPrevious();
+    });
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      playNext();
+    });
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.seekTime !== undefined) {
+        seek(details.seekTime);
+      }
+    });
+  };
+
   const init = (): void => {
+    setupMediaSessionHandlers();
     if (config.enabled && autoplayEnabled.value && config.tracks.length > 0) {
       if (currentMode.value === 'list-shuffle') {
         playTrack(getRandomTrackIndex());
       } else {
-        playTrack(0);
+        playTrack(currentTrackIndex.value);
       }
     }
   };
 
   onUnmounted(() => {
     clearLoopCheck();
+    clearMediaSession();
     if (currentHowl.value) {
       currentHowl.value.unload();
     }

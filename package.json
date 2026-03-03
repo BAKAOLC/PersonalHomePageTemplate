@@ -51,6 +51,8 @@
     "node-addon-api": "^8.5.0",
     "node-gyp": "^12.2.0",
     "pinia": "^3.0.4",
+    "pixi-live2d-display": "^0.4.0",
+    "pixi.js": "^6.5.10",
     "vite-plugin-monaco-editor": "^1.1.0",
     "vue": "^3.5.27",
     "vue-i18n": "^11.2.8",

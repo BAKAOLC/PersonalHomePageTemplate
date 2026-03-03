@@ -50,6 +50,10 @@ export function useScreenManager(): ScreenManager {
   // 响应式屏幕信息
   const screenInfo = ref<ScreenInfo>(screenManagerService.getScreenInfo());
 
+  const autoUnregisterScreenInfo = screenManagerService.registerCallback((info: ScreenInfo) => {
+    screenInfo.value = info;
+  });
+
   // 计算属性
   const isMobile = computed(() => screenInfo.value.isMobile);
   const isTablet = computed(() => screenInfo.value.isTablet);
@@ -92,6 +96,7 @@ export function useScreenManager(): ScreenManager {
 
   // 组件销毁时自动清理所有回调
   onBeforeUnmount(() => {
+    autoUnregisterScreenInfo();
     unregisterFunctions.value.forEach(unregister => {
       unregister();
     });

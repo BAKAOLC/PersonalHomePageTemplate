@@ -261,16 +261,11 @@
     </div>
 
     <!-- 返回顶部按钮 -->
-    <button
-      v-if="showScrollToTop"
-      @click="scrollToTop"
-      class="scroll-to-top-button"
-      :style="{ bottom: scrollToTopBottom + 'px' }"
+    <ScrollToTopButton
+      :visible="showScrollToTop"
       :aria-label="$t('common.scrollToTop')"
-      type="button"
-    >
-      <i :class="getIconClass('chevron-up')" aria-hidden="true"></i>
-    </button>
+      @click="scrollToTop"
+    />
   </div>
 </template>
 
@@ -281,6 +276,7 @@ import { useI18n } from 'vue-i18n';
 
 import ProgressiveImage from '@/components/ProgressiveImage.vue';
 import JsonViewerModal from '@/components/modals/JsonViewerModal.vue';
+import ScrollToTopButton from '@/components/ui/ScrollToTopButton.vue';
 import { useModalManager } from '@/composables/useModalManager';
 import { useNotificationManager } from '@/composables/useNotificationManager';
 import { useMobileDetection, type ScreenInfo } from '@/composables/useScreenManager';
@@ -314,7 +310,6 @@ const isMobileSidebarOpen = ref(false);
 const searchDebounceTimeout = ref<number | null>(null);
 const linksMain = ref<HTMLElement | null>(null);
 const showScrollToTop = ref(false);
-const scrollToTopBottom = ref(80);
 
 // 当前语言
 const currentLanguage = computed(() => languageStore.currentLanguage);
@@ -520,22 +515,6 @@ const handleScroll = (): void => {
 
   const { scrollTop } = linksMain.value;
   showScrollToTop.value = scrollTop > 200;
-  updateScrollToTopPosition();
-};
-
-const updateScrollToTopPosition = (): void => {
-  const footer = document.querySelector('.footer') as HTMLElement;
-  if (footer) {
-    const footerRect = footer.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-
-    if (footerRect.top < viewportHeight) {
-      const distanceFromBottom = viewportHeight - footerRect.top + 20;
-      scrollToTopBottom.value = Math.max(distanceFromBottom, 80);
-    } else {
-      scrollToTopBottom.value = 80;
-    }
-  }
 };
 
 const scrollToTop = (): void => {
@@ -555,8 +534,6 @@ const handleScreenChange = ({ isMobile }: ScreenInfo): void => {
     document.body.style.overflow = '';
   }
 
-  updateScrollToTopPosition();
-
   nextTick(() => {
     updateDynamicHeights();
   });
@@ -568,9 +545,6 @@ let unsubscribeScreenChange: (() => void) | null = null;
 onMounted(() => {
   // 注册屏幕变化监听器
   unsubscribeScreenChange = onScreenChange(handleScreenChange);
-
-  // 初始化返回顶部按钮位置
-  updateScrollToTopPosition();
 
   // 使用nextTick确保DOM完全渲染后更新动态高度
   nextTick(() => {
@@ -1191,6 +1165,7 @@ onBeforeUnmount(() => {
   @apply transform hover:-translate-y-1;
   @apply flex items-start gap-4;
   @apply h-full;
+  min-width: 0;
 }
 
 .link-card:hover {
@@ -1220,7 +1195,8 @@ onBeforeUnmount(() => {
 .link-name {
   @apply text-lg font-semibold;
   @apply text-gray-900 dark:text-white;
-  @apply mb-2 truncate;
+  @apply mb-2;
+  word-break: break-word;
 }
 
 .link-description {
@@ -1336,41 +1312,7 @@ onBeforeUnmount(() => {
   padding: 1.5rem;
 }
 
-/* 返回顶部按钮 */
-.scroll-to-top-button {
-  position: fixed;
-  right: 1.5rem;
-  width: 3rem;
-  height: 3rem;
-  background: rgb(59, 130, 246);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-  z-index: 40;
-  cursor: pointer;
-}
-
-.scroll-to-top-button:hover {
-  background: rgb(37, 99, 235);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-
-@media (max-width: 767px) {
-  .scroll-to-top-button {
-    right: 1rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    font-size: 0.875rem;
-  }
-}
-
-.icon {
+/* 响应式布局过渡动画 */.icon {
   @apply w-4 h-4;
 }
 
@@ -1434,8 +1376,7 @@ onBeforeUnmount(() => {
 
 .generate-button:focus,
 .search-clear:focus,
-.close-button:focus,
-.scroll-to-top-button:focus {
+.close-button:focus {
   outline: 2px solid rgb(59, 130, 246);
   outline-offset: 2px;
 }
@@ -1446,8 +1387,7 @@ onBeforeUnmount(() => {
   .category-button:focus,
   .generate-button:focus,
   .search-clear:focus,
-  .close-button:focus,
-  .scroll-to-top-button:focus {
+  .close-button:focus {
     outline: 2px solid rgb(59, 130, 246);
     outline-offset: 2px;
   }

@@ -282,5 +282,10 @@
     "selectCharacterToView": "请选择一个角色来查看详细信息",
     "noImageSelected": "未选择图片",
     "noImages": "暂无图片"
+  },
+  "live2d": {
+    "close": "关闭 Live2D 挂件",
+    "show": "显示 Live2D 挂件",
+    "loadError": "模型加载失败"
   }
 }

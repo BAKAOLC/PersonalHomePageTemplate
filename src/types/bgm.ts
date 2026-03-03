@@ -2,6 +2,9 @@
 export interface BgmTrack {
   name: string;
   url: string;
+  artist?: string; // 艺术家名称
+  album?: string; // 专辑名称
+  artwork?: MediaImage[]; // 封面图片列表，每项包含 src、sizes、type
   loop?: {
     start: number; // 循环开始时间（秒）
     end: number; // 循环结束时间（秒）

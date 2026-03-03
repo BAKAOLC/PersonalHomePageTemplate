@@ -282,5 +282,10 @@
     "visitAuthorPage": "{name} を訪問",
     "zoomIn": "拡大",
     "zoomOut": "縮小"
+  },
+  "live2d": {
+    "close": "Live2D ウィジェットを閉じる",
+    "show": "Live2D ウィジェットを表示",
+    "loadError": "モデルの読み込みに失敗しました"
   }
 }

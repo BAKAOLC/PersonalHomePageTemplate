@@ -1,0 +1,19 @@
+{
+  // Live2D 引擎（SDK）全局配置
+
+  // Cubism 4 核心运行时脚本 URL
+  // 使用 .model3.json 格式的模型时必须提供
+  // 可用 Live2D 官方 CDN：
+  //   "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"
+  // 或下载到 public/ 后使用本地路径：
+  //   "/live2d/live2dcubismcore.min.js"
+  // 仅使用 Cubism 2（.model.json）时留空即可
+  cubism4Runtime: "",
+
+  // Cubism 2 运行时脚本 URL（live2d.min.js）
+  // 使用 .model.json 格式的模型时必须提供
+  // 需从 Live2D Inc. 官网获取或自行托管，不提供公共 CDN
+  //   "/live2d/live2d.min.js"
+  // 仅使用 Cubism 4（.model3.json）时留空即可
+  cubism2Runtime: "",
+}

@@ -5,6 +5,7 @@
   "articles": true,     // 文章功能
   "characterProfiles": true,  // 角色档案功能
   "comments": true,     // 评论功能
+  "live2d": false,       // Live2D 挂件功能
   
   // 查看器UI配置（新版）
   "viewerUI": {

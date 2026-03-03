@@ -6,7 +6,6 @@
       <!-- 外层负责定位，不设 opacity，让 Transition CSS 类可以自由控制透明度 -->
       <div
         v-if="live2dStore.isWidgetVisible"
-        ref="widgetRef"
         class="live2d-widget"
         :style="widgetPositionStyle"
       >
@@ -76,7 +75,6 @@ const { isMobile } = useMobileDetection();
 const config = live2dConfig as Live2DWidgetConfig;
 
 // ── refs ────────────────────────────────────────────────────────────────────
-const widgetRef = ref<HTMLElement | null>(null);
 const canvasContainerRef = ref<HTMLElement | null>(null);
 
 // ── Live2D 逻辑 ─────────────────────────────────────────────────────────────

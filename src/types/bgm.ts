@@ -1,14 +1,22 @@
+import type { I18nText } from './language';
+
+export interface BgmMediaImage {
+  src: I18nText;
+  sizes?: string;
+  type?: string;
+}
+
 // BGM配置类型定义
 export interface BgmTrack {
-  name: string;
-  url?: string;
+  name: I18nText;
+  url?: I18nText;
   dualFile?: {
-    intro: string; // intro文件URL
-    loop: string; // loop文件URL
+    intro: I18nText; // intro文件URL
+    loop: I18nText; // loop文件URL
   };
-  artist?: string; // 艺术家名称
-  album?: string; // 专辑名称
-  artwork?: MediaImage[]; // 封面图片列表，每项包含 src、sizes、type
+  artist?: I18nText; // 艺术家名称
+  album?: I18nText; // 专辑名称
+  artwork?: BgmMediaImage[]; // 封面图片列表
   loop?: {
     start: number; // 循环开始时间（秒）
     end: number; // 循环结束时间（秒）

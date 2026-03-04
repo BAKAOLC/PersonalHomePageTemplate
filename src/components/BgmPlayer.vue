@@ -10,7 +10,7 @@
         v-if="!isExpanded"
         @click="toggleExpand"
         class="bgm-toggle-btn"
-        title="展开播放器"
+        :title="t('bgm.expand')"
       >
         <i class="fas fa-music"></i>
       </button>
@@ -25,19 +25,25 @@
             :class="{ 'bgm-artwork-placeholder': !currentTrack?.artwork?.length, 'bgm-artwork-clickable': !!currentTrack?.artwork?.length }"
             @click="openArtworkViewer"
           >
-            <img v-if="currentTrack?.artwork?.length" :src="currentTrack.artwork[0].src" alt="封面" class="bgm-artwork-img" />
+            <img v-if="currentTrack?.artwork?.length" :src="currentTrack.artwork[0].src" :alt="t('bgm.cover')" class="bgm-artwork-img" />
             <i v-else class="fas fa-music"></i>
           </div>
           <div class="bgm-track-info">
-            <div class="bgm-track-name">{{ currentTrack?.name || '未选择曲目' }}</div>
-            <div v-if="currentTrack?.artist" class="bgm-track-artist">{{ currentTrack.artist }}</div>
-            <div v-if="currentTrack?.album" class="bgm-track-album">{{ currentTrack.album }}</div>
+            <div ref="trackNameRef" class="bgm-track-name scrolling-text">
+              <span class="scrolling-text-content">{{ getTrackName(currentTrack) }}</span>
+            </div>
+            <div v-if="getTrackArtist(currentTrack)" ref="trackArtistRef" class="bgm-track-artist scrolling-text">
+              <span class="scrolling-text-content">{{ getTrackArtist(currentTrack) }}</span>
+            </div>
+            <div v-if="getTrackAlbum(currentTrack)" ref="trackAlbumRef" class="bgm-track-album scrolling-text">
+              <span class="scrolling-text-content">{{ getTrackAlbum(currentTrack) }}</span>
+            </div>
             <div class="bgm-time-display">
               {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
             </div>
           </div>
           <div class="bgm-header-controls">
-            <button @click="toggleExpand" class="bgm-icon-btn" title="收起">
+            <button @click="toggleExpand" class="bgm-icon-btn" :title="t('bgm.collapse')">
               <i class="fas fa-chevron-down"></i>
             </button>
           </div>
@@ -58,15 +64,15 @@
 
         <!-- 播放控制 -->
         <div class="bgm-controls">
-          <button @click="playPrevious" class="bgm-control-btn" title="上一首">
+          <button @click="playPrevious" class="bgm-control-btn" :title="t('bgm.previous')">
             <i class="fas fa-step-backward"></i>
           </button>
 
-          <button @click="togglePlay" class="bgm-play-btn" :title="isPlaying ? '暂停' : '播放'">
+          <button @click="togglePlay" class="bgm-play-btn" :title="isPlaying ? t('bgm.pause') : t('bgm.play')">
             <i :class="isPlaying ? 'fas fa-pause' : 'fas fa-play'"></i>
           </button>
 
-          <button @click="playNext" class="bgm-control-btn" title="下一首">
+          <button @click="playNext" class="bgm-control-btn" :title="t('bgm.next')">
             <i class="fas fa-step-forward"></i>
           </button>
 
@@ -83,7 +89,7 @@
             @click="toggleUseLoop"
             class="bgm-control-btn"
             :class="{ 'active-dim': useLoop }"
-            :title="useLoop ? '关闭循环节' : '开启循环节'"
+            :title="useLoop ? t('bgm.disableLoop') : t('bgm.enableLoop')"
           >
             <i class="fas fa-sync-alt"></i>
           </button>
@@ -92,7 +98,7 @@
             @click="toggleAutoplay"
             class="bgm-control-btn"
             :class="{ 'active-dim': autoplayEnabled }"
-            :title="autoplayEnabled ? '关闭自动播放' : '开启自动播放'"
+            :title="autoplayEnabled ? t('bgm.disableAutoplay') : t('bgm.enableAutoplay')"
           >
             <i class="fas fa-power-off"></i>
           </button>
@@ -106,6 +112,7 @@
               :value="volume * 100"
               @input="handleVolumeChange"
               class="bgm-volume-slider"
+              :title="t('bgm.volume', { value: Math.round(volume * 100) })"
             />
           </div>
         </div>
@@ -118,7 +125,7 @@
             :class="{ 'open': isPlaylistExpanded }"
           >
             <i class="fas fa-list"></i>
-            <span>播放列表</span>
+            <span>{{ t('bgm.playlist') }}</span>
             <i class="fas fa-chevron-up bgm-playlist-toggle-chevron"></i>
           </button>
 
@@ -134,8 +141,12 @@
               >
                 <i :class="index === currentTrackIndex && isPlaying ? 'fas fa-volume-up' : 'fas fa-music'"></i>
                 <span class="track-info">
-                  <span class="track-name">{{ track.name }}</span>
-                  <span v-if="track.artist" class="track-artist">{{ track.artist }}</span>
+                  <span class="track-name scrolling-text">
+                    <span class="scrolling-text-content">{{ getTrackName(track) }}</span>
+                  </span>
+                  <span v-if="getTrackArtist(track)" class="track-artist scrolling-text">
+                    <span class="scrolling-text-content">{{ getTrackArtist(track) }}</span>
+                  </span>
                 </span>
               </div>
             </div>
@@ -148,6 +159,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useBgmPlayerCustom } from '@/composables/useBgmPlayerCustom';
 import { useModalManager } from '@/composables/useModalManager';
@@ -155,6 +167,8 @@ import { useTimers } from '@/composables/useTimers';
 import bgmConfig from '@/config/bgm.json5';
 import type { BgmConfig } from '@/types/bgm';
 import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
+import { useLanguageStore } from '@/stores/language';
+import { getI18nText } from '@/utils/i18nText';
 
 const config = bgmConfig as BgmConfig;
 const isExpanded = ref(false);
@@ -164,11 +178,40 @@ const duration = ref(0);
 const progressPercent = ref(0);
 const audioIntensity = ref(0);
 
+const { t } = useI18n();
+const languageStore = useLanguageStore();
+const currentLanguage = computed(() => languageStore.currentLanguage);
 const modalManager = useModalManager();
 
 const { setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame } = useTimers();
 let progressInterval: number | null = null;
 let intensityAnimationId: number | null = null;
+
+const trackNameRef = ref<HTMLElement | null>(null);
+const trackArtistRef = ref<HTMLElement | null>(null);
+const trackAlbumRef = ref<HTMLElement | null>(null);
+
+const checkTextOverflow = (element: HTMLElement | null): boolean => {
+  if (!element) return false;
+  const content = element.querySelector('.scrolling-text-content') as HTMLElement;
+  if (!content) return false;
+  return content.scrollWidth > element.clientWidth;
+};
+
+const updateScrollingText = (): void => {
+  [trackNameRef.value, trackArtistRef.value, trackAlbumRef.value].forEach(el => {
+    if (el && checkTextOverflow(el)) {
+      el.classList.add('overflow');
+      const content = el.querySelector('.scrolling-text-content') as HTMLElement;
+      if (content) {
+        const text = content.textContent || '';
+        content.textContent = text + ' ' + text;
+      }
+    } else if (el) {
+      el.classList.remove('overflow');
+    }
+  });
+};
 
 const {
   currentTrack,
@@ -284,14 +327,29 @@ const getModeIcon = (): string => {
 const getModeTitle = (): string => {
   switch (currentMode.value) {
     case 'single-loop':
-      return '单曲循环';
+      return t('bgm.mode.singleLoop');
     case 'list-order':
-      return '列表循环';
+      return t('bgm.mode.listOrder');
     case 'list-shuffle':
-      return '随机播放';
+      return t('bgm.mode.listShuffle');
     default:
-      return '播放模式';
+      return t('bgm.mode.default');
   }
+};
+
+const getTrackName = (track: any): string => {
+  if (!track) return t('bgm.noTrack');
+  return getI18nText(track.name, currentLanguage.value);
+};
+
+const getTrackArtist = (track: any): string => {
+  if (!track?.artist) return '';
+  return getI18nText(track.artist, currentLanguage.value);
+};
+
+const getTrackAlbum = (track: any): string => {
+  if (!track?.album) return '';
+  return getI18nText(track.album, currentLanguage.value);
 };
 
 const updateProgress = (): void => {
@@ -405,8 +463,13 @@ watch(isPlaying, (playing) => {
   }
 });
 
+watch([currentTrack, currentLanguage], () => {
+  setTimeout(updateScrollingText, 100);
+});
+
 onMounted(() => {
   init();
+  setTimeout(updateScrollingText, 200);
 });
 
 onUnmounted(() => {
@@ -553,20 +616,51 @@ onUnmounted(() => {
   margin-bottom: 2px;
   word-break: break-word;
   line-height: 1.4;
+  overflow: hidden;
 }
 
 .dark .bgm-track-name {
   color: rgb(243, 244, 246);
 }
 
+.scrolling-text {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.scrolling-text-content {
+  display: inline-block;
+}
+
+.scrolling-text.overflow {
+  mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+}
+
+.scrolling-text.overflow .scrolling-text-content {
+  animation: scroll-text 15s linear infinite;
+}
+
+@keyframes scroll-text {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.scrolling-text.overflow:hover .scrolling-text-content {
+  animation-play-state: paused;
+}
+
 .bgm-track-artist {
   font-size: 12px;
   color: rgb(59, 130, 246);
   margin-bottom: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   line-height: 1.3;
+  overflow: hidden;
 }
 
 .dark .bgm-track-artist {
@@ -577,10 +671,8 @@ onUnmounted(() => {
   font-size: 11px;
   color: rgb(107, 114, 128);
   margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   line-height: 1.3;
+  overflow: hidden;
 }
 
 .dark .bgm-track-album {
@@ -995,19 +1087,15 @@ onUnmounted(() => {
 }
 
 .bgm-playlist-item .track-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   line-height: 1.4;
+  overflow: hidden;
 }
 
 .bgm-playlist-item .track-artist {
   font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   opacity: 0.65;
   line-height: 1.3;
+  overflow: hidden;
 }
 
 .bgm-playlist::-webkit-scrollbar {

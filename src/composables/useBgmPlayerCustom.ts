@@ -1,7 +1,9 @@
 import JSON5 from 'json5';
-import { onUnmounted, ref } from 'vue';
+import { onUnmounted, ref, watch } from 'vue';
 
+import { useLanguageStore } from '@/stores/language';
 import type { BgmConfig, BgmTrack } from '@/types/bgm';
+import { getI18nText } from '@/utils/i18nText';
 import type { AudioTrack, PlayMode } from '@ritsukage/audio-loop-player';
 import { AudioLoopPlayer } from '@ritsukage/audio-loop-player';
 
@@ -16,19 +18,42 @@ interface StoredPlayerState {
 }
 
 function convertTrack(track: BgmTrack): AudioTrack {
+  const languageStore = useLanguageStore();
+  const currentLang = languageStore.currentLanguage;
+
+  const name = getI18nText(track.name, currentLang);
+  const artist = track.artist ? getI18nText(track.artist, currentLang) : undefined;
+  const album = track.album ? getI18nText(track.album, currentLang) : undefined;
+
+  const url = track.url ? getI18nText(track.url, currentLang) : undefined;
+
+  let dualFile = track.dualFile;
+  if (dualFile) {
+    const intro = getI18nText(dualFile.intro, currentLang);
+    const loop = getI18nText(dualFile.loop, currentLang);
+    dualFile = { intro, loop };
+  }
+
+  const artwork = track.artwork?.map(img => ({
+    src: getI18nText(img.src, currentLang),
+    sizes: img.sizes ?? '512x512',
+    type: img.type ?? 'image/png',
+  }));
+
   return {
-    name: track.name,
-    artist: track.artist,
-    album: track.album,
-    artwork: track.artwork,
-    url: track.url,
+    name,
+    artist,
+    album,
+    artwork,
+    url,
     loop: track.loop,
-    dualFile: track.dualFile,
+    dualFile: dualFile as { intro: string; loop: string } | undefined,
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function useBgmPlayerCustom(config: BgmConfig) {
+  const languageStore = useLanguageStore();
   const player = ref<AudioLoopPlayer | null>(null);
   const volumeSaveTimeoutId = ref<number | null>(null);
   const autoplayEnabled = ref(config.autoplay);
@@ -39,6 +64,7 @@ export function useBgmPlayerCustom(config: BgmConfig) {
   const volume = ref(config.volume);
   const currentMode = ref(config.mode);
   const currentTrack = ref<BgmTrack | null>(null);
+  const originalTracks = config.tracks;
 
   const loadUserPreference = (): Partial<StoredPlayerState> => {
     try {
@@ -101,27 +127,21 @@ export function useBgmPlayerCustom(config: BgmConfig) {
       useLoop.value = true;
     }
 
-    if (savedState.currentTrackIndex !== undefined) {
-      const index = Math.max(0, Math.min(savedState.currentTrackIndex, tracks.length - 1));
-      player.value.playTrack(index);
-      currentTrackIndex.value = index;
-      const track = player.value.getCurrentTrack();
-      if (track) {
-        currentTrack.value = {
-          name: track.name,
-          url: track.url,
-          dualFile: track.dualFile,
-          artist: track.artist,
-          album: track.album,
-          artwork: track.artwork,
-          loop: track.loop,
-        } as BgmTrack;
-      }
-      if (!autoplayEnabled.value) {
-        player.value.pause();
-      }
-    } else if (autoplayEnabled.value) {
-      player.value.play();
+
+    let initialIndex = 0;
+    const savedMode = savedState.mode ?? config.mode;
+    
+    if (savedMode === 'list-shuffle') {
+      initialIndex = Math.floor(Math.random() * tracks.length);
+    } else if (savedState.currentTrackIndex !== undefined) {
+      initialIndex = Math.max(0, Math.min(savedState.currentTrackIndex, tracks.length - 1));
+    }
+
+    player.value.playTrack(initialIndex);
+    currentTrackIndex.value = initialIndex;
+    currentTrack.value = originalTracks[initialIndex];
+    if (!autoplayEnabled.value) {
+      player.value.pause();
     }
 
     setupEventListeners();
@@ -133,28 +153,26 @@ export function useBgmPlayerCustom(config: BgmConfig) {
 
     player.value.on('play', () => {
       isPlaying.value = true;
+      updateMediaSessionMetadata();
     });
 
     player.value.on('pause', () => {
       isPlaying.value = false;
+      clearMediaSessionMetadata();
     });
 
     player.value.on('stop', () => {
       isPlaying.value = false;
+      clearMediaSessionMetadata();
     });
 
     player.value.on('trackchange', (event) => {
-      const track = event.data.track;
-      currentTrack.value = {
-        name: track.name,
-        url: track.url,
-        dualFile: track.dualFile,
-        artist: track.artist,
-        album: track.album,
-        artwork: track.artwork,
-        loop: track.loop,
-      } as BgmTrack;
-      currentTrackIndex.value = event.data.index;
+      const index = event.data.index;
+      currentTrackIndex.value = index;
+      currentTrack.value = originalTracks[index];
+      if (isPlaying.value) {
+        updateMediaSessionMetadata();
+      }
       saveUserPreference({});
     });
 
@@ -204,6 +222,35 @@ export function useBgmPlayerCustom(config: BgmConfig) {
         player.value?.seek(details.seekTime);
       }
     });
+  };
+
+  const updateMediaSessionMetadata = (): void => {
+    if (!('mediaSession' in navigator) || !currentTrack.value) return;
+
+    const track = currentTrack.value;
+    const currentLang = languageStore.currentLanguage;
+
+    const title = getI18nText(track.name, currentLang);
+    const artist = track.artist ? getI18nText(track.artist, currentLang) : undefined;
+    const album = track.album ? getI18nText(track.album, currentLang) : undefined;
+    const artwork = track.artwork?.map(img => ({
+      src: getI18nText(img.src, currentLang),
+      sizes: img.sizes ?? '512x512',
+      type: img.type ?? 'image/png',
+    }));
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title,
+      artist,
+      album,
+      artwork,
+    });
+  };
+
+  const clearMediaSessionMetadata = (): void => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = null;
+    }
   };
 
   const playTrack = (index: number): void => {
@@ -265,12 +312,19 @@ export function useBgmPlayerCustom(config: BgmConfig) {
 
   const init = (): void => {
     initPlayer();
+
+    watch(() => languageStore.currentLanguage, () => {
+      if (isPlaying.value && currentTrack.value) {
+        updateMediaSessionMetadata();
+      }
+    });
   };
 
   onUnmounted(() => {
     if (volumeSaveTimeoutId.value !== null) {
       window.clearTimeout(volumeSaveTimeoutId.value);
     }
+    clearMediaSessionMetadata();
     player.value?.destroy();
   });
 

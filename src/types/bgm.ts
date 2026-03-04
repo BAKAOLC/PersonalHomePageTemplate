@@ -1,7 +1,11 @@
 // BGM配置类型定义
 export interface BgmTrack {
   name: string;
-  url: string;
+  url?: string;
+  dualFile?: {
+    intro: string; // intro文件URL
+    loop: string; // loop文件URL
+  };
   artist?: string; // 艺术家名称
   album?: string; // 专辑名称
   artwork?: MediaImage[]; // 封面图片列表，每项包含 src、sizes、type

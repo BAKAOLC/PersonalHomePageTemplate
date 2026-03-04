@@ -1,4 +1,5 @@
-MIT License
+MIT License (Code Only)
+仅适用于代码部分
 
 Copyright (c) 2025 OLC
 
@@ -8,6 +9,11 @@ in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
+
+在满足以下条件的前提下，特此免费授予任何获得本软件及相关文档文件
+（“软件”）副本的个人或组织以不受限制地处理本软件的权利，包括但不
+限于使用、复制、修改、合并、出版、分发、再许可及/或销售本软件副本
+的权利，并允许本软件提供给其使用者如此操作。
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
@@ -19,3 +25,61 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+本软件按“现状”提供，不作任何明示或暗示的担保，包括但不限于对适销
+性、特定用途适用性及非侵权的担保。在任何情况下，作者或版权持有人不
+对因本软件或本软件的使用或其他交易而产生的任何索赔、损害或其他责任
+承担责任，无论是在合同诉讼、侵权行为或其他诉讼中。
+
+------------------------------------------------------------------------------
+
+NON-CODE CONTENT LICENSE (ASSETS, ARTICLES, ETC.)
+非代码内容许可条款（素材、文章等）
+
+In addition to the code licensed under the MIT License above, this repository
+contains the following types of works (collectively, the “Non-Code Content”),
+including but not limited to:
+
+- All image resources, including illustrations, character designs, avatars,
+  and any other graphics (for example, files under `public/assets/` and its
+  subdirectories)
+- Articles, texts, copywriting, setting texts, character profiles and related
+  descriptive content (including but not limited to textual content carried
+  in `src/config/articles/`, `src/config/character-profiles/` and similar
+  configuration files)
+- Any other materials, content, and works that are not source code and are
+  used solely for display or demonstration
+
+除上述以 MIT License 授权的代码部分外，本仓库中包括但不限于以下内容
+（统称为“非代码内容”）：
+
+- 图片、插画、角色设计、头像等一切图像资源（例如 `public/assets/`
+  及其子目录中的文件）
+- 文章、文案、设定文本、角色设定与相关描述信息（包括但不限于
+  `src/config/articles/`、`src/config/character-profiles/` 等配置中承载
+  的文字内容）
+- 其他不属于源代码、仅用于展示或说明的素材、内容与作品
+
+All of the above Non-Code Content:
+
+- All rights reserved.
+- You are prohibited from using, copying, modifying, distributing,
+  sublicensing, or otherwise exploiting any Non-Code Content in any software
+  or project, in any form, whether for commercial or non-commercial
+  purposes.
+- The Non-Code Content may only be used within the scope of an explicit
+  written authorization granted in advance by the owner of this repository.
+
+上述所有非代码内容：
+
+- 保留所有权利（All Rights Reserved）
+- 禁止在任何软件或项目中以任何形式使用、复制、修改、分发或再授权，
+  无论是否为商业用途
+- 仅可在本仓库作者明确书面授权的前提下，在授权范围内使用
+
+If you wish to use any Non-Code Content, you must first contact the rights
+holder and obtain explicit written permission. Any use without such
+authorization shall be deemed an infringement.
+
+如需使用任何非代码内容，请事先联系版权持有人并获得明确书面许可；
+在未获授权的情况下，任何使用行为均视为侵权。

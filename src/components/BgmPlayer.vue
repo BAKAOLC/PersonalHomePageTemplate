@@ -25,7 +25,7 @@
             :class="{ 'bgm-artwork-placeholder': !currentTrack?.artwork?.length, 'bgm-artwork-clickable': !!currentTrack?.artwork?.length }"
             @click="openArtworkViewer"
           >
-            <img v-if="currentTrack?.artwork?.length" :src="currentTrack.artwork[0].src" :alt="t('bgm.cover')" class="bgm-artwork-img" />
+            <img v-if="currentTrack?.artwork?.length" :src="getI18nText(currentTrack.artwork[0].src, currentLanguage)" :alt="t('bgm.cover')" class="bgm-artwork-img" />
             <i v-else class="fas fa-music"></i>
           </div>
           <div class="bgm-track-info">

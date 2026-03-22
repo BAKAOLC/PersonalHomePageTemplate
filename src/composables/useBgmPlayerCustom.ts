@@ -118,7 +118,11 @@ export function useBgmPlayerCustom(config: BgmConfig) {
 
     volume.value = player.value.getVolume();
     currentMode.value = player.value.getMode();
-    
+
+    if (savedState.autoplayEnabled !== undefined) {
+      autoplayEnabled.value = savedState.autoplayEnabled;
+    }
+
     if (savedState.useLoop !== undefined) {
       player.value.setUseLoop(savedState.useLoop);
       useLoop.value = savedState.useLoop;

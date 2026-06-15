@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-vue-next';
+import { MonitorIcon, MoonIcon, SunIcon } from '@lucide/vue';
 import { computed, type Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 

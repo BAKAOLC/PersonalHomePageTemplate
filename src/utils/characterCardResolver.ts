@@ -313,7 +313,7 @@ export class CharacterCardResolver {
     imageId?: string,
   ): ResolvedCharacterInfoCard[] {
     // 首先确定要使用哪一级的卡片
-    let cardsToResolve: CharacterInfoCard[] = [];
+    let cardsToResolve: CharacterInfoCard[];
 
     // 按优先级顺序查找：图像级 > 变体级 > 角色级
     // 重要：直接检查原始配置对象中是否定义了 infoCards 字段

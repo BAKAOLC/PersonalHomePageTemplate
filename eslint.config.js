@@ -5,7 +5,7 @@ import js from '@eslint/js';
 import stylisticPlugin from '@stylistic/eslint-plugin';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
-import importPlugin from 'eslint-plugin-import';
+import importPlugin from 'eslint-plugin-import-x';
 import vuePlugin from 'eslint-plugin-vue';
 import globals from 'globals';
 import vueParser from 'vue-eslint-parser';

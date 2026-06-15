@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { Layers as LayersIcon } from 'lucide-vue-next';
+import { Layers as LayersIcon } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

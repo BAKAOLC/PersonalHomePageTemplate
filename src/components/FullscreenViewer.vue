@@ -418,7 +418,7 @@
 
 <script setup lang="ts">
 
-import { ChevronLeftIcon, ChevronRightIcon, InfoIcon, LayersIcon, MessageCircleIcon, RotateCcwIcon, XIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-vue-next';
+import { ChevronLeftIcon, ChevronRightIcon, InfoIcon, LayersIcon, MessageCircleIcon, RotateCcwIcon, XIcon, ZoomInIcon, ZoomOutIcon } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type ComponentPublicInstance } from 'vue';
 import { useI18n } from 'vue-i18n';
 

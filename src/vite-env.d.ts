@@ -11,3 +11,5 @@ declare module '*.json5' {
   const value: unknown;
   export default value;
 }
+
+declare module 'monaco-editor/esm/vs/*';

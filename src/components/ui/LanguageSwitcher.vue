@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronDownIcon, GlobeIcon } from 'lucide-vue-next';
+import { ChevronDownIcon, GlobeIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

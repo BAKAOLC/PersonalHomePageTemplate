@@ -2,6 +2,7 @@ import type {
   CardResolutionContext,
   CardTemplateVariables,
   CharacterInfoCard,
+  CharacterProfile,
   ResolvedCharacterInfoCard,
 } from '../types/character';
 import type { I18nText } from '../types/language';
@@ -237,7 +238,7 @@ export class CharacterCardResolver {
    * @returns 卡片解析上下文，包含所有层级的卡片和模板映射
    */
   public static buildContext(
-    character: any, // CharacterProfile
+    character: CharacterProfile,
     variantId?: string,
     imageId?: string,
   ): CardResolutionContext {
@@ -264,7 +265,7 @@ export class CharacterCardResolver {
 
     // 添加变体级卡片
     if (variantId) {
-      const variant = character.variants.find((v: any) => v.id === variantId);
+      const variant = character.variants.find(v => v.id === variantId);
       if (variant?.infoCards) {
         for (const card of variant.infoCards) {
           context.variantCards.set(card.id, card);
@@ -273,7 +274,7 @@ export class CharacterCardResolver {
 
       // 添加图像级卡片
       if (imageId) {
-        const image = variant?.images.find((img: any) => img.id === imageId);
+        const image = variant?.images.find(img => img.id === imageId);
         if (image?.infoCards) {
           for (const card of image.infoCards) {
             context.imageCards.set(card.id, card);
@@ -306,13 +307,13 @@ export class CharacterCardResolver {
    * image: { id: "img1" } → 使用 variant.infoCards
    */
   public static getResolvedCards(
-    character: any, // CharacterProfile
+    character: CharacterProfile,
     currentLanguage: string,
     variantId?: string,
     imageId?: string,
   ): ResolvedCharacterInfoCard[] {
     // 首先确定要使用哪一级的卡片
-    let cardsToResolve: any[] = [];
+    let cardsToResolve: CharacterInfoCard[] = [];
 
     // 按优先级顺序查找：图像级 > 变体级 > 角色级
     // 重要：直接检查原始配置对象中是否定义了 infoCards 字段
@@ -321,8 +322,8 @@ export class CharacterCardResolver {
 
     // 1. 首先尝试图像级卡片
     if (variantId && imageId) {
-      const variant = character.variants.find((v: any) => v.id === variantId);
-      const image = variant?.images.find((img: any) => img.id === imageId);
+      const variant = character.variants.find(v => v.id === variantId);
+      const image = variant?.images.find(img => img.id === imageId);
 
       if (image && 'infoCards' in image) {
         // 图像明确定义了 infoCards 字段（可能是空数组）
@@ -337,7 +338,7 @@ export class CharacterCardResolver {
       }
     } else if (variantId) {
       // 2. 如果没有指定图像，尝试变体级卡片
-      const variant = character.variants.find((v: any) => v.id === variantId);
+      const variant = character.variants.find(v => v.id === variantId);
 
       if (variant && 'infoCards' in variant) {
         // 变体明确定义了 infoCards 字段（可能是空数组）

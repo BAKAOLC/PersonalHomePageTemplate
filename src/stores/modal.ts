@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
 import { computed, markRaw, nextTick, ref, type Component } from 'vue';
 
-import { useTimers } from '@/composables/useTimers';
+import { getTimerService } from '@/services/timerService';
+import { lockBodyScroll, unlockBodyScroll } from '@/utils/bodyScrollLock';
 
 export interface ModalOptions {
   closable?: boolean; // 是否可关闭
@@ -19,11 +20,11 @@ export interface ModalOptions {
 export interface ModalConfig {
   id: string;
   component: Component;
-  props?: Record<string, any>;
+  props?: Record<string, unknown>;
   options?: ModalOptions;
   onClose?: () => void;
   onDestroy?: () => void;
-  onNavigate?: (...args: any[]) => void;
+  onNavigate?: (id: string, childId?: string) => void;
 }
 
 export interface ModalInstance extends ModalConfig {
@@ -39,7 +40,18 @@ export const useModalStore = defineStore('modal', () => {
   const baseZIndex = ref(2000);
   const currentZIndex = ref(2000);
   const activeModalStack = ref<string[]>([]); // 活跃弹窗栈
-  const { setTimeout } = useTimers();
+  const timerService = getTimerService();
+  const modalScrollLockId = 'modal-store';
+
+  const getNextZIndex = (customZIndex?: number): number => {
+    if (typeof customZIndex === 'number') {
+      currentZIndex.value = Math.max(currentZIndex.value, customZIndex);
+      return customZIndex;
+    }
+
+    currentZIndex.value += 1;
+    return currentZIndex.value;
+  };
 
   // 获取可见弹窗
   const visibleModals = computed(() => {
@@ -60,7 +72,7 @@ export const useModalStore = defineStore('modal', () => {
       ...config,
       component: markRaw(config.component), // 使用markRaw避免组件被响应式化
       visible: true,
-      zIndex: ++currentZIndex.value,
+      zIndex: getNextZIndex(config.options?.zIndex),
       children: new Set(),
       createdAt: Date.now(),
       options: {
@@ -126,7 +138,12 @@ export const useModalStore = defineStore('modal', () => {
     }
 
     // 延迟销毁，等待动画完成
-    setTimeout(() => {
+    timerService.setTimeout(() => {
+      if (modals.value.get(id) !== modal) {
+        updateBodyOverflow();
+        return;
+      }
+
       if (modal.options?.destroyOnClose !== false) {
         modals.value.delete(id);
 
@@ -164,8 +181,10 @@ export const useModalStore = defineStore('modal', () => {
   const updateBodyOverflow = (): void => {
     nextTick(() => {
       const hasVisibleModals = visibleModals.value.length > 0;
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = hasVisibleModals ? 'hidden' : '';
+      if (hasVisibleModals) {
+        lockBodyScroll(modalScrollLockId);
+      } else {
+        unlockBodyScroll(modalScrollLockId);
       }
     });
   };

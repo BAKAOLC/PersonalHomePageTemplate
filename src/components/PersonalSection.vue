@@ -127,6 +127,7 @@ import ProgressiveImage from './ProgressiveImage.vue';
 
 import { siteConfig } from '@/config/site';
 import { useLanguageStore } from '@/stores/language';
+import type { ActionButton } from '@/types';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
@@ -189,7 +190,7 @@ onMounted(() => {
   selectRandomBackground();
 });
 
-const computeActionButtonStyle = (button: any, index: number): Record<string, string> => {
+const computeActionButtonStyle = (button: ActionButton, index: number): Record<string, string> => {
   const baseDelay = actionButtonsInitialDelay.value + (index + 1) * actionButtonsAnimationDelayInterval.value;
   const extraLinksDelay = actionButtonsWaitForLinks.value
     ? ((personal.links?.length ?? 0) * animationDelayInterval.value)
@@ -199,7 +200,7 @@ const computeActionButtonStyle = (button: any, index: number): Record<string, st
   return {
     '--button-color': button.color ?? '#667eea',
     'animation-delay': `${delay}s`,
-  } as Record<string, string>;
+  };
 };
 
 </script>

@@ -1,12 +1,34 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-export const useThemeStore = defineStore('theme', () => {
-  // 主题相关
-  type ThemeMode = 'light' | 'dark' | 'auto';
+import { getBrowserDocument, getLocalStorageItem, getMediaQuery, setLocalStorageItem } from '@/utils/browser';
 
-  const themeMode = ref<ThemeMode>((localStorage.getItem('theme') as ThemeMode) ?? 'auto');
-  const systemDarkMode = ref(window.matchMedia('(prefers-color-scheme: dark)').matches);
+type ThemeMode = 'light' | 'dark' | 'auto';
+
+const THEME_STORAGE_KEY = 'theme';
+const THEME_MODES: ThemeMode[] = ['auto', 'light', 'dark'];
+const SYSTEM_DARK_QUERY = '(prefers-color-scheme: dark)';
+
+const isThemeMode = (value: string | null): value is ThemeMode => {
+  return value === 'light' || value === 'dark' || value === 'auto';
+};
+
+const getStoredThemeMode = (): ThemeMode => {
+  const storedThemeMode = getLocalStorageItem(THEME_STORAGE_KEY);
+  return isThemeMode(storedThemeMode) ? storedThemeMode : 'auto';
+};
+
+const getSystemDarkMode = (): boolean => {
+  return getMediaQuery(SYSTEM_DARK_QUERY)?.matches ?? false;
+};
+
+const noop = (): void => {
+  return undefined;
+};
+
+export const useThemeStore = defineStore('theme', () => {
+  const themeMode = ref<ThemeMode>(getStoredThemeMode());
+  const systemDarkMode = ref(getSystemDarkMode());
 
   // 计算实际的暗色模式状态
   const isDarkMode = computed(() => {
@@ -18,26 +40,28 @@ export const useThemeStore = defineStore('theme', () => {
 
   // 应用主题到 DOM
   const applyTheme = (): void => {
+    const rootElement = getBrowserDocument()?.documentElement;
+    if (!rootElement) return;
+
     if (isDarkMode.value) {
-      document.documentElement.classList.add('dark');
+      rootElement.classList.add('dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      rootElement.classList.remove('dark');
     }
   };
 
   // 设置主题模式
   const setThemeMode = (mode: ThemeMode): void => {
     themeMode.value = mode;
-    localStorage.setItem('theme', mode);
+    setLocalStorageItem(THEME_STORAGE_KEY, mode);
     applyTheme();
   };
 
   // 切换主题模式（循环：auto -> light -> dark -> auto）
   const toggleThemeMode = (): void => {
-    const modes: ThemeMode[] = ['auto', 'light', 'dark'];
-    const currentIndex = modes.indexOf(themeMode.value);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setThemeMode(modes[nextIndex]);
+    const currentIndex = THEME_MODES.indexOf(themeMode.value);
+    const nextIndex = (currentIndex + 1) % THEME_MODES.length;
+    setThemeMode(THEME_MODES[nextIndex]);
   };
 
   // 处理系统主题变化
@@ -51,8 +75,12 @@ export const useThemeStore = defineStore('theme', () => {
 
   // 监听系统主题变化
   const setupSystemThemeListener = (): (() => void) => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const mediaQuery = getMediaQuery(SYSTEM_DARK_QUERY);
+    if (!mediaQuery) {
+      return noop;
+    }
 
+    systemDarkMode.value = mediaQuery.matches;
     mediaQuery.addEventListener('change', handleSystemThemeChange);
 
     // 返回清理函数

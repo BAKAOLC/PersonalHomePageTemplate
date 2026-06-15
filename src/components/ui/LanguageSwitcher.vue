@@ -18,10 +18,10 @@
 
 <script setup lang="ts">
 import { ChevronDownIcon, GlobeIcon } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { useEventManager } from '@/composables/useEventManager';
+import { useClickOutside } from '@/composables/useClickOutside';
 import { useTimers } from '@/composables/useTimers';
 import { useLanguageStore } from '@/stores/language';
 import type { Language } from '@/types';
@@ -30,7 +30,6 @@ import { getEnabledLanguages, getLanguageNativeName } from '@/utils/language';
 const { locale } = useI18n();
 const languageStore = useLanguageStore();
 const { setTimeout } = useTimers();
-const { addEventListener, removeEventListener } = useEventManager();
 
 const isOpen = ref(false);
 const menuRef = ref<HTMLDivElement | null>(null);
@@ -52,9 +51,9 @@ const displayLanguage = computed(() => {
   return getLanguageNativeName(currentLanguage.value);
 });
 
-const toggleLanguageMenu = (): void => {
+const toggleLanguageMenu = (event: MouseEvent): void => {
   // 添加点击动画效果
-  const button = event?.target as HTMLElement;
+  const button = event.target as HTMLElement;
   if (button) {
     button.style.transform = 'scale(0.95)';
     setTimeout(() => {
@@ -71,24 +70,12 @@ const changeLanguage = (lang: Language): void => {
   isOpen.value = false;
 };
 
-const handleClickOutside = (event: MouseEvent): void => {
-  const target = event.target as HTMLElement;
-  if (
-    isOpen.value
-    && menuRef.value
-    && buttonRef.value
-    && !menuRef.value.contains(target)
-    && !buttonRef.value.contains(target)
-  ) {
+useClickOutside({
+  targets: [menuRef, buttonRef],
+  enabled: () => isOpen.value,
+  onClickOutside: () => {
     isOpen.value = false;
-  }
-};
-onMounted(() => {
-  addEventListener('click', handleClickOutside);
-});
-
-onBeforeUnmount(() => {
-  removeEventListener('click', handleClickOutside);
+  },
 });
 </script>
 

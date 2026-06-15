@@ -63,7 +63,7 @@
             </button>
 
             <!-- 每页显示数量 -->
-            <div class="page-size-selector">
+            <div ref="pageSizeSelectorRef" class="page-size-selector">
               <button
                 @click="togglePageSizeMenu"
                 class="page-size-button"
@@ -142,81 +142,16 @@
 
           <!-- 桌面端分类筛选 - 可折叠样式 -->
           <section class="category-selector hidden md:block" :aria-label="$t('articles.categories')">
-            <button
-              class="section-title-button"
-              @click="toggleCategoriesExpansion"
-              :aria-expanded="isCategoriesExpanded"
-              aria-controls="categories-list"
-              :aria-label="$t('articles.toggleCategories')"
-              type="button"
-            >
-              <h3 class="selector-title">{{ $t('articles.categories') }}</h3>
-              <i
-                class="fa expand-icon"
-                :class="getIconClass(isCategoriesExpanded ? 'chevron-up' : 'chevron-down')"
-                aria-hidden="true"
-              ></i>
-            </button>
-            <Transition name="category-list">
-              <div
-                v-if="isCategoriesExpanded"
-                class="categories-list"
-                id="categories-list"
-                role="listbox"
-                :aria-label="$t('articles.selectCategory')"
-              >
-                <!-- All 选项 -->
-                <button
-                  class="category-button"
-                  :class="{ 'active': selectedCategory === '' }"
-                  @click="clearCategoryFilter"
-                  role="option"
-                  :aria-selected="selectedCategory === ''"
-                  :aria-label="$t('articles.showAllCategories')"
-                  type="button"
-                >
-                  <div class="category-left">
-                    <i :class="getIconClass('th')" class="category-icon" aria-hidden="true"></i>
-                    <span class="category-name">{{ $t('common.all') }}</span>
-                  </div>
-                  <span
-                    class="category-count"
-                    :aria-label="$t('articles.articleCount', {
-                      count: searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
-                    })"
-                  >{{
-                    searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
-                  }}</span>
-                </button>
-
-                <!-- 分类选项 - 只显示可见的分类（过滤掉计数为0的） -->
-                <button
-                  v-for="(category, categoryId) in visibleCategories"
-                  :key="categoryId"
-                  class="category-button"
-                  :class="{ 'active': selectedCategory === String(categoryId) }"
-                  @click="selectCategory(String(categoryId))"
-                  :style="{
-                    '--category-color': category.color ?? '#8b5cf6',
-                    '--category-hover-color': category.color ? `${category.color}20` : '#8b5cf620'
-                  }"
-                  role="option"
-                  :aria-selected="selectedCategory === String(categoryId)"
-                  :aria-label="`${getI18nText(category.name, currentLanguage)}, ${$t('articles.articleCount', {
-                    count: categoryCounts[String(categoryId)] ?? 0
-                  })}`"
-                  type="button"
-                >
-                  <div class="category-left">
-                    <span class="category-name">{{ getI18nText(category.name, currentLanguage) }}</span>
-                  </div>
-                  <span
-                    class="category-count"
-                    :aria-label="$t('articles.articleCount', { count: categoryCounts[String(categoryId)] ?? 0 })"
-                  >{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
-                </button>
-              </div>
-            </Transition>
+            <ArticleCategoryFilter
+              v-model:selected-category="selectedCategory"
+              v-model:expanded="isCategoriesExpanded"
+              :categories="visibleCategories"
+              :category-counts="categoryCounts"
+              :total-count="totalArticlesCount"
+              :search-result-count="filteredArticles.length"
+              :is-searching="isArticleSearchActive"
+              options-id="categories-list"
+            />
           </section>
 
           <!-- 额外的信息卡片列表 - 在分类下面 -->
@@ -245,43 +180,6 @@
             {{ $t('articles.categories') }}
           </div>
 
-          <!-- 移动端可折叠的分类筛选内容 -->
-          <div class="mobile-category-filter md:hidden" :class="{ 'active': isSidebarOpen }">
-            <!-- 分类筛选框 -->
-            <div class="category-filter">
-              <h3 class="filter-title">{{ $t('articles.categories') }}</h3>
-              <div class="category-list">
-              <!-- All 选项 -->
-              <button
-                class="category-item"
-                :class="{ 'active': selectedCategory === '' }"
-                @click="clearCategoryFilter"
-              >
-                <span class="category-name">{{ $t('common.all') }}</span>
-                <span class="category-count">{{
-                  searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
-                }}</span>
-              </button>
-
-              <!-- 分类选项 - 只显示可见的分类（过滤掉计数为0的） -->
-              <button
-                v-for="(category, categoryId) in visibleCategories"
-                :key="categoryId"
-                class="category-item"
-                :class="{ 'active': selectedCategory === String(categoryId) }"
-                @click="selectCategory(String(categoryId))"
-              >
-                <span
-                  class="category-name"
-                  :style="{ color: category.color }"
-                >
-                  {{ getI18nText(category.name, currentLanguage) }}
-                </span>
-                <span class="category-count">{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
-              </button>
-              </div>
-            </div>
-          </div>
         </aside>
 
         <!-- 主内容区域 -->
@@ -292,7 +190,7 @@
           </div>
 
           <!-- 文章列表 -->
-          <div class="articles-list" role="list" :aria-label="$t('articles.articlesList')">
+          <div ref="articlesListRef" class="articles-list" role="list" :aria-label="$t('articles.articlesList')">
             <div v-if="paginatedArticles.length === 0" class="no-articles" role="status" aria-live="polite">
               <i :class="getIconClass('newspaper')" class="no-articles-icon" aria-hidden="true"></i>
               <p class="no-articles-text">
@@ -341,20 +239,15 @@
                       :key="categoryId"
                       class="category-tag"
                       :style="{
-                        backgroundColor: (articleCategories as any)[categoryId]?.color + '20',
-                        color: (articleCategories as any)[categoryId]?.color
+                        backgroundColor: `${getCategoryColor(categoryId)}20`,
+                        color: getCategoryColor(categoryId)
                       }"
                       role="listitem"
                       :aria-label="$t('articles.category', {
-                        name: getI18nText((articleCategories as any)[categoryId]?.name ?? categoryId, currentLanguage)
+                        name: getCategoryName(categoryId)
                       })"
                     >
-                      {{
-                        getI18nText(
-                          (articleCategories as any)[categoryId]?.name ?? categoryId,
-                          currentLanguage
-                        )
-                      }}
+                      {{ getCategoryName(categoryId) }}
                     </span>
                   </div>
                 </div>
@@ -464,82 +357,26 @@
       </div>
     </div>
 
-    <!-- 移动端全屏筛选弹窗 -->
-    <div
-      v-if="isMobileSidebarOpen"
-      class="mobile-filter-overlay"
-      @click="closeMobileSidebar"
-      role="dialog"
-      :aria-modal="true"
-      aria-labelledby="mobile-filter-title"
+    <MobileFilterOverlay
+      :visible="isMobileSidebarOpen"
+      :title="$t('articles.categories')"
+      :close-label="$t('common.close')"
+      :z-index="60"
+      @close="closeMobileSidebar"
     >
-      <div class="mobile-filter-content" @click.stop>
-        <div class="mobile-filter-header">
-          <h3 id="mobile-filter-title">{{ $t('articles.categories') }}</h3>
-          <button
-            @click="closeMobileSidebar"
-            class="close-button"
-            :aria-label="$t('common.close')"
-            type="button"
-          >
-            <i :class="getIconClass('times')" aria-hidden="true"></i>
-          </button>
-        </div>
-        <div class="mobile-filter-body">
-          <!-- 分类筛选 - 使用与桌面端完全相同的结构 -->
-          <div class="category-selector">
-            <button
-              class="section-title-button"
-              @click="toggleCategoriesExpansion"
-            >
-              <h3 class="selector-title">{{ $t('articles.categories') }}</h3>
-              <i
-                class="fa expand-icon"
-                :class="getIconClass(isCategoriesExpanded ? 'chevron-up' : 'chevron-down')"
-              ></i>
-            </button>
-            <Transition name="category-list">
-              <div v-if="isCategoriesExpanded" class="categories-list">
-                <!-- All 选项 -->
-                <button
-                  class="category-button"
-                  :class="{ 'active': selectedCategory === '' }"
-                  @click="clearCategoryFilter"
-                >
-                  <div class="category-left">
-                    <i :class="getIconClass('th')" class="category-icon"></i>
-                    <span class="category-name">{{ $t('common.all') }}</span>
-                  </div>
-                  <span class="category-count">{{
-                    searchQuery.trim() !== '' ? filteredArticles.length : totalArticlesCount
-                  }}</span>
-                </button>
-
-                <!-- 分类选项 - 只显示可见的分类（过滤掉计数为0的） -->
-                <button
-                  v-for="(category, categoryId) in visibleCategories"
-                  :key="categoryId"
-                  class="category-button"
-                  :class="{ 'active': selectedCategory === String(categoryId) }"
-                  @click="selectCategory(String(categoryId))"
-                  :style="{
-                    '--category-color': category.color ?? '#8b5cf6',
-                    '--category-hover-color': category.color ? `${category.color}20` : '#8b5cf620'
-                  }"
-                >
-                  <div class="category-left">
-                    <span class="category-name">{{ getI18nText(category.name, currentLanguage) }}</span>
-                  </div>
-                  <span class="category-count">{{ categoryCounts[String(categoryId)] ?? 0 }}</span>
-                </button>
-              </div>
-            </Transition>
-          </div>
-
-        </div>
+      <!-- 分类筛选 - 使用与桌面端完全相同的结构 -->
+      <div class="category-selector">
+        <ArticleCategoryFilter
+          v-model:selected-category="selectedCategory"
+          v-model:expanded="isCategoriesExpanded"
+          :categories="visibleCategories"
+          :category-counts="categoryCounts"
+          :total-count="totalArticlesCount"
+          :search-result-count="filteredArticles.length"
+          :is-searching="isArticleSearchActive"
+        />
       </div>
-
-    </div>
+    </MobileFilterOverlay>
 
     <!-- 返回顶部按钮 -->
     <ScrollToTopButton
@@ -552,16 +389,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+import ArticleCategoryFilter from '@/components/ArticleCategoryFilter.vue';
 import FeedLinks from '@/components/FeedLinks.vue';
-import ArticleViewerModal from '@/components/modals/ArticleViewerModal.vue';
+import MobileFilterOverlay from '@/components/ui/MobileFilterOverlay.vue';
 import ScrollToTopButton from '@/components/ui/ScrollToTopButton.vue';
-import { useEventManager } from '@/composables/useEventManager';
+import { useClickOutside } from '@/composables/useClickOutside';
+import { useMobileFilterOverlay } from '@/composables/useMobileFilterOverlay';
 import { useModalManager } from '@/composables/useModalManager';
 import { useMobileDetection, type ScreenInfo } from '@/composables/useScreenManager';
+import { useScrollToTop } from '@/composables/useScrollToTop';
 import articleCategoriesConfig from '@/config/articles-categories.json5';
 import articlesPageConfig from '@/config/articles-page.json5';
 import articlesConfig from '@/config/articles.json5';
@@ -569,7 +409,14 @@ import { siteConfig } from '@/config/site';
 import { useLanguageStore } from '@/stores/language';
 import type { ModalConfig } from '@/stores/modal';
 import { useThemeStore } from '@/stores/theme';
-import type { Article, ArticleCategoriesConfig, ArticleFilterState, ArticlePagination } from '@/types';
+import type {
+  Article,
+  ArticleCategoriesConfig,
+  ArticleCategory,
+  ArticleFilterState,
+  ArticlePagination,
+  ArticlesPageConfig,
+} from '@/types';
 import {
   calculatePagination,
   countArticlesByCategory,
@@ -579,9 +426,12 @@ import {
   getArticleSummary,
   paginateArticles,
 } from '@/utils/articles';
+import { parseArticlesConfig } from '@/utils/articlesConfig';
+import { getCurrentSiteBaseUrl } from '@/utils/browser';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 import { encodeKey, parseParam } from '@/utils/idHashMap';
+import { filterVisible } from '@/utils/visibility';
 
 // Props for route parameters
 interface Props {
@@ -596,11 +446,11 @@ const props = withDefaults(defineProps<Props>(), {
 const { t: $t } = useI18n();
 const languageStore = useLanguageStore();
 const themeStore = useThemeStore();
-const { addEventListener, removeEventListener } = useEventManager();
 const { onScreenChange } = useMobileDetection();
 const route = useRoute();
 const router = useRouter();
 const modalManager = useModalManager();
+const ArticleViewerModal = defineAsyncComponent(() => import('@/components/modals/ArticleViewerModal.vue'));
 
 // 响应式数据
 const searchQuery = ref('');
@@ -611,15 +461,25 @@ const pageSize = ref<number | 'all'>(10); // Set a fixed number of articles to d
 const currentPage = ref(1);
 const jumpToPageNumber = ref(1);
 const selectedArticle = ref<Article | null>(null);
-const isSidebarOpen = ref(false);
-const isMobileSidebarOpen = ref(false);
 const isPageSizeMenuOpen = ref(false);
 const isCategoriesExpanded = ref(true);
-const articlesMain = ref<HTMLElement | null>(null);
-const showScrollToTop = ref(false);
+const articlesMain = ref<HTMLDivElement | null>(null);
+const articlesListRef = ref<HTMLElement | null>(null);
+const pageSizeSelectorRef = ref<HTMLElement | null>(null);
+const {
+  showScrollToTop,
+  handleScroll,
+  scrollToTop,
+} = useScrollToTop(articlesMain);
 
 // 模态框ID
 const articleViewerModalId = ref<string | null>(null);
+const mobileSidebarScrollLockId = 'articles-mobile-sidebar';
+const {
+  isOpen: isMobileSidebarOpen,
+  toggle: toggleMobileSidebar,
+  close: closeMobileSidebar,
+} = useMobileFilterOverlay(mobileSidebarScrollLockId);
 
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
@@ -630,13 +490,13 @@ const getCardImage = (image: string | { light: string; dark: string }): string =
 };
 
 // 配置数据
-const articles = ref<Article[]>(articlesConfig);
-const articleCategories = ref<ArticleCategoriesConfig>(articleCategoriesConfig);
+const articles = ref<Article[]>(parseArticlesConfig(articlesConfig));
+const articleCategories = ref<ArticleCategoriesConfig>(articleCategoriesConfig as ArticleCategoriesConfig);
 const personalInfo = computed(() => siteConfig.personal);
 
 // 动画延迟间隔（秒），默认 0.1
 const animationDelayInterval = computed(() => personalInfo.value.animationDelayInterval ?? 0.1);
-const infoCards = ref(articlesPageConfig.infoCards);
+const infoCards = ref((articlesPageConfig as ArticlesPageConfig).infoCards);
 
 // 计算属性
 const filterState = computed<ArticleFilterState>(() => ({
@@ -649,6 +509,10 @@ const filterState = computed<ArticleFilterState>(() => ({
 
 const filteredArticles = computed(() => {
   return filterArticles(articles.value, filterState.value, currentLanguage.value);
+});
+
+const visibleArticles = computed(() => {
+  return filterVisible(articles.value);
 });
 
 const pagination = computed<ArticlePagination>(() => {
@@ -677,10 +541,11 @@ const filteredCategoryCounts = computed(() => {
   return countArticlesByCategory(filteredArticles.value);
 });
 
+const isArticleSearchActive = computed(() => searchQuery.value.trim() !== '');
+
 // 根据当前是否在搜索来决定显示哪种计数
 const categoryCounts = computed(() => {
-  const isSearching = searchQuery.value.trim() !== '';
-  return isSearching ? filteredCategoryCounts.value : allCategoryCounts.value;
+  return isArticleSearchActive.value ? filteredCategoryCounts.value : allCategoryCounts.value;
 });
 
 // 过滤掉计数为0的分类（任何情况下都不显示计数为0的分类）
@@ -695,7 +560,7 @@ const visibleCategories = computed(() => {
 });
 
 const totalArticlesCount = computed(() => {
-  return articles.value.length;
+  return visibleArticles.value.length;
 });
 
 // 方法
@@ -741,15 +606,13 @@ const togglePageSizeMenu = (): void => {
   isPageSizeMenuOpen.value = !isPageSizeMenuOpen.value;
 };
 
-// 处理页数选择器外部点击
-const handlePageSizeClickOutside = (event: MouseEvent): void => {
-  const target = event.target as HTMLElement;
-  const pageSizeSelector = document.querySelector('.page-size-selector');
-
-  if (isPageSizeMenuOpen.value && pageSizeSelector && !pageSizeSelector.contains(target)) {
+useClickOutside({
+  targets: [pageSizeSelectorRef],
+  enabled: () => isPageSizeMenuOpen.value,
+  onClickOutside: () => {
     isPageSizeMenuOpen.value = false;
-  }
-};
+  },
+});
 
 const changePageSize = (size: number | 'all'): void => {
   pageSize.value = size;
@@ -757,34 +620,17 @@ const changePageSize = (size: number | 'all'): void => {
   isPageSizeMenuOpen.value = false;
 };
 
-const toggleCategoriesExpansion = (): void => {
-  isCategoriesExpanded.value = !isCategoriesExpanded.value;
+const getCategoryConfig = (categoryId: string): ArticleCategory | undefined => {
+  return articleCategories.value[categoryId];
 };
 
-const toggleMobileSidebar = (): void => {
-  isMobileSidebarOpen.value = !isMobileSidebarOpen.value;
-  // 阻止背景滚动
-  if (isMobileSidebarOpen.value) {
-    document.body.style.overflow = 'hidden';
-  } else {
-    document.body.style.overflow = '';
-  }
+const getCategoryColor = (categoryId: string): string => {
+  return getCategoryConfig(categoryId)?.color ?? '#6b7280';
 };
 
-const closeMobileSidebar = (): void => {
-  isMobileSidebarOpen.value = false;
-  // 恢复背景滚动
-  document.body.style.overflow = '';
-};
-
-const selectCategory = (categoryId: string): void => {
-  selectedCategory.value = categoryId === selectedCategory.value ? '' : categoryId;
-  currentPage.value = 1; // 重置到第一页
-};
-
-const clearCategoryFilter = (): void => {
-  selectedCategory.value = '';
-  currentPage.value = 1;
+const getCategoryName = (categoryId: string): string => {
+  const name = getCategoryConfig(categoryId)?.name;
+  return name ? getI18nText(name, currentLanguage.value) : categoryId;
 };
 
 /**
@@ -792,9 +638,8 @@ const clearCategoryFilter = (): void => {
  */
 const scrollToArticlesList = (): void => {
   nextTick(() => {
-    const articlesListElement = document.querySelector('.articles-list');
-    if (articlesListElement) {
-      articlesListElement.scrollIntoView({
+    if (articlesListRef.value) {
+      articlesListRef.value.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
@@ -850,7 +695,7 @@ const createArticleViewerModal = (article: Article): ModalConfig => {
   // 生成文章链接
   const hashedArticle = encodeKey([article.id]);
   const articleParam = hashedArticle ?? article.id;
-  const articleLink = `${window.location.origin}${window.location.pathname}#/articles/${articleParam}`;
+  const articleLink = `${getCurrentSiteBaseUrl() ?? ''}#/articles/${articleParam}`;
   return {
     id: `article-viewer-${Date.now()}`,
     component: ArticleViewerModal,
@@ -899,7 +744,7 @@ const closeArticle = (): void => {
 };
 
 const navigateToArticle = (articleId: string): void => {
-  const article = articles.value.find(a => a.id === articleId);
+  const article = visibleArticles.value.find(a => a.id === articleId);
   if (article) {
     selectedArticle.value = article;
 
@@ -924,7 +769,7 @@ const openArticleFromRoute = (): void => {
     const parsed = parseParam(rawParam);
     const articleId = parsed.parts.length > 0 ? parsed.parts.join('/') : rawParam;
     if (articleId) {
-      const article = articles.value.find(a => a.id === articleId);
+      const article = visibleArticles.value.find(a => a.id === articleId);
       if (article) {
         selectedArticle.value = article;
 
@@ -938,34 +783,11 @@ const openArticleFromRoute = (): void => {
   }
 };
 
-// 处理文章列表滚动事件
-const handleScroll = (): void => {
-  if (!articlesMain.value) return;
-
-  const { scrollTop } = articlesMain.value;
-
-  // 显示/隐藏返回顶部按钮
-  showScrollToTop.value = scrollTop > 200;
-};
-
-// 滚动到文章列表顶部
-const scrollToTop = (): void => {
-  if (articlesMain.value) {
-    articlesMain.value.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  }
-};
-
 // 处理屏幕变化
 const handleScreenChange = ({ isMobile }: ScreenInfo): void => {
   if (!isMobile) {
     // 切换到桌面端时关闭移动端功能
-    isMobileSidebarOpen.value = false;
-    isSidebarOpen.value = false;
-    // 恢复背景滚动
-    document.body.style.overflow = '';
+    closeMobileSidebar();
   }
 };
 
@@ -987,9 +809,6 @@ onMounted(() => {
   // 注册屏幕变化监听器
   unsubscribeScreenChange = onScreenChange(handleScreenChange);
 
-  // 添加页数选择器外部点击监听器
-  addEventListener('click', handlePageSizeClickOutside, undefined, document);
-
   // 检查是否需要从URL参数打开文章
   openArticleFromRoute();
 });
@@ -1000,12 +819,6 @@ onBeforeUnmount(() => {
     unsubscribeScreenChange();
     unsubscribeScreenChange = null;
   }
-
-  // 移除页数选择器外部点击监听器
-  removeEventListener('click', handlePageSizeClickOutside, undefined, document);
-
-  // 清理body样式
-  document.body.style.overflow = '';
 });
 </script>
 
@@ -1234,24 +1047,6 @@ onBeforeUnmount(() => {
   padding: 1rem;
 }
 
-.desktop-category-filter {
-  @apply block;
-}
-
-.mobile-category-filter {
-  @apply flex flex-col gap-3;
-  @apply overflow-hidden max-h-0 transition-all duration-300;
-  @apply bg-white dark:bg-gray-800 rounded-lg p-0;
-  @apply border border-transparent;
-}
-
-.mobile-category-filter.active {
-  @apply max-h-[500px] p-4 mb-4;
-  @apply border-gray-200 dark:border-gray-700;
-  @apply overflow-y-auto;
-  scrollbar-gutter: stable;
-}
-
 @media (min-width: 768px) {
   .articles-sidebar {
     width: 360px;
@@ -1279,32 +1074,6 @@ onBeforeUnmount(() => {
   .articles-sidebar {
     width: 320px;
   }
-}
-
-/* 移动端滚动条样式 */
-.mobile-category-filter.active::-webkit-scrollbar {
-  width: 6px;
-}
-
-.mobile-category-filter.active::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.mobile-category-filter.active::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
-}
-
-.mobile-category-filter.active::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.7);
-}
-
-.dark .mobile-category-filter.active::-webkit-scrollbar-thumb {
-  background: rgba(75, 85, 99, 0.5);
-}
-
-.dark .mobile-category-filter.active::-webkit-scrollbar-thumb:hover {
-  background: rgba(75, 85, 99, 0.7);
 }
 
 .personal-info-card {
@@ -1360,44 +1129,6 @@ onBeforeUnmount(() => {
 
 .social-link i {
   @apply w-4 h-4;
-}
-
-.category-filter {
-  @apply bg-white dark:bg-gray-800;
-  @apply border border-gray-200 dark:border-gray-700;
-  @apply rounded-lg p-4;
-}
-
-.filter-title {
-  @apply text-lg font-semibold text-gray-900 dark:text-white mb-3;
-}
-
-.category-list {
-  @apply space-y-2;
-}
-
-.category-item {
-  @apply w-full flex items-center justify-between;
-  @apply px-3 py-2 rounded-lg;
-  @apply text-left;
-  @apply text-gray-700 dark:text-gray-300;
-  @apply hover:bg-gray-100 dark:hover:bg-gray-700;
-  @apply transition-all duration-200;
-}
-
-.category-item.active {
-  @apply bg-primary-100 dark:bg-primary-900/20;
-  @apply text-primary-700 dark:text-primary-300;
-}
-
-.category-name {
-  @apply font-medium;
-}
-
-.category-count {
-  @apply text-sm text-gray-500 dark:text-gray-400;
-  @apply bg-gray-100 dark:bg-gray-700;
-  @apply px-2 py-1 rounded-full;
 }
 
 .articles-main {
@@ -1635,389 +1366,8 @@ onBeforeUnmount(() => {
   @apply object-cover; /* 保持图片比例 */
 }
 
-/* 移动端全屏筛选弹窗 */
-.mobile-filter-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 60;
-  display: flex;
-  align-items: flex-end;
-  touch-action: none;
-}
-
-.mobile-filter-content {
-  width: 100%;
-  max-height: 80vh;
-  background: white;
-  border-radius: 1rem 1rem 0 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.dark .mobile-filter-content {
-  background: rgb(31, 41, 55);
-}
-
-.mobile-filter-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid rgb(229, 231, 235);
-}
-
-.dark .mobile-filter-header {
-  border-bottom-color: rgb(75, 85, 99);
-}
-
-.mobile-filter-header h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: rgb(17, 24, 39);
-}
-
-.dark .mobile-filter-header h3 {
-  color: rgb(243, 244, 246);
-}
-
-.close-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
-  background: rgb(243, 244, 246);
-  color: rgb(75, 85, 99);
-  transition: background-color 0.2s;
-}
-
-.dark .close-button {
-  background: rgb(55, 65, 81);
-  color: rgb(209, 213, 219);
-}
-
-.close-button:hover {
-  background: rgb(229, 231, 235);
-}
-
-.dark .close-button:hover {
-  background: rgb(75, 85, 99);
-}
-
-.mobile-filter-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-  @apply flex flex-col gap-3;
-}
-
-/* 桌面端分类选择器样式 - 完全复制自Gallery组件 */
 .category-selector {
   margin-bottom: 0;
-}
-
-.section-title-button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  cursor: pointer;
-  padding: 0.75rem;
-  margin: 0;
-  border-radius: 0.5rem;
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.section-title-button:hover {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-.dark .section-title-button {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  border-color: #475569;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.dark .section-title-button:hover {
-  background: linear-gradient(135deg, #334155 0%, #475569 100%);
-  border-color: #64748b;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.selector-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin: 0;
-  color: #1e293b;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.dark .selector-title {
-  color: #f1f5f9;
-}
-
-.expand-icon {
-  font-size: 0.75rem;
-  color: #64748b;
-  transition: all 200ms ease-out;
-  width: 1.5rem;
-  height: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.25rem;
-  background: rgba(100, 116, 139, 0.1);
-  border: 1px solid rgba(100, 116, 139, 0.2);
-}
-
-.dark .expand-icon {
-  color: #94a3b8;
-  background: rgba(148, 163, 184, 0.1);
-  border-color: rgba(148, 163, 184, 0.2);
-}
-
-.section-title-button:hover .expand-icon {
-  color: #475569;
-  background: rgba(100, 116, 139, 0.15);
-  border-color: rgba(100, 116, 139, 0.3);
-  transform: translateY(-1px);
-}
-
-.dark .section-title-button:hover .expand-icon {
-  color: #cbd5e1;
-  background: rgba(148, 163, 184, 0.15);
-  border-color: rgba(148, 163, 184, 0.3);
-}
-
-.categories-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0;
-}
-
-@media (max-width: 767px) {
-  .categories-list {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-  }
-}
-
-.category-button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid transparent;
-  transition: all 200ms;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  width: 100%;
-  text-align: left;
-}
-
-@media (max-width: 767px) {
-  .category-button {
-    min-width: 11rem;
-    width: auto;
-    padding: 0.5rem 1rem;
-  }
-}
-
-.dark .category-button {
-  background-color: #374151;
-  color: #d1d5db;
-}
-
-.category-button:hover {
-  background-color: var(--category-hover-color, #e5e7eb);
-  border-color: var(--category-color, #8b5cf6);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.dark .category-button:hover {
-  background-color: #4b5563;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.category-button.active {
-  background-color: var(--category-hover-color, #8b5cf620);
-  border-color: var(--category-color, #8b5cf6);
-  color: var(--category-color, #8b5cf6);
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.dark .category-button.active {
-  background-color: var(--category-hover-color, #8b5cf630);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.category-button .category-left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.category-button .category-icon {
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
-}
-
-.category-button .category-name {
-  font-weight: inherit;
-}
-
-.category-button .category-count {
-  background-color: #e5e7eb;
-  color: #6b7280;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  min-width: 1.5rem;
-  text-align: center;
-}
-
-.dark .category-button .category-count {
-  background-color: #4b5563;
-  color: #9ca3af;
-}
-
-.category-button.active .category-count {
-  background-color: var(--category-color, #8b5cf6);
-  color: white;
-}
-
-/* 过渡动画 */
-.category-list-enter-active,
-.category-list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.category-list-enter-from,
-.category-list-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-/* 移动端分类选择器样式 */
-.mobile-category-selector {
-  width: 100%;
-}
-
-.mobile-category-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.mobile-category-button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid transparent;
-  transition: all 200ms;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  width: 100%;
-  text-align: left;
-}
-
-.dark .mobile-category-button {
-  background-color: #374151;
-  color: #d1d5db;
-}
-
-.mobile-category-button:hover {
-  background-color: var(--category-hover-color, #e5e7eb);
-  border-color: var(--category-color, #8b5cf6);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.dark .mobile-category-button:hover {
-  background-color: #4b5563;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.mobile-category-button.active {
-  background-color: var(--category-hover-color, #8b5cf620);
-  border-color: var(--category-color, #8b5cf6);
-  color: var(--category-color, #8b5cf6);
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.dark .mobile-category-button.active {
-  background-color: var(--category-hover-color, #8b5cf630);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.category-left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.category-icon {
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
-}
-
-.category-name {
-  font-weight: inherit;
-}
-
-.category-count {
-  background-color: #e5e7eb;
-  color: #6b7280;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  min-width: 1.5rem;
-  text-align: center;
-}
-
-.dark .category-count {
-  background-color: #4b5563;
-  color: #9ca3af;
-}
-
-.mobile-category-button.active .category-count {
-  background-color: var(--category-color, #8b5cf6);
-  color: white;
 }
 
 @media (max-width: 767px) {
@@ -2248,8 +1598,6 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-.category-button:focus,
-.category-button:focus-visible,
 .sort-order-button:focus,
 .sort-by-button:focus,
 .page-size-button:focus,
@@ -2265,7 +1613,6 @@ onBeforeUnmount(() => {
 /* 高对比度模式支持 */
 @media (prefers-contrast: high) {
   .article-card,
-  .category-button,
   .sort-order-button,
   .sort-by-button,
   .page-size-button,
@@ -2275,7 +1622,6 @@ onBeforeUnmount(() => {
   }
 
   .article-card:focus,
-  .category-button:focus,
   .sort-order-button:focus,
   .sort-by-button:focus,
   .page-size-button:focus,
@@ -2289,7 +1635,6 @@ onBeforeUnmount(() => {
 /* 减少动画偏好支持 */
 @media (prefers-reduced-motion: reduce) {
   .article-card,
-  .category-button,
   .sort-order-button,
   .sort-by-button,
   .page-size-button,
@@ -2300,7 +1645,6 @@ onBeforeUnmount(() => {
   }
 
   .article-card:hover,
-  .category-button:hover,
   .sort-order-button:hover,
   .sort-by-button:hover,
   .page-size-button:hover,

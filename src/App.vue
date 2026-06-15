@@ -1,6 +1,6 @@
 <template>
   <div id="app" class="app">
-    <LoadingScreen v-if="isLoading" :progress="loadingProgress" @complete="onLoadingComplete" />
+    <LoadingScreen v-if="isLoading" @complete="onLoadingComplete" />
 
     <template v-else>
       <header class="header">
@@ -55,11 +55,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import BgmPlayer from '@/components/BgmPlayer.vue';
-import Live2DWidget from '@/components/Live2DWidget.vue';
 import LoadingScreen from '@/components/LoadingScreen.vue';
 import NotificationContainer from '@/components/NotificationContainer.vue';
 import ModalContainer from '@/components/modals/ModalContainer.vue';
@@ -84,6 +83,8 @@ const languageStore = useLanguageStore();
 const themeStore = useThemeStore();
 const { setTimeout } = useTimers();
 
+const Live2DWidget = defineAsyncComponent(() => import('@/components/Live2DWidget.vue'));
+
 // 应用配置的计算属性
 const appTitle = computed(() => getAppTitle(languageStore.currentLanguage));
 const appCopyright = computed(() => getAppCopyright(languageStore.currentLanguage));
@@ -93,9 +94,6 @@ const preloadedImages = ref<HTMLImageElement[]>([]);
 
 // 加载状态
 const isLoading = computed(() => appStore.isLoading);
-const loadingProgress = ref(0);
-const totalAssets = ref(0);
-const loadedAssets = ref(0);
 
 // 预加载基本图像（不包括画廊图片）
 const preloadImages = async (): Promise<void> => {
@@ -117,8 +115,6 @@ const preloadImages = async (): Promise<void> => {
   // 注意：不再预加载画廊图片，因为已经有预览图处理
   // 画廊图片将在需要时按需加载
 
-  totalAssets.value = imageUrls.size;
-
   // 开始预加载
   const promises = Array.from(imageUrls).map(url => {
     return new Promise<void>((resolve) => {
@@ -127,16 +123,12 @@ const preloadImages = async (): Promise<void> => {
       // 添加到预加载图片列表中，用于后续清理
       preloadedImages.value.push(img);
 
-      img.onload = () => {
-        loadedAssets.value++;
-        loadingProgress.value = (loadedAssets.value / totalAssets.value) * 100;
+      const settle = (): void => {
         resolve();
       };
-      img.onerror = () => {
-        loadedAssets.value++;
-        loadingProgress.value = (loadedAssets.value / totalAssets.value) * 100;
-        resolve(); // 即使加载失败也继续
-      };
+
+      img.onload = settle;
+      img.onerror = settle;
       img.src = url;
     });
   });
@@ -144,11 +136,8 @@ const preloadImages = async (): Promise<void> => {
   // 确保至少有2秒的加载时间，即使资源很快加载完
   await Promise.all([
     Promise.all(promises),
-    new Promise(resolve => setTimeout(resolve, 2000)),
+    new Promise<void>(resolve => setTimeout(() => resolve(), 2000)),
   ]);
-
-  // 确保进度为100%
-  loadingProgress.value = 100;
 };
 
 // 加载完成
@@ -203,9 +192,9 @@ onBeforeUnmount(() => {
 
   // 清理所有服务
   try {
-    getTimerService().destroy();
-    getEventManagerService().destroy();
     getScreenManagerService().destroy();
+    getEventManagerService().destroy();
+    getTimerService().destroy();
     getImageCache().clearAllCache();
   } catch (error) {
     console.error('Error cleaning up services:', error);

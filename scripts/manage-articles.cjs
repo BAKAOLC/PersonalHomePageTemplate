@@ -94,6 +94,9 @@ function isValidArticleObject(obj) {
   // 如果有 allowComments，必须是布尔值
   if (obj.allowComments !== undefined && typeof obj.allowComments !== 'boolean') return false;
 
+  // 如果有 hidden，必须是布尔值
+  if (obj.hidden !== undefined && typeof obj.hidden !== 'boolean') return false;
+
   // markdownPath 可以是字符串（全语言通用）或对象（多语言）
   if (obj.markdownPath && typeof obj.markdownPath !== 'string' && typeof obj.markdownPath !== 'object') return false;
 

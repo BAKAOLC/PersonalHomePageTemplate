@@ -20,14 +20,14 @@ import { computed, onBeforeUnmount, onMounted } from 'vue';
 import FullscreenViewer from '@/components/FullscreenViewer.vue';
 import { useEventManager } from '@/composables/useEventManager';
 import { siteConfig } from '@/config/site';
-import type { ExternalImageInfo, ViewerUIConfig } from '@/types';
+import type { DisplayImage, ExternalImageInfo, ViewerUIConfig } from '@/types';
 
 // 定义组件props
 interface Props {
   imageId?: string;
   childImageId?: string;
   externalImage?: ExternalImageInfo;
-  imageList?: any[];
+  imageList?: DisplayImage[];
   viewerUIConfig?: ViewerUIConfig;
   commentsUniqueId?: string; // 评论区唯一ID
   commentsPrefix?: string; // 评论区前缀

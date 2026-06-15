@@ -116,37 +116,41 @@ const props = defineProps<{
   gridView: boolean;
 }>();
 
+const { setTimeout, clearTimeout } = useTimers();
 const isTransitioning = ref(false);
 const transitionKey = ref(0);
+const transitionTimeoutId = ref<number | null>(null);
+
+const runGalleryTransition = async (duration: number): Promise<void> => {
+  if (transitionTimeoutId.value !== null) {
+    clearTimeout(transitionTimeoutId.value);
+    transitionTimeoutId.value = null;
+  }
+
+  isTransitioning.value = true;
+  transitionKey.value++;
+
+  await nextTick();
+
+  transitionTimeoutId.value = setTimeout(() => {
+    isTransitioning.value = false;
+    transitionTimeoutId.value = null;
+  }, duration);
+};
 
 watch(() => props.gridView, async (newView, oldView) => {
   if (newView !== oldView) {
-    isTransitioning.value = true;
-    transitionKey.value++;
-
-    await nextTick();
-
-    setTimeout(() => {
-      isTransitioning.value = false;
-    }, 200);
+    await runGalleryTransition(200);
   }
 });
 
 watch(() => props.images, async (newImages, oldImages) => {
   if (oldImages && newImages !== oldImages) {
-    isTransitioning.value = true;
-    transitionKey.value++;
-
-    await nextTick();
-
-    setTimeout(() => {
-      isTransitioning.value = false;
-    }, 100);
+    await runGalleryTransition(100);
   }
 }, { deep: true });
 
 const { t: $t } = useI18n();
-const { setTimeout } = useTimers();
 const galleryStore = useGalleryStore();
 const languageStore = useLanguageStore();
 const eventManager = useEventManager();

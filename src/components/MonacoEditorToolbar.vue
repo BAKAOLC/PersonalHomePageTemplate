@@ -215,34 +215,21 @@ const props = withDefaults(defineProps<Props>(), {
     showLineNumbersToggle: true,
     showFontSizeControls: true,
   }),
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  undo: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  redo: () => {},
+  undo: () => undefined,
+  redo: () => undefined,
   canUndo: false,
   canRedo: false,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  find: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  replace: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  format: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  copyToClipboard: async () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  toggleReadOnly: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  toggleMinimap: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  toggleWordWrap: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  toggleLineNumbers: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  increaseFontSize: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  decreaseFontSize: () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  resetFontSize: () => {},
+  find: () => undefined,
+  replace: () => undefined,
+  format: () => undefined,
+  copyToClipboard: async () => undefined,
+  toggleReadOnly: () => undefined,
+  toggleMinimap: () => undefined,
+  toggleWordWrap: () => undefined,
+  toggleLineNumbers: () => undefined,
+  increaseFontSize: () => undefined,
+  decreaseFontSize: () => undefined,
+  resetFontSize: () => undefined,
   getFontSize: () => 14,
   getWordWrap: () => 'on',
   getMinimapEnabled: () => false,

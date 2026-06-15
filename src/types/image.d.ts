@@ -13,6 +13,7 @@ export interface ImageTag {
 
 export interface ImageBase {
   id: string;
+  hidden?: boolean; // Hide from normal browsing without deleting the item.
   name?: I18nText;
   listName?: I18nText; // Optional - name displayed in child image list viewer
   description?: I18nText;

@@ -124,6 +124,14 @@ function imagesConfigPlugin() {
     if (obj.childImages && !Array.isArray(obj.childImages)) return false;
     if (obj.tags && !Array.isArray(obj.tags)) return false;
     if (obj.characters && !Array.isArray(obj.characters)) return false;
+    if (obj.hidden !== undefined && typeof obj.hidden !== 'boolean') return false;
+    if (obj.childImages && obj.childImages.some(child => (
+      !child
+      || typeof child !== 'object'
+      || (child.hidden !== undefined && typeof child.hidden !== 'boolean')
+    ))) {
+      return false;
+    }
     return true;
   }
 

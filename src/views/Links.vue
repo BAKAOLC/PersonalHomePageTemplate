@@ -53,8 +53,8 @@
           <button
             class="sidebar-toggle md:hidden"
             @click="toggleMobileSidebar"
-            :aria-expanded="isSidebarOpen"
-            aria-controls="category-filter-panel"
+            :aria-expanded="isMobileSidebarOpen"
+            :aria-controls="isMobileSidebarOpen ? 'mobile-filter-content' : undefined"
             :aria-label="$t('links.categories')"
             type="button"
           >
@@ -64,47 +64,17 @@
           <div
             id="category-filter-panel"
             class="sidebar-content"
-            :class="{ 'active': isSidebarOpen }"
             role="region"
             :aria-label="$t('links.categories')"
-            :aria-hidden="!isSidebarOpen"
+            :aria-hidden="isMobile"
           >
-            <div class="category-selector">
-              <div class="category-list" role="listbox" :aria-label="$t('links.categories')">
-                <button
-                  @click="selectCategory('')"
-                  class="category-button"
-                  :class="{ 'active': selectedCategory === '' }"
-                  role="option"
-                  :aria-selected="selectedCategory === ''"
-                  :aria-label="`${$t('links.allCategories')}, ${categoryCounts['']} ${$t('links.linkCount', {
-                    count: categoryCounts['']
-                  })}`"
-                  type="button"
-                >
-                  <span class="category-name">{{ $t('links.allCategories') }}</span>
-                  <span class="category-count" aria-hidden="true">{{ categoryCounts[''] }}</span>
-                </button>
-                <button
-                  v-for="category in visibleCategories"
-                  :key="category.id"
-                  @click="selectCategory(category.id)"
-                  class="category-button"
-                  :class="{ 'active': selectedCategory === category.id }"
-                  role="option"
-                  :aria-selected="selectedCategory === category.id"
-                  :aria-label="`${t(category.name, currentLanguage)}, ${
-                    categoryCounts[category.id]
-                  } ${$t('links.linkCount', {
-                    count: categoryCounts[category.id]
-                  })}`"
-                  type="button"
-                >
-                  <span class="category-name">{{ t(category.name, currentLanguage) }}</span>
-                  <span class="category-count" aria-hidden="true">{{ categoryCounts[category.id] }}</span>
-                </button>
-              </div>
-            </div>
+            <LinkCategoryFilter
+              v-model:selected-category="selectedCategory"
+              v-model:expanded="isCategoriesExpanded"
+              :categories="visibleCategories"
+              :category-counts="categoryCounts"
+              options-id="links-categories-list"
+            />
           </div>
         </aside>
 
@@ -197,68 +167,22 @@
       </div>
     </div>
 
-    <!-- 移动端分类筛选弹窗 -->
-    <div
-      v-if="isMobileSidebarOpen"
-      class="mobile-filter-overlay"
-      @click="closeMobileSidebar"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="mobile-filter-title"
-      aria-describedby="mobile-filter-description"
+    <MobileFilterOverlay
+      :visible="isMobileSidebarOpen"
+      :title="$t('links.categories')"
+      :close-label="$t('common.close')"
+      body-id="mobile-filter-description"
+      described-by="mobile-filter-description"
+      @close="closeMobileSidebar"
     >
-      <div class="mobile-filter-content" @click.stop>
-        <div class="mobile-filter-header">
-          <h3 id="mobile-filter-title">{{ $t('links.categories') }}</h3>
-          <button
-            @click="closeMobileSidebar"
-            class="close-button"
-            :aria-label="$t('common.close')"
-            type="button"
-          >
-            <i :class="getIconClass('times')" aria-hidden="true"></i>
-          </button>
-        </div>
-        <div class="mobile-filter-body" id="mobile-filter-description">
-          <div class="category-selector">
-            <div class="category-list" role="listbox" :aria-label="$t('links.categories')">
-              <button
-                @click="selectCategory(''); closeMobileSidebar()"
-                class="category-button"
-                :class="{ 'active': selectedCategory === '' }"
-                role="option"
-                :aria-selected="selectedCategory === ''"
-                :aria-label="`${$t('links.allCategories')}, ${categoryCounts['']} ${$t('links.linkCount', {
-                  count: categoryCounts['']
-                })}`"
-                type="button"
-              >
-                <span class="category-name">{{ $t('links.allCategories') }}</span>
-                <span class="category-count" aria-hidden="true">{{ categoryCounts[''] }}</span>
-              </button>
-              <button
-                v-for="category in visibleCategories"
-                :key="category.id"
-                @click="selectCategory(category.id); closeMobileSidebar()"
-                class="category-button"
-                :class="{ 'active': selectedCategory === category.id }"
-                role="option"
-                :aria-selected="selectedCategory === category.id"
-                :aria-label="`${t(category.name, currentLanguage)}, ${
-                  categoryCounts[category.id]
-                } ${$t('links.linkCount', {
-                  count: categoryCounts[category.id]
-                })}`"
-                type="button"
-              >
-                <span class="category-name">{{ t(category.name, currentLanguage) }}</span>
-                <span class="category-count" aria-hidden="true">{{ categoryCounts[category.id] }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <LinkCategoryFilter
+        v-model:selected-category="selectedCategory"
+        v-model:expanded="isCategoriesExpanded"
+        :categories="visibleCategories"
+        :category-counts="categoryCounts"
+        @select="closeMobileSidebar"
+      />
+    </MobileFilterOverlay>
 
     <!-- 返回顶部按钮 -->
     <ScrollToTopButton
@@ -271,48 +195,72 @@
 
 <script setup lang="ts">
 import JSON5 from 'json5';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import LinkCategoryFilter from '@/components/LinkCategoryFilter.vue';
 import ProgressiveImage from '@/components/ProgressiveImage.vue';
-import JsonViewerModal from '@/components/modals/JsonViewerModal.vue';
+import MobileFilterOverlay from '@/components/ui/MobileFilterOverlay.vue';
 import ScrollToTopButton from '@/components/ui/ScrollToTopButton.vue';
+import { useDebouncedSetter } from '@/composables/useDebouncedSetter';
+import { useDynamicElementHeights } from '@/composables/useDynamicElementHeights';
+import { useMobileFilterOverlay } from '@/composables/useMobileFilterOverlay';
 import { useModalManager } from '@/composables/useModalManager';
 import { useNotificationManager } from '@/composables/useNotificationManager';
 import { useMobileDetection, type ScreenInfo } from '@/composables/useScreenManager';
-import { useTimers } from '@/composables/useTimers';
+import { useScrollToTop } from '@/composables/useScrollToTop';
 import htmlConfig from '@/config/html.json5';
 import linksConfigData from '@/config/links.json5';
 import personalConfig from '@/config/personal.json5';
 import { useLanguageStore } from '@/stores/language';
-import type { I18nText, LinksConfig } from '@/types';
+import type { FriendLink, I18nText, LinkCategory, PersonalInfo } from '@/types';
+import { getBrowserWindow, getCurrentOrigin, writeClipboardText } from '@/utils/browser';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
+import { parseLinksConfig } from '@/utils/linksConfig';
 import { toAbsoluteUrl } from '@/utils/url';
+import { filterVisible } from '@/utils/visibility';
 
 // 导入友链配置
 
 const { t: $t } = useI18n();
 const languageStore = useLanguageStore();
-const { setTimeout, clearTimeout } = useTimers();
 const modalManager = useModalManager();
 const notificationManager = useNotificationManager();
-const { onScreenChange } = useMobileDetection();
+const { isMobile, onScreenChange } = useMobileDetection();
+const JsonViewerModal = defineAsyncComponent(() => import('@/components/modals/JsonViewerModal.vue'));
 
 // 友链配置
-const linksConfig = linksConfigData as LinksConfig;
+const linksConfig = parseLinksConfig(linksConfigData);
+const personalInfoConfig = personalConfig as PersonalInfo;
+const htmlMetaConfig = htmlConfig as { title: string };
 
 // 响应式状态
 const searchQuery = ref('');
 const selectedCategory = ref('');
-const isSidebarOpen = ref(false);
-const isMobileSidebarOpen = ref(false);
-const searchDebounceTimeout = ref<number | null>(null);
+const isCategoriesExpanded = ref(true);
 const linksMain = ref<HTMLElement | null>(null);
-const showScrollToTop = ref(false);
+const {
+  showScrollToTop,
+  handleScroll,
+  scrollToTop,
+} = useScrollToTop(linksMain);
+const mobileSidebarScrollLockId = 'links-mobile-sidebar';
+const {
+  isOpen: isMobileSidebarOpen,
+  toggle: toggleMobileSidebar,
+  close: closeMobileSidebar,
+} = useMobileFilterOverlay(mobileSidebarScrollLockId);
 
 // 当前语言
 const currentLanguage = computed(() => languageStore.currentLanguage);
+
+const visibleLinkCategories = computed(() => {
+  return filterVisible(linksConfig.categories).map(category => ({
+    ...category,
+    links: filterVisible(category.links),
+  }));
+});
 
 // 本地化辅助函数
 const t = (text: I18nText, lang: string): string => {
@@ -328,30 +276,35 @@ const getTagText = (tagId: string, lang: string): string => {
   return tagId;
 };
 
+type FriendLinkWithCategory = FriendLink & {
+  categoryId: string;
+};
+
+const normalizedSearchQuery = computed(() => searchQuery.value.toLowerCase().trim());
+
+const linkMatchesSearch = (link: FriendLink): boolean => {
+  const query = normalizedSearchQuery.value;
+  if (!query) return true;
+
+  const name = t(link.name, currentLanguage.value).toLowerCase();
+  const description = t(link.description, currentLanguage.value).toLowerCase();
+  const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
+
+  return name.includes(query) || description.includes(query) || tags.includes(query);
+};
+
+const searchedLinkCategories = computed<LinkCategory[]>(() => {
+  return visibleLinkCategories.value.map(category => ({
+    ...category,
+    links: category.links.filter(linkMatchesSearch),
+  }));
+});
+
 // 过滤后的友链
-const filteredLinks = computed(() => {
-  let links = linksConfig.categories.flatMap(
+const filteredLinks = computed<FriendLinkWithCategory[]>(() => {
+  return filteredCategories.value.flatMap(
     category => category.links.map(link => ({ ...link, categoryId: category.id })),
   );
-
-  // 分类筛选
-  if (selectedCategory.value) {
-    links = links.filter(link => link.categoryId === selectedCategory.value);
-  }
-
-  // 搜索筛选
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase().trim();
-    links = links.filter(link => {
-      const name = t(link.name, currentLanguage.value).toLowerCase();
-      const description = t(link.description, currentLanguage.value).toLowerCase();
-      const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
-
-      return name.includes(query) || description.includes(query) || tags.includes(query);
-    });
-  }
-
-  return links;
 });
 
 // 分类计数（包括搜索后的计数）
@@ -361,20 +314,9 @@ const categoryCounts = computed(() => {
   // 计算总数
   let totalCount = 0;
 
-  linksConfig.categories.forEach(category => {
-    const filteredLinks = category.links.filter(link => {
-      if (!searchQuery.value.trim()) return true;
-
-      const query = searchQuery.value.toLowerCase().trim();
-      const name = t(link.name, currentLanguage.value).toLowerCase();
-      const description = t(link.description, currentLanguage.value).toLowerCase();
-      const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
-
-      return name.includes(query) || description.includes(query) || tags.includes(query);
-    });
-
-    counts[category.id] = filteredLinks.length;
-    totalCount += filteredLinks.length;
+  searchedLinkCategories.value.forEach(category => {
+    counts[category.id] = category.links.length;
+    totalCount += category.links.length;
   });
 
   counts[''] = totalCount; // 全部分类的计数
@@ -385,98 +327,46 @@ const categoryCounts = computed(() => {
 // 过滤后的分类（用于显示）
 const filteredCategories = computed(() => {
   const categories = selectedCategory.value
-    ? linksConfig.categories.filter(cat => cat.id === selectedCategory.value)
-    : linksConfig.categories;
+    ? searchedLinkCategories.value.filter(cat => cat.id === selectedCategory.value)
+    : searchedLinkCategories.value;
 
-  return categories.map(category => ({
-    ...category,
-    links: category.links.filter(link => {
-      if (!searchQuery.value.trim()) return true;
-
-      const query = searchQuery.value.toLowerCase().trim();
-      const name = t(link.name, currentLanguage.value).toLowerCase();
-      const description = t(link.description, currentLanguage.value).toLowerCase();
-      const tags = link.tags?.map(tagId => getTagText(tagId, currentLanguage.value)).join(' ').toLowerCase() ?? '';
-
-      return name.includes(query) || description.includes(query) || tags.includes(query);
-    }),
-  })).filter(category => category.links.length > 0);
+  return categories.filter(category => category.links.length > 0);
 });
 
 // 可见的分类（过滤掉计数为0的分类）
 const visibleCategories = computed(() => {
-  return linksConfig.categories.filter(category => {
+  return visibleLinkCategories.value.filter(category => {
     const count = categoryCounts.value[category.id] ?? 0;
     return count > 0;
   });
 });
 
-// 动态高度计算
-const updateDynamicHeights = (): void => {
-  const headerEl = document.querySelector('.header') as HTMLElement;
-  const footerEl = document.querySelector('.footer') as HTMLElement;
-  const linksHeaderEl = document.querySelector('.links-header') as HTMLElement;
-
-  if (headerEl) {
-    document.documentElement.style.setProperty('--app-header-height', `${headerEl.offsetHeight}px`);
-  }
-
-  if (footerEl) {
-    document.documentElement.style.setProperty('--app-footer-height', `${footerEl.offsetHeight}px`);
-  }
-
-  if (linksHeaderEl) {
-    document.documentElement.style.setProperty('--links-header-height', `${linksHeaderEl.offsetHeight}px`);
-  }
-};
-
-// 选择分类
-const selectCategory = (categoryId: string): void => {
-  selectedCategory.value = categoryId;
-};
-
-// 移动端侧边栏控制
-const toggleMobileSidebar = (): void => {
-  isMobileSidebarOpen.value = !isMobileSidebarOpen.value;
-  if (isMobileSidebarOpen.value) {
-    document.body.style.overflow = 'hidden';
-  } else {
-    document.body.style.overflow = '';
-  }
-};
-
-const closeMobileSidebar = (): void => {
-  isMobileSidebarOpen.value = false;
-  document.body.style.overflow = '';
-};
+const { updateDynamicHeightsAfterRender } = useDynamicElementHeights([
+  { selector: '.links-header', variable: '--links-header-height' },
+]);
+const {
+  setDebouncedValue: updateSearchQuery,
+  setValueImmediately: setSearchQueryImmediately,
+} = useDebouncedSetter<string>(value => {
+  searchQuery.value = value;
+});
 
 // 搜索功能
-const updateSearchQuery = (value: string): void => {
-  if (searchDebounceTimeout.value) {
-    clearTimeout(searchDebounceTimeout.value);
-  }
-
-  searchDebounceTimeout.value = setTimeout(() => {
-    searchQuery.value = value;
-    searchDebounceTimeout.value = null;
-  }, 300);
-};
-
 const clearSearch = (): void => {
-  searchQuery.value = '';
+  setSearchQueryImmediately('');
 };
 
 // 访问链接
 const visitLink = (url: string): void => {
-  window.open(url, '_blank', 'noopener,noreferrer');
+  getBrowserWindow()?.open(url, '_blank', 'noopener,noreferrer');
 };
 
 // 生成友链信息
-const generateFriendLinkInfo = (): void => {
-  const currentUrl = window.location.origin;
-  const name = getI18nText(personalConfig.name, currentLanguage.value);
-  const blogName = htmlConfig.title;
-  const avatarUrl = toAbsoluteUrl(personalConfig.avatar);
+const generateFriendLinkInfo = async (): Promise<void> => {
+  const currentUrl = getCurrentOrigin() ?? '';
+  const name = getI18nText(personalInfoConfig.name, currentLanguage.value);
+  const blogName = htmlMetaConfig.title;
+  const avatarUrl = toAbsoluteUrl(personalInfoConfig.avatar);
 
   const friendLinkInfo = {
     name: name,
@@ -486,19 +376,13 @@ const generateFriendLinkInfo = (): void => {
   };
 
   const jsonString = JSON5.stringify(friendLinkInfo, null, 2);
-  // 复制到剪贴板
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(jsonString).then(() => {
-      // 显示成功提示
-      notificationManager.success($t('links.copied'));
-    }).catch(() => {
-      // 如果剪贴板API不可用，则显示弹窗
-      showJsonModal(jsonString);
-    });
-  } else {
-    // 如果剪贴板API不存在，则直接显示弹窗
-    showJsonModal(`${jsonString}\n`.repeat(20));
+
+  if (await writeClipboardText(jsonString)) {
+    notificationManager.success($t('links.copied'));
+    return;
   }
+
+  showJsonModal(jsonString);
 };
 
 // 打开JSON弹窗
@@ -509,34 +393,13 @@ const showJsonModal = (jsonString: string): void => {
   });
 };
 
-// 滚动处理
-const handleScroll = (): void => {
-  if (!linksMain.value) return;
-
-  const { scrollTop } = linksMain.value;
-  showScrollToTop.value = scrollTop > 200;
-};
-
-const scrollToTop = (): void => {
-  if (linksMain.value) {
-    linksMain.value.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  }
-};
-
 // 屏幕变化处理
 const handleScreenChange = ({ isMobile }: ScreenInfo): void => {
   if (!isMobile) {
-    isMobileSidebarOpen.value = false;
-    isSidebarOpen.value = false;
-    document.body.style.overflow = '';
+    closeMobileSidebar();
   }
 
-  nextTick(() => {
-    updateDynamicHeights();
-  });
+  updateDynamicHeightsAfterRender();
 };
 
 // 屏幕变化监听器取消函数
@@ -546,10 +409,7 @@ onMounted(() => {
   // 注册屏幕变化监听器
   unsubscribeScreenChange = onScreenChange(handleScreenChange);
 
-  // 使用nextTick确保DOM完全渲染后更新动态高度
-  nextTick(() => {
-    updateDynamicHeights();
-  });
+  updateDynamicHeightsAfterRender();
 });
 
 onBeforeUnmount(() => {
@@ -558,9 +418,6 @@ onBeforeUnmount(() => {
     unsubscribeScreenChange();
     unsubscribeScreenChange = null;
   }
-
-  // 清理body样式
-  document.body.style.overflow = '';
 });
 </script>
 
@@ -912,134 +769,6 @@ onBeforeUnmount(() => {
   }
 }
 
-.category-selector {
-  margin-bottom: 0;
-}
-
-.category-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: 0;
-}
-
-@media (max-width: 767px) {
-  .category-list {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-  }
-}
-
-.category-button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  background-color: #ffffff;
-  color: #374151;
-  border: 1px solid #e5e7eb;
-  transition: all 200ms;
-  font-size: 0.875rem;
-  font-weight: 500;
-  width: 100%;
-  box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-@media (max-width: 767px) {
-  .category-button {
-    min-width: 11rem;
-    width: auto;
-    padding: 0.5rem 1rem;
-  }
-}
-
-.dark .category-button {
-  background-color: #111827;
-  color: #f3f4f6;
-  border-color: #374151;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.category-button:hover {
-  background-color: #f9fafb;
-  border-color: #d1d5db;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-.dark .category-button:hover {
-  background-color: #1f2937;
-  border-color: #4b5563;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.category-button.active {
-  background-color: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
-}
-
-.dark .category-button.active {
-  background-color: #3b82f6;
-  color: #ffffff;
-  border-color: #3b82f6;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
-}
-
-.category-name {
-  flex: 1;
-  text-align: left;
-}
-
-.category-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 0.25rem;
-  padding: 0 0.375rem;
-  min-width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-/* 激活状态的计数徽章 */
-.category-button.active .category-count {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-/* 非激活状态的计数徽章 */
-.category-button:not(.active) .category-count {
-  background-color: #f3f4f6;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
-}
-
-.dark .category-button:not(.active) .category-count {
-  background-color: #374151;
-  color: #d1d5db;
-  border: 1px solid #4b5563;
-}
-
-/* 悬停状态的计数徽章 */
-.category-button:not(.active):hover .category-count {
-  background-color: #e5e7eb;
-  color: #374151;
-  border-color: #d1d5db;
-}
-
-.dark .category-button:not(.active):hover .category-count {
-  background-color: #4b5563;
-  color: #f3f4f6;
-  border-color: #6b7280;
-}
-
 .links-main {
   flex: 1;
   position: relative;
@@ -1231,87 +960,6 @@ onBeforeUnmount(() => {
   @apply w-5 h-5;
 }
 
-/* 移动端筛选弹窗 */
-.mobile-filter-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  align-items: flex-end;
-  touch-action: none;
-}
-
-.mobile-filter-content {
-  width: 100%;
-  max-height: 80vh;
-  background: white;
-  border-radius: 1rem 1rem 0 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.dark .mobile-filter-content {
-  background: rgb(31, 41, 55);
-}
-
-.mobile-filter-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid rgb(229, 231, 235);
-}
-
-.dark .mobile-filter-header {
-  border-bottom-color: rgb(75, 85, 99);
-}
-
-.mobile-filter-header h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: rgb(17, 24, 39);
-}
-
-.dark .mobile-filter-header h3 {
-  color: rgb(243, 244, 246);
-}
-
-.close-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
-  background: rgb(243, 244, 246);
-  color: rgb(75, 85, 99);
-  transition: background-color 0.2s;
-}
-
-.dark .close-button {
-  background: rgb(55, 65, 81);
-  color: rgb(209, 213, 219);
-}
-
-.close-button:hover {
-  background: rgb(229, 231, 235);
-}
-
-.dark .close-button:hover {
-  background: rgb(75, 85, 99);
-}
-
-.mobile-filter-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-}
-
 /* 响应式布局过渡动画 */.icon {
   @apply w-4 h-4;
 }
@@ -1369,14 +1017,8 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-.category-button:focus {
-  outline: 2px solid rgb(59, 130, 246);
-  outline-offset: 2px;
-}
-
 .generate-button:focus,
-.search-clear:focus,
-.close-button:focus {
+.search-clear:focus {
   outline: 2px solid rgb(59, 130, 246);
   outline-offset: 2px;
 }
@@ -1384,10 +1026,8 @@ onBeforeUnmount(() => {
 /* 为减少动画偏好的用户禁用过渡 */
 @media (prefers-reduced-motion: reduce) {
   .link-card:focus,
-  .category-button:focus,
   .generate-button:focus,
-  .search-clear:focus,
-  .close-button:focus {
+  .search-clear:focus {
     outline: 2px solid rgb(59, 130, 246);
     outline-offset: 2px;
   }

@@ -9,6 +9,7 @@
             <label for="gallery-search" class="sr-only">{{ $t('gallery.searchPlaceholder') }}</label>
             <input
               id="gallery-search"
+              ref="searchInput"
               type="text"
               :value="searchQuery"
               @input="(e: Event) => updateSearchQuery((e.target as HTMLInputElement).value)"
@@ -85,8 +86,7 @@
           </button>
           <div
             class="sidebar-content"
-            :class="{ 'active': isSidebarOpen }"
-            :aria-hidden="!isSidebarOpen"
+            :aria-hidden="isMobile"
           >
             <CharacterSelector />
             <TagSelector />
@@ -106,34 +106,18 @@
       </div>
     </div>
 
-    <!-- 移动端全屏筛选弹窗 -->
-    <div
-      v-if="isMobileSidebarOpen"
-      class="mobile-filter-overlay"
-      @click="closeMobileSidebar"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="mobile-filter-title"
+    <MobileFilterOverlay
+      :visible="isMobileSidebarOpen"
+      :title="$t('gallery.filters')"
+      :close-label="$t('gallery.closeFilters')"
+      body-role="region"
+      :body-aria-label="$t('gallery.filters')"
+      @close="closeMobileSidebar"
     >
-      <div class="mobile-filter-content" @click.stop id="mobile-filter-content">
-        <header class="mobile-filter-header">
-          <h3 id="mobile-filter-title">{{ $t('gallery.filters') }}</h3>
-          <button
-            @click="closeMobileSidebar"
-            class="close-button"
-            :aria-label="$t('gallery.closeFilters')"
-            type="button"
-          >
-            <i :class="getIconClass('times')" aria-hidden="true"></i>
-          </button>
-        </header>
-        <div class="mobile-filter-body" role="region" :aria-label="$t('gallery.filters')">
-          <CharacterSelector />
-          <TagSelector />
-          <RestrictedTagSelector />
-        </div>
-      </div>
-    </div>
+      <CharacterSelector />
+      <TagSelector />
+      <RestrictedTagSelector />
+    </MobileFilterOverlay>
 
     <!-- 返回顶部按钮 -->
     <ScrollToTopButton
@@ -146,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -154,16 +138,19 @@ import CharacterSelector from '@/components/CharacterSelector.vue';
 import ImageGallery from '@/components/ImageGallery.vue';
 import RestrictedTagSelector from '@/components/RestrictedTagSelector.vue';
 import TagSelector from '@/components/TagSelector.vue';
-import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
+import MobileFilterOverlay from '@/components/ui/MobileFilterOverlay.vue';
 import ScrollToTopButton from '@/components/ui/ScrollToTopButton.vue';
 import SortSelector from '@/components/ui/SortSelector.vue';
+import { useDebouncedSetter } from '@/composables/useDebouncedSetter';
+import { useDynamicElementHeights } from '@/composables/useDynamicElementHeights';
 import { useEventManager } from '@/composables/useEventManager';
+import { useMobileFilterOverlay } from '@/composables/useMobileFilterOverlay';
 import { useModalManager } from '@/composables/useModalManager';
-import { useMobileDetection } from '@/composables/useScreenManager';
-import { useTimers } from '@/composables/useTimers';
+import { useMobileDetection, type ScreenInfo } from '@/composables/useScreenManager';
+import { useScrollToTop } from '@/composables/useScrollToTop';
 import { siteConfig } from '@/config/site';
 import { useGalleryStore } from '@/stores/gallery';
-import type { ExternalImageInfo, GroupImage, ImageBase } from '@/types';
+import type { ExternalImageInfo, GroupImage, ImageBase, ViewerUIConfig } from '@/types';
 import { getIconClass } from '@/utils/icons';
 import { encodeKey, parseParam } from '@/utils/idHashMap';
 
@@ -183,38 +170,23 @@ const props = withDefaults(defineProps<Props>(), {
 const { t: $t } = useI18n();
 const router = useRouter();
 const galleryStore = useGalleryStore();
-const { setTimeout, clearTimeout } = useTimers();
 const { addEventListener } = useEventManager();
-const { onScreenChange } = useMobileDetection();
+const { isMobile, onScreenChange } = useMobileDetection();
 const modalManager = useModalManager();
+const ImageViewerModal = defineAsyncComponent(() => import('@/components/modals/ImageViewerModal.vue'));
 
-// 动态高度计算
-const updateDynamicHeights = (): void => {
-  // 获取header元素的实际高度
-  const headerEl = document.querySelector('.header') as HTMLElement;
-  const footerEl = document.querySelector('.footer') as HTMLElement;
-  const galleryHeaderEl = document.querySelector('.gallery-header') as HTMLElement;
-
-  if (headerEl) {
-    document.documentElement.style.setProperty('--app-header-height', `${headerEl.offsetHeight}px`);
-  }
-
-  if (footerEl) {
-    document.documentElement.style.setProperty('--app-footer-height', `${footerEl.offsetHeight}px`);
-  }
-
-  if (galleryHeaderEl) {
-    document.documentElement.style.setProperty('--gallery-header-height', `${galleryHeaderEl.offsetHeight}px`);
-  }
-};
+const { updateDynamicHeightsAfterRender } = useDynamicElementHeights([
+  { selector: '.gallery-header', variable: '--gallery-header-height' },
+]);
 
 const isGridView = ref(true);
-const isSidebarOpen = ref(false);
-const isMobileSidebarOpen = ref(false);
-const searchDebounceTimeout = ref<number | null>(null);
 const galleryMain = ref<HTMLElement | null>(null);
-const showScrollToTop = ref(false);
-const lastScrollTop = ref(0);
+const searchInput = ref<HTMLInputElement | null>(null);
+const {
+  showScrollToTop,
+  handleScroll,
+  scrollToTop,
+} = useScrollToTop(galleryMain);
 
 // 将搜索查询绑定到 galleryStore
 const searchQuery = computed({
@@ -224,72 +196,37 @@ const searchQuery = computed({
 
 // 搜索结果图片直接使用 galleryStore 中的过滤结果
 const characterImages = computed(() => galleryStore.characterImages);
+const {
+  setDebouncedValue: updateSearchQuery,
+  setValueImmediately: setSearchQueryImmediately,
+} = useDebouncedSetter<string>(value => {
+  galleryStore.setSearchQuery(value);
+});
 
 // 模态框ID
 const imageViewerModalId = ref<string | null>(null);
+const mobileSidebarScrollLockId = 'gallery-mobile-sidebar';
+const {
+  isOpen: isMobileSidebarOpen,
+  toggle: toggleMobileSidebar,
+  close: closeMobileSidebar,
+} = useMobileFilterOverlay(mobileSidebarScrollLockId);
 
 // 切换网格视图
 const toggleGridView = (): void => {
   isGridView.value = !isGridView.value;
 };
 
-// 移动端筛选弹窗相关
-const toggleMobileSidebar = (): void => {
-  isMobileSidebarOpen.value = !isMobileSidebarOpen.value;
-  // 阻止背景滚动
-  if (isMobileSidebarOpen.value) {
-    document.body.style.overflow = 'hidden';
-  } else {
-    document.body.style.overflow = '';
-  }
-};
-
-const closeMobileSidebar = (): void => {
-  isMobileSidebarOpen.value = false;
-  // 恢复背景滚动
-  document.body.style.overflow = '';
-};
-
-// 处理滚动事件
-const handleScroll = (): void => {
-  if (!galleryMain.value) return;
-
-  const { scrollTop } = galleryMain.value;
-
-  lastScrollTop.value = scrollTop;
-
-  // 显示/隐藏返回顶部按钮
-  showScrollToTop.value = scrollTop > 200;
-};
-
-// 滚动到顶部
-const scrollToTop = (): void => {
-  if (galleryMain.value) {
-    galleryMain.value.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  }
-};
-
 // 处理屏幕变化
-const handleScreenChange = (info: any): void => {
+const handleScreenChange = (info: ScreenInfo): void => {
   const currentIsMobile = info.isMobile;
 
   if (!currentIsMobile) {
     // 切换到桌面端时关闭移动端功能
-    isMobileSidebarOpen.value = false;
-    isSidebarOpen.value = false;
-    // 恢复背景滚动
-    document.body.style.overflow = '';
+    closeMobileSidebar();
   }
 
-  // 更新返回顶部按钮位置
-
-  // 使用nextTick更新动态高度
-  nextTick(() => {
-    updateDynamicHeights();
-  });
+  updateDynamicHeightsAfterRender();
 };
 
 // 键盘导航支持
@@ -307,10 +244,7 @@ const handleKeydown = (event: KeyboardEvent): void => {
       case 'F': {
         // Ctrl/Cmd + F 聚焦搜索框
         event.preventDefault();
-        const searchInput = document.getElementById('gallery-search') as HTMLInputElement;
-        if (searchInput) {
-          searchInput.focus();
-        }
+        searchInput.value?.focus();
         break;
       }
       case 'g':
@@ -367,26 +301,9 @@ const handleGridNavigation = (event: KeyboardEvent): void => {
   }
 };
 
-// 更新搜索查询并触发搜索
-const updateSearchQuery = (value: string): void => {
-  // 防抖处理
-  if (searchDebounceTimeout.value) {
-    clearTimeout(searchDebounceTimeout.value);
-  }
-
-  searchDebounceTimeout.value = setTimeout(() => {
-    // 使用 store 的方法更新搜索查询
-    galleryStore.setSearchQuery(value);
-
-    // 搜索处理完成
-    searchDebounceTimeout.value = null;
-  }, 300);
-};
-
 // 清除搜索
 const clearSearch = (): void => {
-  // 使用Store的清空搜索方法
-  galleryStore.clearSearch();
+  setSearchQueryImmediately('');
 };
 
 // 排序相关
@@ -476,6 +393,10 @@ const openViewer = async (event: CustomEvent): Promise<void> => {
 // 打开URL直接访问的查看器
 const openUrlViewer = (): void => {
   const urlData = getUrlImageData();
+  if (urlData.imageList.length === 0) {
+    router.replace({ name: 'gallery' });
+    return;
+  }
 
   // 设置模态框来源为URL直接访问
   isModalFromGallery.value = false;
@@ -505,7 +426,7 @@ const openUrlViewer = (): void => {
 };
 
 // 打开外部图像查看器
-const openExternalImageViewer = (externalImage: any): void => {
+const openExternalImageViewer = (externalImage: ExternalImageInfo): void => {
   // 使用模态管理器打开外部图像查看器
   imageViewerModalId.value = modalManager.open({
     id: `external-image-viewer-${Date.now()}`,
@@ -596,7 +517,7 @@ let unsubscribeScreenChange: (() => void) | null = null;
 // 处理URL直接访问的图像数据
 const getUrlImageData = (): {
   imageList: ImageBase[];
-  viewerUIConfig: any;
+  viewerUIConfig: ViewerUIConfig;
   lookupImageId?: string;
   lookupChildId?: string;
 } => {
@@ -628,6 +549,10 @@ const getUrlImageData = (): {
   // 如果存在 child id，优先返回包含该子图的组
   if (lookupChildId) {
     const childImage = galleryStore.getValidImagesInGroupWithoutFilter(image).filter(i => i.id === lookupChildId);
+    if (childImage.length === 0) {
+      return { imageList: [], viewerUIConfig: urlViewerConfig };
+    }
+
     const resultImage: GroupImage = {
       ...image,
       childImages: childImage as ImageBase[],
@@ -709,10 +634,7 @@ onMounted(() => {
 
   // 初始化返回顶部按钮位置
 
-  // 使用nextTick确保DOM完全渲染后更新动态高度
-  nextTick(() => {
-    updateDynamicHeights();
-  });
+  updateDynamicHeightsAfterRender();
 
   // 检查是否有需要打开的图像查看器（从路由参数）
   if (props.externalImage) {
@@ -734,9 +656,6 @@ onBeforeUnmount(() => {
   }
 
   // 键盘事件监听器会通过eventManager自动清理
-
-  // 清理body样式
-  document.body.style.overflow = '';
 });
 </script>
 
@@ -1126,89 +1045,6 @@ onBeforeUnmount(() => {
     padding-left: 8px;
     padding-right: 8px;
   }
-}
-
-/* 移动端全屏筛选弹窗 */
-.mobile-filter-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  align-items: flex-end;
-  touch-action: none;
-  /* 防止触摸滚动穿透 */
-}
-
-.mobile-filter-content {
-  width: 100%;
-  max-height: 80vh;
-  background: white;
-  border-radius: 1rem 1rem 0 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.dark .mobile-filter-content {
-  background: rgb(31, 41, 55);
-}
-
-.mobile-filter-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid rgb(229, 231, 235);
-}
-
-.dark .mobile-filter-header {
-  border-bottom-color: rgb(75, 85, 99);
-}
-
-.mobile-filter-header h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: rgb(17, 24, 39);
-}
-
-.dark .mobile-filter-header h3 {
-  color: rgb(243, 244, 246);
-}
-
-.close-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
-  background: rgb(243, 244, 246);
-  color: rgb(75, 85, 99);
-  transition: background-color 0.2s;
-}
-
-.dark .close-button {
-  background: rgb(55, 65, 81);
-  color: rgb(209, 213, 219);
-}
-
-.close-button:hover {
-  background: rgb(229, 231, 235);
-}
-
-.dark .close-button:hover {
-  background: rgb(75, 85, 99);
-}
-
-.mobile-filter-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-  @apply flex flex-col gap-3;
 }
 
 /* 响应式布局过渡动画 */

@@ -108,7 +108,13 @@
         </div>
 
         <!-- 文章内容 -->
-        <div v-else class="markdown-content" v-html="renderedContent" role="article"></div>
+        <div
+          v-else
+          class="markdown-content"
+          v-html="renderedContent"
+          role="article"
+          @click="handleMarkdownClick"
+        ></div>
       </article>
 
       <!-- 上一篇、下一篇按钮 -->
@@ -162,16 +168,22 @@
 </template>
 
 <script setup lang="ts">
-import { snapdom } from '@zumer/snapdom';
 import DOMPurify from 'dompurify';
-import hljs from 'highlight.js';
+import type { LanguageFn } from 'highlight.js';
+import hljs from 'highlight.js/lib/core';
+import bash from 'highlight.js/lib/languages/bash';
+import css from 'highlight.js/lib/languages/css';
+import javascript from 'highlight.js/lib/languages/javascript';
+import json from 'highlight.js/lib/languages/json';
+import markdown from 'highlight.js/lib/languages/markdown';
+import typescript from 'highlight.js/lib/languages/typescript';
+import xml from 'highlight.js/lib/languages/xml';
+import yaml from 'highlight.js/lib/languages/yaml';
 import 'highlight.js/styles/github-dark.css';
 import { marked } from 'marked';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import GiscusComments from '@/components/GiscusComments.vue';
-import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
 import { useEventManager } from '@/composables/useEventManager';
 import { useModalManager } from '@/composables/useModalManager';
 import { useNotificationManager } from '@/composables/useNotificationManager';
@@ -184,6 +196,7 @@ import { useLanguageStore } from '@/stores/language';
 import { useThemeStore } from '@/stores/theme';
 import type { Article, ArticleCategoriesConfig, ExternalImageInfo, PersonalInfo } from '@/types';
 import { formatDate, getAdjacentArticles, getArticleContent, getArticleCover } from '@/utils/articles';
+import { getBrowserDocument, getCurrentSiteBaseUrl, writeClipboardTextWithFallback } from '@/utils/browser';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
@@ -228,30 +241,128 @@ const { t: $t } = useI18n();
 const { isMobile } = useScreenManager();
 const { setTimeout, requestAnimationFrame } = useTimers();
 
+const GiscusComments = defineAsyncComponent(() => import('@/components/GiscusComments.vue'));
+const ImageViewerModal = defineAsyncComponent(() => import('@/components/modals/ImageViewerModal.vue'));
+
+const highlightLanguageAliases: Record<string, string> = {
+  js: 'javascript',
+  jsx: 'javascript',
+  ts: 'typescript',
+  tsx: 'typescript',
+  sh: 'bash',
+  shell: 'bash',
+  zsh: 'bash',
+  html: 'xml',
+  vue: 'xml',
+  yml: 'yaml',
+  'c++': 'cpp',
+  'c#': 'csharp',
+  ps1: 'powershell',
+};
+
+const registeredHighlightLanguages = new Set<string>();
+
+const createHighlightLanguageLoader = (
+  loader: () => Promise<{ default: LanguageFn }>,
+): (() => Promise<LanguageFn>) => {
+  return async () => (await loader()).default;
+};
+
+const highlightLanguageLoaders: Record<string, () => Promise<LanguageFn>> = {
+  c: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/c')),
+  cpp: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/cpp')),
+  csharp: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/csharp')),
+  diff: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/diff')),
+  dockerfile: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/dockerfile')),
+  go: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/go')),
+  java: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/java')),
+  php: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/php')),
+  powershell: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/powershell')),
+  python: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/python')),
+  rust: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/rust')),
+  sql: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/sql')),
+};
+
+const registerHighlightLanguage = (name: string, language: LanguageFn): void => {
+  if (registeredHighlightLanguages.has(name)) return;
+  hljs.registerLanguage(name, language);
+  registeredHighlightLanguages.add(name);
+};
+
+const bundledHighlightLanguages: Array<[string, LanguageFn]> = [
+  ['bash', bash],
+  ['css', css],
+  ['javascript', javascript],
+  ['json', json],
+  ['markdown', markdown],
+  ['typescript', typescript],
+  ['xml', xml],
+  ['yaml', yaml],
+];
+
+bundledHighlightLanguages.forEach(([name, language]) => {
+  registerHighlightLanguage(name, language);
+});
+
+const normalizeHighlightLanguage = (language: string): string => {
+  const normalized = language.trim().toLowerCase();
+  return highlightLanguageAliases[normalized] ?? normalized;
+};
+
+const extractCodeBlockLanguages = (content: string): string[] => {
+  const languages = new Set<string>();
+  const codeFencePattern = /(?:```|~~~)([^\s`~]*)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = codeFencePattern.exec(content)) !== null) {
+    const language = match[1]?.trim();
+    if (language) {
+      languages.add(normalizeHighlightLanguage(language));
+    }
+  }
+
+  return [...languages];
+};
+
+const ensureHighlightLanguage = async (language: string): Promise<void> => {
+  if (!language || hljs.getLanguage(language)) return;
+
+  const loader = highlightLanguageLoaders[language];
+  if (!loader) return;
+
+  try {
+    registerHighlightLanguage(language, await loader());
+  } catch (error) {
+    console.warn(`Failed to load highlight language: ${language}`, error);
+  }
+};
+
+const ensureHighlightLanguages = async (content: string): Promise<void> => {
+  await Promise.all(extractCodeBlockLanguages(content).map(ensureHighlightLanguage));
+};
+
+const sanitizeArticleHtml = (html: string): string => {
+  return DOMPurify.sanitize(html, {
+    ADD_ATTR: ['target', 'rel'],
+  });
+};
+
 // 响应式数据
 const viewerContainer = ref<HTMLElement>();
 const viewerContent = ref<HTMLElement>();
 const isLoadingContent = ref(false);
 const contentLoadError = ref<string | null>(null);
 const articleContent = ref<string>('');
+const renderedContent = ref<string>('');
 const imageViewerModalId = ref<string | null>(null);
 const isCapturingScreenshot = ref(false);
+let contentLoadSequence = 0;
 
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 计算属性
 const articleCover = computed(() => {
   return getArticleCover(props.article.cover, currentLanguage.value);
-});
-
-const renderedContent = computed(() => {
-  if (isLoadingContent.value || contentLoadError.value) {
-    return '';
-  }
-  const html = renderMarkdown(articleContent.value);
-  return DOMPurify.sanitize(html, {
-    ADD_ATTR: ['target', 'rel'],
-  });
 });
 
 const adjacentArticles = computed(() => {
@@ -277,8 +388,10 @@ const getCategoryColor = (categoryId: string): string => {
   return category?.color ?? '#6b7280';
 };
 
-const renderMarkdown = (content: string): string => {
+const renderMarkdown = async (content: string): Promise<string> => {
   try {
+    await ensureHighlightLanguages(content);
+
     // 配置 marked 选项
     marked.setOptions({
       breaks: true,
@@ -379,19 +492,15 @@ const openImageViewer = (imageUrl: string, altText: string): void => {
   });
 };
 
-// 为 markdown 图片添加点击事件监听器
-const setupImageClickHandlers = (): void => {
-  if (!viewerContent.value) return;
+const handleMarkdownClick = (event: MouseEvent): void => {
+  if (!(event.target instanceof Element)) return;
 
-  const images = viewerContent.value.querySelectorAll('.markdown-content img.clickable-image');
-  images.forEach((img) => {
-    const imgElement = img as HTMLImageElement;
-    imgElement.addEventListener('click', () => {
-      const imageUrl = imgElement.getAttribute('data-image-url') ?? imgElement.src;
-      const altText = imgElement.alt ?? '';
-      openImageViewer(imageUrl, altText);
-    });
-  });
+  const image = event.target.closest('img.clickable-image');
+  if (!(image instanceof HTMLImageElement)) return;
+
+  const imageUrl = image.getAttribute('data-image-url') ?? image.src;
+  const altText = image.alt ?? '';
+  openImageViewer(imageUrl, altText);
 };
 
 const close = (): void => {
@@ -399,7 +508,6 @@ const close = (): void => {
 };
 
 const navigateTo = (articleId: string): void => {
-  console.log('ArticleViewerModal navigateTo called:', { articleId, hasOnNavigate: !!props.onNavigate });
   // 如果有onNavigate回调，使用它；否则emit事件
   if (props.onNavigate) {
     props.onNavigate(articleId);
@@ -415,23 +523,15 @@ const copyArticleLink = async (): Promise<void> => {
   }
 
   try {
-    await navigator.clipboard.writeText(props.customLink);
+    const copied = await writeClipboardTextWithFallback(props.customLink);
+    if (!copied) {
+      throw new Error('Clipboard copy is unavailable');
+    }
 
     // 显示成功通知
     notificationManager.success($t('articles.linkCopied'));
   } catch (err) {
     console.error('Failed to copy article link:', err);
-
-    // 降级方案：选择文本
-    const textArea = document.createElement('textarea');
-    textArea.value = props.customLink;
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textArea);
-
-    // 显示成功通知
-    notificationManager.success($t('articles.linkCopied'));
   }
 };
 
@@ -442,10 +542,17 @@ const captureArticleScreenshot = async (): Promise<void> => {
   }
 
   isCapturingScreenshot.value = true;
+  let clone: HTMLElement | null = null;
+  let isCloneAppended = false;
 
   try {
+    const browserDocument = getBrowserDocument();
+    if (!browserDocument?.body) {
+      throw new Error('Article screenshot requires a browser document');
+    }
+
     const element = viewerContainer.value;
-    const clone = element.cloneNode(true) as HTMLElement;
+    clone = element.cloneNode(true) as HTMLElement;
 
     // 添加截图标识,用于CSS优先级控制
     clone.setAttribute('data-screenshot', 'true');
@@ -637,7 +744,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
       const authorName = getI18nText(personalInfo.name, currentLanguage.value);
 
       // 生成文章链接
-      const articleLink = props.customLink || `${window.location.origin}${window.location.pathname}#/articles/${props.article.id}`;
+      const articleLink = props.customLink || `${getCurrentSiteBaseUrl() ?? ''}#/articles/${props.article.id}`;
 
       // 根据主题设置颜色
       const isDark = themeStore.isDarkMode;
@@ -648,7 +755,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
       const bgColor = isDark ? 'rgba(31, 41, 55, 1)' : 'rgba(243, 244, 246, 1)';
 
       // 创建作者信息栏
-      const authorInfoSection = document.createElement('div');
+      const authorInfoSection = browserDocument.createElement('div');
       authorInfoSection.style.cssText = `
         border-top: 2px solid ${borderColor} !important;
         margin-top: 40px !important;
@@ -661,7 +768,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
       `;
 
       // 第一行：头像、作者信息和网站名称
-      const authorMainInfo = document.createElement('div');
+      const authorMainInfo = browserDocument.createElement('div');
       authorMainInfo.style.cssText = `
         display: flex !important;
         align-items: center !important;
@@ -669,7 +776,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
       `;
 
       // 添加头像
-      const avatar = document.createElement('img');
+      const avatar = browserDocument.createElement('img');
       avatar.src = personalInfo.avatar;
       avatar.alt = authorName;
       avatar.style.cssText = `
@@ -682,7 +789,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
       authorMainInfo.appendChild(avatar);
 
       // 添加作者信息文本
-      const authorText = document.createElement('div');
+      const authorText = browserDocument.createElement('div');
       authorText.style.cssText = `
         flex: 1 !important;
         display: flex !important;
@@ -690,7 +797,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
         gap: 4px !important;
       `;
 
-      const authorLabel = document.createElement('div');
+      const authorLabel = browserDocument.createElement('div');
       authorLabel.textContent = $t('articles.author');
       authorLabel.style.cssText = `
         font-size: 12px !important;
@@ -698,7 +805,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
       `;
       authorText.appendChild(authorLabel);
 
-      const authorNameEl = document.createElement('div');
+      const authorNameEl = browserDocument.createElement('div');
       authorNameEl.textContent = authorName;
       authorNameEl.style.cssText = `
         font-size: 16px !important;
@@ -710,7 +817,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
       authorMainInfo.appendChild(authorText);
 
       // 添加网站标识
-      const siteInfo = document.createElement('div');
+      const siteInfo = browserDocument.createElement('div');
       siteInfo.textContent = getI18nText(siteConfig.app.title, currentLanguage.value);
       siteInfo.style.cssText = `
         font-size: 14px !important;
@@ -722,7 +829,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
       authorInfoSection.appendChild(authorMainInfo);
 
       // 第二行：文章链接
-      const linkContainer = document.createElement('div');
+      const linkContainer = browserDocument.createElement('div');
       linkContainer.style.cssText = `
         font-size: 12px !important;
         color: ${labelColor} !important;
@@ -740,7 +847,8 @@ const captureArticleScreenshot = async (): Promise<void> => {
     }
 
     // 添加到DOM
-    document.body.appendChild(clone);
+    browserDocument.body.appendChild(clone);
+    isCloneAppended = true;
 
     await nextTick();
 
@@ -764,6 +872,7 @@ const captureArticleScreenshot = async (): Promise<void> => {
     const actualHeight = clone.scrollHeight;
 
     // 使用snapdom截图，固定参数确保输出一致
+    const { snapdom } = await import('@zumer/snapdom');
     const result = await snapdom(clone, {
       scale: 2,
       width: 895,
@@ -773,7 +882,10 @@ const captureArticleScreenshot = async (): Promise<void> => {
     });
 
     // 清理克隆元素
-    document.body.removeChild(clone);
+    if (isCloneAppended) {
+      browserDocument.body.removeChild(clone);
+      isCloneAppended = false;
+    }
 
     // 下载截图
     const fileName = `${getI18nText(props.article.title, currentLanguage.value).replace(/[/\\?%*:|"<>]/g, '-')}-${Date.now()}`;
@@ -789,25 +901,38 @@ const captureArticleScreenshot = async (): Promise<void> => {
     console.error('Failed to capture screenshot:', err);
     notificationManager.error($t('articles.imageCaptureFailed'));
   } finally {
+    if (isCloneAppended && clone?.parentNode) {
+      clone.parentNode.removeChild(clone);
+    }
     isCapturingScreenshot.value = false;
   }
 };
 
 // 方法
 const loadArticleContent = async (): Promise<void> => {
+  const sequence = ++contentLoadSequence;
   isLoadingContent.value = true;
   contentLoadError.value = null;
+  renderedContent.value = '';
 
   try {
     const content = await getArticleContent(props.article, currentLanguage.value);
+    if (sequence !== contentLoadSequence) return;
+    const html = await renderMarkdown(content);
+    if (sequence !== contentLoadSequence) return;
     articleContent.value = content;
+    renderedContent.value = sanitizeArticleHtml(html);
   } catch (error) {
+    if (sequence !== contentLoadSequence) return;
     console.error('Failed to load article content:', error);
     contentLoadError.value = $t('articles.contentLoadError');
     // 回退到默认内容或错误消息
     articleContent.value = `# ${$t('articles.contentLoadError')}\n\n${$t('articles.contentLoadErrorDescription')}`;
+    renderedContent.value = '';
   } finally {
-    isLoadingContent.value = false;
+    if (sequence === contentLoadSequence) {
+      isLoadingContent.value = false;
+    }
   }
 };
 
@@ -834,13 +959,6 @@ watch(currentLanguage, () => {
   loadArticleContent();
 });
 
-// 监听内容渲染，设置图片点击事件
-watch(renderedContent, () => {
-  nextTick(() => {
-    setupImageClickHandlers();
-  });
-});
-
 // 键盘导航支持
 const handleKeydown = (event: KeyboardEvent): void => {
   if (event.key === 'Escape') {
@@ -853,21 +971,16 @@ onMounted(() => {
   loadArticleContent();
   show();
   // 添加键盘事件监听
-  eventManager.addEventListener('keydown', handleKeydown, undefined, document);
+  const browserDocument = getBrowserDocument();
+  if (browserDocument) {
+    eventManager.addEventListener('keydown', handleKeydown, undefined, browserDocument);
+  }
   // 设置焦点到模态框
   if (viewerContainer.value) {
     viewerContainer.value.focus();
   }
-  // 初始设置图片点击事件
-  nextTick(() => {
-    setupImageClickHandlers();
-  });
 });
 
-onBeforeUnmount(() => {
-  // 恢复背景滚动
-  document.body.style.overflow = '';
-});
 </script>
 
 <style scoped>

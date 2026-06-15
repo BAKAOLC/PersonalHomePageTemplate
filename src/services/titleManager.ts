@@ -1,8 +1,9 @@
-import type { RouteLocationNormalized } from 'vue-router';
+import type { RouteLocationNormalized, Router } from 'vue-router';
 
 import i18n from '@/i18n';
 import { useLanguageStore } from '@/stores/language';
 import { getAppTitle } from '@/utils/appConfig';
+import { getBrowserDocument } from '@/utils/browser';
 
 /**
  * 页面标题管理服务
@@ -10,7 +11,7 @@ import { getAppTitle } from '@/utils/appConfig';
  */
 export class TitleManager {
   private static instance: TitleManager;
-  private router: any | null = null;
+  private router: Router | null = null;
 
   private constructor() {
     // Private constructor for singleton pattern
@@ -26,7 +27,7 @@ export class TitleManager {
   /**
    * 设置路由实例
    */
-  public setRouter(router: any): void {
+  public setRouter(router: Router): void {
     this.router = router;
   }
 
@@ -34,7 +35,10 @@ export class TitleManager {
    * 根据路由信息更新页面标题
    */
   public updateTitle(route: RouteLocationNormalized): void {
-    const { t } = i18n.global as any;
+    const browserDocument = getBrowserDocument();
+    if (!browserDocument) return;
+
+    const { t } = i18n.global;
     const languageStore = useLanguageStore();
     const siteTitle = getAppTitle(languageStore.currentLanguage);
 
@@ -44,10 +48,10 @@ export class TitleManager {
     if (titleKey) {
       // 如果有标题键，使用格式：页面标题 - 站点标题
       const pageTitle = t(titleKey);
-      document.title = `${pageTitle} - ${siteTitle}`;
+      browserDocument.title = `${pageTitle} - ${siteTitle}`;
     } else {
       // 如果没有标题键（如首页），只显示站点标题
-      document.title = siteTitle;
+      browserDocument.title = siteTitle;
     }
   }
 

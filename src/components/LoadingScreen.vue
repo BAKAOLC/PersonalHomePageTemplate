@@ -27,6 +27,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 import { useTimers } from '@/composables/useTimers';
+import { lockBodyScroll, unlockBodyScroll } from '@/utils/bodyScrollLock';
 
 const props = defineProps<{
   onComplete?: () => void;
@@ -40,6 +41,7 @@ const fadeOut = ref(false);
 const progress = ref(0);
 const animationFrameId = ref<number | null>(null);
 const { setTimeout, requestAnimationFrame, cancelAnimationFrame } = useTimers();
+const loadingScreenScrollLockId = 'loading-screen';
 
 // 伪加载进度函数
 const updateProgress = (startTime: number): void => {
@@ -66,7 +68,7 @@ const updateProgress = (startTime: number): void => {
 
 // 初始化加载
 onMounted(() => {
-  document.body.style.overflow = 'hidden';
+  lockBodyScroll(loadingScreenScrollLockId);
 
   // 延迟0.5秒后开始填充进度条
   setTimeout(() => {
@@ -78,7 +80,7 @@ onMounted(() => {
 
 // 清理
 onBeforeUnmount(() => {
-  document.body.style.overflow = '';
+  unlockBodyScroll(loadingScreenScrollLockId);
   if (animationFrameId.value !== null) {
     cancelAnimationFrame(animationFrameId.value);
   }

@@ -1,5 +1,6 @@
 import type { Article, ArticleFilterState, ArticlePagination, I18nText } from '@/types';
 import { getI18nText } from '@/utils/i18nText';
+import { filterVisible, isVisible } from '@/utils/visibility';
 
 /**
  * 获取文章封面URL（支持多语言）
@@ -47,7 +48,7 @@ export function filterArticles(
   filterState: ArticleFilterState,
   currentLanguage: string,
 ): Article[] {
-  let filtered = [...articles];
+  let filtered = filterVisible(articles);
 
   // 分类筛选
   if (filterState.selectedCategories.length > 0) {
@@ -217,15 +218,16 @@ export function getAdjacentArticles(
   articles: Article[],
   currentArticleId: string,
 ): { prev: Article | null; next: Article | null } {
-  const currentIndex = articles.findIndex(article => article.id === currentArticleId);
+  const visibleArticles = filterVisible(articles);
+  const currentIndex = visibleArticles.findIndex(article => article.id === currentArticleId);
 
   if (currentIndex === -1) {
     return { prev: null, next: null };
   }
 
   return {
-    prev: currentIndex > 0 ? articles[currentIndex - 1] : null,
-    next: currentIndex < articles.length - 1 ? articles[currentIndex + 1] : null,
+    prev: currentIndex > 0 ? visibleArticles[currentIndex - 1] : null,
+    next: currentIndex < visibleArticles.length - 1 ? visibleArticles[currentIndex + 1] : null,
   };
 }
 
@@ -252,6 +254,8 @@ export function countArticlesByCategory(articles: Article[]): Record<string, num
   const counts: Record<string, number> = {};
 
   articles.forEach(article => {
+    if (!isVisible(article)) return;
+
     article.categories.forEach(categoryId => {
       counts[categoryId] = (counts[categoryId] ?? 0) + 1;
     });

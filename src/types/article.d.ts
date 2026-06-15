@@ -7,6 +7,7 @@ export interface ArticleCategory {
 
 export interface Article {
   id: string;
+  hidden?: boolean; // Hide from normal article lists without deleting the item.
   title: I18nText;
   cover?: I18nText; // 支持多语言封面
   categories: string[]; // category IDs

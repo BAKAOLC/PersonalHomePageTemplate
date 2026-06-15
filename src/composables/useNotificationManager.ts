@@ -1,5 +1,6 @@
-import { useNotificationStore, type NotificationConfig } from '@/stores/notification';
+import { useNotificationStore, type NotificationConfig, type NotificationInstance } from '@/stores/notification';
 import type { I18nText } from '@/types';
+import { createPrefixedId } from '@/utils/id';
 
 interface NotificationManagerComposable {
   show: (message: string | I18nText, type?: NotificationConfig['type'], options?: Partial<NotificationConfig>) => string;
@@ -10,14 +11,14 @@ interface NotificationManagerComposable {
   remove: (id: string) => void;
   clear: () => void;
   setMaxNotifications: (max: number) => void;
-  getNotifications: () => any[];
+  getNotifications: () => NotificationInstance[];
 }
 
 export function useNotificationManager(): NotificationManagerComposable {
   const notificationStore = useNotificationStore();
 
   const show = (message: string | I18nText, type: NotificationConfig['type'] = 'info', options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const id = options.id ?? createPrefixedId('notification');
 
     return notificationStore.show({
       id,

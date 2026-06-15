@@ -3,33 +3,51 @@
  * 用于管理组件中的自定义事件，确保在组件销毁时正确清理
  */
 
-import { getCurrentInstance, onBeforeUnmount, ref } from 'vue';
+import { getCurrentInstance, onBeforeUnmount } from 'vue';
 
 import { getEventManagerService } from '@/services/eventManagerService';
 
 export interface EventManager {
-  dispatchEvent: (eventName: string, detail?: any, target?: EventTarget) => void;
+  dispatchEvent: (eventName: string, detail?: unknown, target?: EventTarget) => void;
   addEventListener: <T extends Event = Event>(
     eventName: string,
     handler: (event: T) => void,
-    options?: AddEventListenerOptions,
+    options?: boolean | AddEventListenerOptions,
     target?: EventTarget,
   ) => void;
   removeEventListener: <T extends Event = Event>(
     eventName: string,
     handler: (event: T) => void,
-    options?: boolean | { passive?: boolean; capture?: boolean },
+    options?: boolean | EventListenerOptions,
     target?: EventTarget,
   ) => void;
   removeAllListeners: (target?: EventTarget) => void;
   getActiveListenersCount: (target?: EventTarget) => number;
 }
 
-export function useEventManager(): EventManager {
-  // 存储事件监听器的映射，key是事件名，value是原始处理器到包装处理器的映射
-  const eventListeners = ref<Map<string, Map<Function, EventListener>>>(new Map());
+type RegisteredHandler = (event: Event) => void;
 
-  const dispatchEvent = (eventName: string, detail?: any, target?: EventTarget): void => {
+interface ListenerRegistration {
+  eventName: string;
+  handler: RegisteredHandler;
+  wrappedHandler: EventListener;
+  capture: boolean;
+  options?: boolean | AddEventListenerOptions;
+  target?: EventTarget;
+}
+
+const getCaptureOption = (options?: boolean | EventListenerOptions): boolean => {
+  if (typeof options === 'boolean') {
+    return options;
+  }
+
+  return options?.capture === true;
+};
+
+export function useEventManager(): EventManager {
+  let eventListeners: ListenerRegistration[] = [];
+
+  const dispatchEvent = (eventName: string, detail?: unknown, target?: EventTarget): void => {
     try {
       getEventManagerService().dispatchEvent(eventName, detail, target);
     } catch (error) {
@@ -44,6 +62,18 @@ export function useEventManager(): EventManager {
     target?: EventTarget,
   ): void => {
     try {
+      const registeredHandler = handler as RegisteredHandler;
+      const capture = getCaptureOption(options);
+      const existingRegistration = eventListeners.find(registration => (
+        registration.eventName === eventName
+        && registration.handler === registeredHandler
+        && registration.capture === capture
+        && registration.target === target
+      ));
+      if (existingRegistration) {
+        return;
+      }
+
       // 创建一个包装函数来适配EventListener类型
       const wrappedHandler: EventListener = (event: Event) => {
         handler(event as T);
@@ -52,11 +82,14 @@ export function useEventManager(): EventManager {
       // 添加到事件管理器
       getEventManagerService().addEventListener(eventName, wrappedHandler, target, options);
 
-      // 记录到管理器中，包含选项信息
-      if (!eventListeners.value.has(eventName)) {
-        eventListeners.value.set(eventName, new Map());
-      }
-      eventListeners.value.get(eventName)?.set(handler, wrappedHandler);
+      eventListeners.push({
+        eventName,
+        handler: registeredHandler,
+        wrappedHandler,
+        capture,
+        options,
+        target,
+      });
     } catch (error) {
       console.error(`Error adding event listener for '${eventName}':`, error);
     }
@@ -69,19 +102,23 @@ export function useEventManager(): EventManager {
     target?: EventTarget,
   ): void => {
     try {
-      // 从管理器中获取包装处理器
-      const handlerMap = eventListeners.value.get(eventName);
-      if (handlerMap) {
-        const wrappedHandler = handlerMap.get(handler);
-        if (wrappedHandler) {
-          // 从目标移除包装处理器
-          getEventManagerService().removeEventListener(eventName, wrappedHandler, target, options);
-          // 从管理器中移除
-          handlerMap.delete(handler);
-          if (handlerMap.size === 0) {
-            eventListeners.value.delete(eventName);
-          }
-        }
+      const registeredHandler = handler as RegisteredHandler;
+      const capture = getCaptureOption(options);
+      const registrationIndex = eventListeners.findIndex(registration => (
+        registration.eventName === eventName
+        && registration.handler === registeredHandler
+        && registration.capture === capture
+        && registration.target === target
+      ));
+
+      if (registrationIndex !== -1) {
+        const [registration] = eventListeners.splice(registrationIndex, 1);
+        getEventManagerService().removeEventListener(
+          registration.eventName,
+          registration.wrappedHandler,
+          registration.target,
+          options ?? registration.options,
+        );
       }
     } catch (error) {
       console.error(`Error removing event listener for '${eventName}':`, error);
@@ -90,28 +127,38 @@ export function useEventManager(): EventManager {
 
   const removeAllListeners = (target?: EventTarget): void => {
     try {
-      // 移除所有注册的事件监听器
-      eventListeners.value.forEach((handlerMap, eventName) => {
-        handlerMap.forEach(wrappedHandler => {
-          try {
-            getEventManagerService().removeEventListener(eventName, wrappedHandler, target);
-          } catch (error) {
-            console.error(`Error removing event listener for '${eventName}':`, error);
-          }
-        });
-      });
-      eventListeners.value.clear();
+      const remainingRegistrations: ListenerRegistration[] = [];
+
+      for (const registration of eventListeners) {
+        if (target && registration.target !== target) {
+          remainingRegistrations.push(registration);
+          continue;
+        }
+
+        try {
+          getEventManagerService().removeEventListener(
+            registration.eventName,
+            registration.wrappedHandler,
+            registration.target,
+            registration.options,
+          );
+        } catch (error) {
+          console.error(`Error removing event listener for '${registration.eventName}':`, error);
+        }
+      }
+
+      eventListeners = remainingRegistrations;
     } catch (error) {
       console.error('Error removing all event listeners:', error);
     }
   };
 
-  const getActiveListenersCount = (_target?: EventTarget): number => {
-    let count = 0;
-    eventListeners.value.forEach(handlerMap => {
-      count += handlerMap.size;
-    });
-    return count;
+  const getActiveListenersCount = (target?: EventTarget): number => {
+    if (!target) {
+      return eventListeners.length;
+    }
+
+    return eventListeners.filter(registration => registration.target === target).length;
   };
 
   // 必须在组件上下文中使用

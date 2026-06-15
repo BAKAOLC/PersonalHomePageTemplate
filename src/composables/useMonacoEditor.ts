@@ -1,9 +1,25 @@
 import JSON5 from 'json5';
-import * as monaco from 'monaco-editor';
+import 'monaco-editor/esm/vs/basic-languages/css/css.contribution';
+import 'monaco-editor/esm/vs/basic-languages/html/html.contribution';
+import 'monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution';
+import 'monaco-editor/esm/vs/basic-languages/markdown/markdown.contribution';
+import 'monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution';
+import 'monaco-editor/esm/vs/basic-languages/xml/xml.contribution';
+import 'monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution';
+import 'monaco-editor/esm/vs/editor/browser/coreCommands';
+import 'monaco-editor/esm/vs/editor/browser/widget/codeEditor/codeEditorWidget';
+import 'monaco-editor/esm/vs/editor/contrib/bracketMatching/browser/bracketMatching';
+import 'monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard';
+import 'monaco-editor/esm/vs/editor/contrib/contextmenu/browser/contextmenu';
+import 'monaco-editor/esm/vs/editor/contrib/find/browser/findController';
+import 'monaco-editor/esm/vs/editor/contrib/format/browser/formatActions';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
+import 'monaco-editor/esm/vs/language/json/monaco.contribution';
 import { getCurrentInstance, onBeforeUnmount, ref, type Ref } from 'vue';
 
-import monacoConfig from '@/config/monaco-editor.json5';
+import rawMonacoConfig from '@/config/monaco-editor.json5';
 import { useThemeStore } from '@/stores/theme';
+import { getAbortControllerConstructor, writeClipboardTextWithFallback } from '@/utils/browser';
 
 // 类型定义
 type AbortControllerType = {
@@ -11,34 +27,59 @@ type AbortControllerType = {
   abort(): void;
 };
 
-export interface MonacoEditorOptions {
-  language?: keyof typeof monacoConfig.languageConfigs;
-  theme?: keyof typeof monacoConfig.themes;
-  value?: string;
-  readOnly?: boolean;
+export type MonacoLanguage
+  = | 'json'
+  | 'javascript'
+  | 'typescript'
+  | 'html'
+  | 'css'
+  | 'markdown'
+  | 'yaml'
+  | 'xml';
+
+export type MonacoTheme = 'vs-dark' | 'vs-light' | 'hc-black';
+
+export interface MonacoToolbarOptions {
+  showUndoRedo?: boolean;
+  showFormat?: boolean;
+  showCopy?: boolean;
+  showFindReplace?: boolean;
+  showThemeToggle?: boolean;
+  showReadOnlyToggle?: boolean;
+  showMinimapToggle?: boolean;
+  showWordWrapToggle?: boolean;
+  showLineNumbersToggle?: boolean;
+  showFontSizeControls?: boolean;
+}
+
+interface MonacoLanguageConfig {
+  language: MonacoLanguage;
+  formatOptions?: {
+    indentSize: number;
+    insertSpaces: boolean;
+  };
+}
+
+interface MonacoConfig {
+  defaultOptions: monaco.editor.IStandaloneEditorConstructionOptions;
+  toolbarOptions: MonacoToolbarOptions & {
+    showToolbar?: boolean;
+  };
+  languageConfigs: Record<MonacoLanguage, MonacoLanguageConfig>;
+  themes: Record<MonacoTheme, string>;
+  themeMapping: Record<'light' | 'dark' | 'auto', string | Record<'light' | 'dark', string>>;
+}
+
+const monacoConfig = rawMonacoConfig as MonacoConfig;
+
+export interface MonacoEditorOptions
+  extends Omit<monaco.editor.IStandaloneEditorConstructionOptions, 'language' | 'theme'> {
+  language?: MonacoLanguage;
+  theme?: MonacoTheme;
   showMinimap?: boolean;
   showLineNumbers?: boolean;
-  wordWrap?: 'on' | 'off' | 'wordWrapColumn' | 'bounded';
-  fontSize?: number;
-  formatOnPaste?: boolean;
-  formatOnType?: boolean;
-  quickSuggestions?: boolean;
-  suggestOnTriggerCharacters?: boolean;
-  acceptSuggestionOnEnter?: 'on' | 'off' | 'smart';
   showToolbar?: boolean;
-  toolbarOptions?: {
-    showUndoRedo?: boolean;
-    showFormat?: boolean;
-    showCopy?: boolean;
-    showFindReplace?: boolean;
-    showThemeToggle?: boolean;
-    showReadOnlyToggle?: boolean;
-    showMinimapToggle?: boolean;
-    showWordWrapToggle?: boolean;
-    showLineNumbersToggle?: boolean;
-    showFontSizeControls?: boolean;
-  };
-  [key: string]: any;
+  toolbarOptions?: MonacoToolbarOptions;
 }
 
 export interface MonacoEditorInstance {
@@ -55,8 +96,8 @@ export interface MonacoEditorInstance {
   copyToClipboard: () => Promise<void>;
   focus: () => void;
   setReadOnly: (readOnly: boolean) => void;
-  setTheme: (theme: keyof typeof monacoConfig.themes) => void;
-  setLanguage: (language: keyof typeof monacoConfig.languageConfigs) => void;
+  setTheme: (theme: MonacoTheme) => void;
+  setLanguage: (language: MonacoLanguage) => void;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -70,6 +111,7 @@ export interface MonacoEditorInstance {
   decreaseFontSize: () => void;
   resetFontSize: () => void;
   getFontSize: () => number;
+  getLineHeight: () => number;
   setFontSize: (size: number) => void;
   getWordWrap: () => string;
   getMinimapEnabled: () => boolean;
@@ -90,7 +132,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
   const isDisposed = ref(false);
 
   // 获取语言配置
-  const getLanguageConfig = (language: keyof typeof monacoConfig.languageConfigs): any => {
+  const getLanguageConfig = (language: MonacoLanguage): MonacoLanguageConfig => {
     return monacoConfig.languageConfigs[language] ?? monacoConfig.languageConfigs.json;
   };
 
@@ -106,7 +148,8 @@ export function useMonacoEditor(): MonacoEditorInstance {
     if (appTheme === 'auto') {
       return themeStore.isDarkMode ? 'vs-dark' : 'vs-light';
     }
-    return monacoConfig.themeMapping[appTheme] ?? 'vs-dark';
+    const mappedTheme = monacoConfig.themeMapping[appTheme];
+    return typeof mappedTheme === 'string' ? mappedTheme : 'vs-dark';
   };
 
   // 合并配置选项
@@ -120,7 +163,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
       ...options,
       theme: monacoTheme,
       lineNumbers: options.showLineNumbers ? 'on' : 'off',
-    } as monaco.editor.IStandaloneEditorConstructionOptions;
+    };
   };
 
   // 初始化编辑器
@@ -129,7 +172,10 @@ export function useMonacoEditor(): MonacoEditorInstance {
 
     try {
       // 创建AbortController
-      abortController.value = new window.AbortController() as AbortControllerType;
+      const BrowserAbortController = getAbortControllerConstructor();
+      abortController.value = BrowserAbortController
+        ? new BrowserAbortController()
+        : null;
 
       // 合并配置
       const editorOptions = mergeOptions(options);
@@ -214,17 +260,9 @@ export function useMonacoEditor(): MonacoEditorInstance {
     const content = editor.value.getValue();
 
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(content);
-      } else {
-        if (editor.value && !abortController.value?.signal.aborted) {
-          editor.value.focus();
-          editor.value.setSelection(
-            editor.value.getModel()?.getFullModelRange()
-            ?? new monaco.Range(1, 1, 1, 1),
-          );
-          document.execCommand('copy');
-        }
+      const copied = await writeClipboardTextWithFallback(content);
+      if (!copied) {
+        throw new Error('Clipboard copy is unavailable');
       }
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
@@ -246,7 +284,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
   };
 
   // 设置主题
-  const setTheme = (theme: keyof typeof monacoConfig.themes): void => {
+  const setTheme = (theme: MonacoTheme): void => {
     if (editor.value && !isDisposed.value) {
       const themeValue = monacoConfig.themes[theme] ?? theme;
       editor.value.updateOptions({ theme: themeValue });
@@ -254,7 +292,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
   };
 
   // 设置语言
-  const setLanguage = (language: keyof typeof monacoConfig.languageConfigs): void => {
+  const setLanguage = (language: MonacoLanguage): void => {
     if (editor.value && !isDisposed.value) {
       const languageConfig = getLanguageConfig(language);
       const model = editor.value.getModel();
@@ -357,6 +395,11 @@ export function useMonacoEditor(): MonacoEditorInstance {
     return editor.value?.getOption(monaco.editor.EditorOption.fontSize) ?? 14;
   };
 
+  // 获取行高
+  const getLineHeight = (): number => {
+    return editor.value?.getOption(monaco.editor.EditorOption.lineHeight) ?? 18;
+  };
+
   // 设置字体大小
   const setFontSize = (size: number): void => {
     if (editor.value && !isDisposed.value) {
@@ -414,6 +457,7 @@ export function useMonacoEditor(): MonacoEditorInstance {
     decreaseFontSize,
     resetFontSize,
     getFontSize,
+    getLineHeight,
     setFontSize,
     getWordWrap,
     getMinimapEnabled,

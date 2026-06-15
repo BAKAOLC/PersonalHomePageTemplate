@@ -9,6 +9,10 @@ import { getDefaultLanguage, getFallbackLanguage } from './language';
 import i18n from '@/i18n';
 import type { I18nReference, I18nText } from '@/types';
 
+type I18nParamValue = string | number | boolean | null | undefined;
+type I18nParams = Record<string, I18nParamValue> | I18nParamValue[];
+type TranslateFunction = (key: string, ...args: unknown[]) => string;
+
 /**
  * 解析参数中的i18n引用
  * @param param - 参数值
@@ -16,7 +20,7 @@ import type { I18nReference, I18nText } from '@/types';
  * @param params - 外层传入的参数
  * @returns 解析后的参数值
  */
-const resolveParamI18nReference = (param: string, t: any, params?: Record<string, any> | any[]): string => {
+const resolveParamI18nReference = (param: string, t: TranslateFunction, params?: I18nParams): string => {
   if (param.startsWith('$t:')) {
     return resolveI18nReference(param, t, params);
   }
@@ -30,7 +34,7 @@ const resolveParamI18nReference = (param: string, t: any, params?: Record<string
  * @param params - 可选的参数对象或数组，用于参数替换
  * @returns 解析后的字符串
  */
-const resolveI18nReference = (value: string, t: any, params?: Record<string, any> | any[]): string => {
+const resolveI18nReference = (value: string, t: TranslateFunction, params?: I18nParams): string => {
   if (value.startsWith('$t:')) {
     const content = value.substring(3);
 
@@ -163,7 +167,7 @@ const parseKeyValueParams = (paramsString: string): Record<string, string> => {
  * @param params - 参数对象或数组
  * @returns 处理后的文本
  */
-const processTextWithParams = (text: string, t: any, params?: Record<string, any> | any[]): string => {
+const processTextWithParams = (text: string, t: TranslateFunction, params?: I18nParams): string => {
   // 如果是i18n引用，使用原有逻辑
   if (text.startsWith('$t:')) {
     return resolveI18nReference(text, t, params);
@@ -220,9 +224,9 @@ const processTextWithParams = (text: string, t: any, params?: Record<string, any
 export const getI18nText = (
   text: I18nText | I18nReference | undefined,
   currentLang: string,
-  params?: Record<string, any> | any[],
+  params?: I18nParams,
 ): string => {
-  const { t } = i18n.global as any;
+  const { t } = i18n.global;
 
   // 如果是 undefined 或 null，返回空字符串
   if (!text || (typeof text !== 'string' && typeof text !== 'object')) {

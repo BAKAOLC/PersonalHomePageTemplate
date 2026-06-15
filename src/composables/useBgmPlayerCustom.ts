@@ -1,11 +1,12 @@
+import { AudioLoopPlayer, type AudioTrack, type PlayMode } from '@ritsukage/audio-loop-player';
 import JSON5 from 'json5';
-import { onUnmounted, ref, watch } from 'vue';
+import { onUnmounted, ref, type Ref, watch } from 'vue';
 
+import { getTimerService } from '@/services/timerService';
 import { useLanguageStore } from '@/stores/language';
 import type { BgmConfig, BgmTrack } from '@/types/bgm';
+import { getMediaMetadataConstructor, getMediaSession, getLocalStorageItem, setLocalStorageItem } from '@/utils/browser';
 import { getI18nText } from '@/utils/i18nText';
-import type { AudioTrack, PlayMode } from '@ritsukage/audio-loop-player';
-import { AudioLoopPlayer } from '@ritsukage/audio-loop-player';
 
 const STORAGE_KEY = 'bgm-player-state';
 
@@ -15,6 +16,31 @@ interface StoredPlayerState {
   currentTrackIndex: number;
   volume: number;
   useLoop: boolean;
+}
+
+export interface BgmPlayerCustom {
+  currentTrack: Ref<BgmTrack | null>;
+  currentTrackIndex: Ref<number>;
+  isPlaying: Ref<boolean>;
+  volume: Ref<number>;
+  currentMode: Ref<PlayMode>;
+  autoplayEnabled: Ref<boolean>;
+  useLoop: Ref<boolean>;
+  playTrack: (index: number) => void;
+  playNext: () => void;
+  playPrevious: () => void;
+  togglePlay: () => void;
+  toggleMode: () => void;
+  toggleAutoplay: () => void;
+  toggleUseLoop: () => void;
+  setVolume: (newVolume: number) => void;
+  init: () => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  getIntroDuration: () => number;
+  getLoopDuration: () => number;
+  seek: (time: number) => void;
+  getFrequencyData: () => Uint8Array;
 }
 
 function convertTrack(track: BgmTrack): AudioTrack {
@@ -27,7 +53,7 @@ function convertTrack(track: BgmTrack): AudioTrack {
 
   const url = track.url ? getI18nText(track.url, currentLang) : undefined;
 
-  let dualFile = track.dualFile;
+  let { dualFile } = track;
   if (dualFile) {
     const intro = getI18nText(dualFile.intro, currentLang);
     const loop = getI18nText(dualFile.loop, currentLang);
@@ -51,9 +77,9 @@ function convertTrack(track: BgmTrack): AudioTrack {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function useBgmPlayerCustom(config: BgmConfig) {
+export function useBgmPlayerCustom(config: BgmConfig): BgmPlayerCustom {
   const languageStore = useLanguageStore();
+  const timerService = getTimerService();
   const player = ref<AudioLoopPlayer | null>(null);
   const volumeSaveTimeoutId = ref<number | null>(null);
   const autoplayEnabled = ref(config.autoplay);
@@ -68,9 +94,9 @@ export function useBgmPlayerCustom(config: BgmConfig) {
 
   const loadUserPreference = (): Partial<StoredPlayerState> => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = getLocalStorageItem(STORAGE_KEY);
       if (saved) {
-        const state = JSON5.parse(saved) as StoredPlayerState;
+        const state = JSON5.parse(saved);
         return {
           mode: state.mode,
           autoplayEnabled: state.autoplayEnabled,
@@ -83,7 +109,7 @@ export function useBgmPlayerCustom(config: BgmConfig) {
       console.error('Failed to load BGM state:', e);
     }
     return {};
-  }
+  };
 
   const saveUserPreference = (state: Partial<StoredPlayerState>): void => {
     try {
@@ -95,10 +121,19 @@ export function useBgmPlayerCustom(config: BgmConfig) {
         volume: state.volume ?? currentState?.volume ?? config.volume,
         useLoop: state.useLoop ?? currentState?.useLoop ?? true,
       };
-      localStorage.setItem(STORAGE_KEY, JSON5.stringify(stateToSave));
+      setLocalStorageItem(STORAGE_KEY, JSON5.stringify(stateToSave));
     } catch (e) {
       console.error('Failed to save BGM state:', e);
     }
+  };
+
+  const clearVolumeSaveTimeout = (): void => {
+    if (volumeSaveTimeoutId.value === null) {
+      return;
+    }
+
+    timerService.clearTimeout(volumeSaveTimeoutId.value);
+    volumeSaveTimeoutId.value = null;
   };
 
   const initPlayer = (): void => {
@@ -131,10 +166,9 @@ export function useBgmPlayerCustom(config: BgmConfig) {
       useLoop.value = true;
     }
 
-
     let initialIndex = 0;
     const savedMode = savedState.mode ?? config.mode;
-    
+
     if (savedMode === 'list-shuffle') {
       initialIndex = Math.floor(Math.random() * tracks.length);
     } else if (savedState.currentTrackIndex !== undefined) {
@@ -171,7 +205,7 @@ export function useBgmPlayerCustom(config: BgmConfig) {
     });
 
     player.value.on('trackchange', (event) => {
-      const index = event.data.index;
+      const { index } = event.data;
       currentTrackIndex.value = index;
       currentTrack.value = originalTracks[index];
       if (isPlaying.value) {
@@ -192,10 +226,8 @@ export function useBgmPlayerCustom(config: BgmConfig) {
 
     player.value.on('volumechange', (event) => {
       volume.value = event.data.volume;
-      if (volumeSaveTimeoutId.value !== null) {
-        window.clearTimeout(volumeSaveTimeoutId.value);
-      }
-      volumeSaveTimeoutId.value = window.setTimeout(() => {
+      clearVolumeSaveTimeout();
+      volumeSaveTimeoutId.value = timerService.setTimeout(() => {
         saveUserPreference({});
         volumeSaveTimeoutId.value = null;
       }, 200);
@@ -203,25 +235,26 @@ export function useBgmPlayerCustom(config: BgmConfig) {
   };
 
   const setupMediaSessionHandlers = (): void => {
-    if (!('mediaSession' in navigator) || !player.value) return;
+    const mediaSession = getMediaSession();
+    if (!mediaSession || !player.value) return;
 
-    navigator.mediaSession.setActionHandler('play', () => {
+    mediaSession.setActionHandler('play', () => {
       player.value?.play();
     });
 
-    navigator.mediaSession.setActionHandler('pause', () => {
+    mediaSession.setActionHandler('pause', () => {
       player.value?.pause();
     });
 
-    navigator.mediaSession.setActionHandler('previoustrack', () => {
+    mediaSession.setActionHandler('previoustrack', () => {
       player.value?.playPrevious();
     });
 
-    navigator.mediaSession.setActionHandler('nexttrack', () => {
+    mediaSession.setActionHandler('nexttrack', () => {
       player.value?.playNext();
     });
 
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
+    mediaSession.setActionHandler('seekto', (details) => {
       if (details.seekTime !== undefined) {
         player.value?.seek(details.seekTime);
       }
@@ -229,7 +262,9 @@ export function useBgmPlayerCustom(config: BgmConfig) {
   };
 
   const updateMediaSessionMetadata = (): void => {
-    if (!('mediaSession' in navigator) || !currentTrack.value) return;
+    const mediaSession = getMediaSession();
+    const MediaMetadataConstructor = getMediaMetadataConstructor();
+    if (!mediaSession || !MediaMetadataConstructor || !currentTrack.value) return;
 
     const track = currentTrack.value;
     const currentLang = languageStore.currentLanguage;
@@ -243,7 +278,7 @@ export function useBgmPlayerCustom(config: BgmConfig) {
       type: img.type ?? 'image/png',
     }));
 
-    navigator.mediaSession.metadata = new MediaMetadata({
+    mediaSession.metadata = new MediaMetadataConstructor({
       title,
       artist,
       album,
@@ -252,9 +287,10 @@ export function useBgmPlayerCustom(config: BgmConfig) {
   };
 
   const clearMediaSessionMetadata = (): void => {
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = null;
-    }
+    const mediaSession = getMediaSession();
+    if (!mediaSession) return;
+
+    mediaSession.metadata = null;
   };
 
   const playTrack = (index: number): void => {
@@ -314,20 +350,18 @@ export function useBgmPlayerCustom(config: BgmConfig) {
     return player.value?.getFrequencyData() ?? new Uint8Array(3);
   };
 
+  watch(() => languageStore.currentLanguage, () => {
+    if (isPlaying.value && currentTrack.value) {
+      updateMediaSessionMetadata();
+    }
+  });
+
   const init = (): void => {
     initPlayer();
-
-    watch(() => languageStore.currentLanguage, () => {
-      if (isPlaying.value && currentTrack.value) {
-        updateMediaSessionMetadata();
-      }
-    });
   };
 
   onUnmounted(() => {
-    if (volumeSaveTimeoutId.value !== null) {
-      window.clearTimeout(volumeSaveTimeoutId.value);
-    }
+    clearVolumeSaveTimeout();
     clearMediaSessionMetadata();
     player.value?.destroy();
   });

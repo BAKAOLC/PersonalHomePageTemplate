@@ -40,13 +40,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 
 import { useEventManager } from '@/composables/useEventManager';
 import { useModalStore, type ModalInstance } from '@/stores/modal';
+import { getBrowserDocument } from '@/utils/browser';
 
 const modalStore = useModalStore();
-const { addEventListener, removeEventListener } = useEventManager();
+const { addEventListener } = useEventManager();
 const visibleModals = computed(() => modalStore.visibleModals);
 
 // 处理遮罩点击
@@ -91,11 +92,10 @@ const handleKeydown = (e: KeyboardEvent): void => {
 };
 
 onMounted(() => {
-  addEventListener('keydown', handleKeydown, undefined, document);
-});
+  const browserDocument = getBrowserDocument();
+  if (!browserDocument) return;
 
-onBeforeUnmount(() => {
-  removeEventListener('keydown', handleKeydown, undefined, document);
+  addEventListener('keydown', handleKeydown, undefined, browserDocument);
 });
 </script>
 

@@ -1,100 +1,78 @@
 <template>
   <div class="notification-container">
-      <transition-group
-        name="notification"
-        tag="div"
-        class="notification-list"
-        @enter="onEnter"
-        @leave="onLeave"
+    <transition-group
+      name="notification"
+      tag="div"
+      class="notification-list"
+    >
+      <div
+        v-for="notification in sortedNotifications"
+        :key="notification.id"
+        class="notification-item"
+        :class="notification.type"
       >
-        <div
-          v-for="notification in sortedNotifications"
-          :key="notification.id"
-          class="notification-item" :class="[
-            notification.type,
-            { 'visible': notification.visible }
-          ]"
-        >
-          <div class="notification-icon" :class="[notification.type]">
-            <i :class="getIconClass(notification.type ?? 'info')"></i>
-          </div>
-
-          <div class="notification-content">
-            <div class="notification-message">
-              {{ getMessage(notification) }}
-            </div>
-          </div>
-
-          <button
-            v-if="notification.closable !== false"
-            class="notification-close"
-            @click="() => removeNotification(notification.id)"
-          >
-            <i class="fas fa-times"></i>
-          </button>
+        <div class="notification-icon" :class="notification.type">
+          <i :class="getIconClass(notification.type ?? 'info')"></i>
         </div>
-      </transition-group>
-    </div>
+
+        <div class="notification-content">
+          <div class="notification-message">
+            {{ getMessage(notification) }}
+          </div>
+        </div>
+
+        <button
+          v-if="notification.closable !== false"
+          class="notification-close"
+          @click="removeNotification(notification.id)"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </transition-group>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import { useTimers } from '@/composables/useTimers';
 import { useLanguageStore } from '@/stores/language';
-import { useNotificationStore } from '@/stores/notification';
+import { useNotificationStore, type NotificationConfig, type NotificationInstance } from '@/stores/notification';
 import { getI18nText } from '@/utils/i18nText';
+
+type NotificationType = NonNullable<NotificationConfig['type']>;
+
+const notificationIcons = {
+  success: 'fas fa-check-circle',
+  error: 'fas fa-exclamation-circle',
+  warning: 'fas fa-exclamation-triangle',
+  info: 'fas fa-info-circle',
+} satisfies Record<NotificationType, string>;
 
 const notificationStore = useNotificationStore();
 const languageStore = useLanguageStore();
-const { requestAnimationFrame } = useTimers();
 
 // 获取可见通知，新的在前（反转数组顺序）
-const sortedNotifications = computed(() => {
+const sortedNotifications = computed<NotificationInstance[]>(() => {
   return notificationStore.notifications
     .filter(n => n.visible)
     .slice()
     .reverse();
 });
 
-const getMessage = (notification: any): string => {
+const getMessage = (notification: NotificationInstance): string => {
   if (typeof notification.message === 'string') {
     return notification.message;
   }
   return getI18nText(notification.message, languageStore.currentLanguage);
 };
 
-const getIconClass = (type: string): string => {
-  const icons = {
-    success: 'fas fa-check-circle',
-    error: 'fas fa-exclamation-circle',
-    warning: 'fas fa-exclamation-triangle',
-    info: 'fas fa-info-circle',
-  };
-  return icons[type as keyof typeof icons] ?? icons.info;
+const getIconClass = (type: NotificationType): string => {
+  return notificationIcons[type];
 };
 
-const removeNotification = (id: string | undefined): void => {
-  if (id) {
-    notificationStore.remove(id);
-  }
-};
-
-const onEnter = (el: Element): void => {
-  const element = el as HTMLElement;
-  element.style.transform = 'translateX(100%)';
-  element.style.opacity = '0';
-
-  requestAnimationFrame(() => {
-    element.style.transform = 'translateX(0)';
-    element.style.opacity = '1';
-  });
-};
-
-const onLeave = (el: Element): void => {
-  const element = el as HTMLElement;
-  element.style.transform = 'translateX(100%)';
-  element.style.opacity = '0';
+const removeNotification = (id: string): void => {
+  notificationStore.remove(id);
 };
 </script>
 

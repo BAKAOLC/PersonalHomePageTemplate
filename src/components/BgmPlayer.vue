@@ -22,10 +22,18 @@
           <!-- 封面图（无封面时显示占位） -->
           <div
             class="bgm-artwork"
-            :class="{ 'bgm-artwork-placeholder': !currentTrack?.artwork?.length, 'bgm-artwork-clickable': !!currentTrack?.artwork?.length }"
+            :class="{
+              'bgm-artwork-placeholder': !currentTrack?.artwork?.length,
+              'bgm-artwork-clickable': !!currentTrack?.artwork?.length,
+            }"
             @click="openArtworkViewer"
           >
-            <img v-if="currentTrack?.artwork?.length" :src="getI18nText(currentTrack.artwork[0].src, currentLanguage)" :alt="t('bgm.cover')" class="bgm-artwork-img" />
+            <img
+              v-if="currentTrack?.artwork?.length"
+              :src="getI18nText(currentTrack.artwork[0].src, currentLanguage)"
+              :alt="t('bgm.cover')"
+              class="bgm-artwork-img"
+            />
             <i v-else class="fas fa-music"></i>
           </div>
           <div class="bgm-track-info">
@@ -161,13 +169,13 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
 import { useBgmPlayerCustom } from '@/composables/useBgmPlayerCustom';
 import { useModalManager } from '@/composables/useModalManager';
 import { useTimers } from '@/composables/useTimers';
 import bgmConfig from '@/config/bgm.json5';
-import type { BgmConfig } from '@/types/bgm';
-import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
 import { useLanguageStore } from '@/stores/language';
+import type { BgmConfig, BgmTrack } from '@/types/bgm';
 import { getI18nText } from '@/utils/i18nText';
 
 const config = bgmConfig as BgmConfig;
@@ -183,34 +191,61 @@ const languageStore = useLanguageStore();
 const currentLanguage = computed(() => languageStore.currentLanguage);
 const modalManager = useModalManager();
 
-const { setInterval, clearInterval, requestAnimationFrame, cancelAnimationFrame } = useTimers();
+const {
+  setTimeout,
+  clearTimeout,
+  setInterval,
+  clearInterval,
+  requestAnimationFrame,
+  cancelAnimationFrame,
+} = useTimers();
 let progressInterval: number | null = null;
 let intensityAnimationId: number | null = null;
+let scrollingTextTimeoutId: number | null = null;
 
 const trackNameRef = ref<HTMLElement | null>(null);
 const trackArtistRef = ref<HTMLElement | null>(null);
 const trackAlbumRef = ref<HTMLElement | null>(null);
 
-const checkTextOverflow = (element: HTMLElement | null): boolean => {
-  if (!element) return false;
-  const content = element.querySelector('.scrolling-text-content') as HTMLElement;
-  if (!content) return false;
-  return content.scrollWidth > element.clientWidth;
+const getScrollingTextContent = (element: HTMLElement | null): HTMLElement | null => {
+  if (!element) return null;
+  return element.querySelector<HTMLElement>('.scrolling-text-content');
+};
+
+const updateScrollingTextElement = (element: HTMLElement | null, text: string): void => {
+  const content = getScrollingTextContent(element);
+  if (!element || !content) return;
+
+  element.classList.remove('overflow');
+  content.textContent = text;
+
+  if (content.scrollWidth > element.clientWidth) {
+    element.classList.add('overflow');
+    content.textContent = `${text} ${text}`;
+  }
 };
 
 const updateScrollingText = (): void => {
-  [trackNameRef.value, trackArtistRef.value, trackAlbumRef.value].forEach(el => {
-    if (el && checkTextOverflow(el)) {
-      el.classList.add('overflow');
-      const content = el.querySelector('.scrolling-text-content') as HTMLElement;
-      if (content) {
-        const text = content.textContent || '';
-        content.textContent = text + ' ' + text;
-      }
-    } else if (el) {
-      el.classList.remove('overflow');
-    }
-  });
+  updateScrollingTextElement(trackNameRef.value, getTrackName(currentTrack.value));
+  updateScrollingTextElement(trackArtistRef.value, getTrackArtist(currentTrack.value));
+  updateScrollingTextElement(trackAlbumRef.value, getTrackAlbum(currentTrack.value));
+};
+
+const clearScrollingTextUpdate = (): void => {
+  if (scrollingTextTimeoutId === null) {
+    return;
+  }
+
+  clearTimeout(scrollingTextTimeoutId);
+  scrollingTextTimeoutId = null;
+};
+
+const scheduleScrollingTextUpdate = (delay: number): void => {
+  clearScrollingTextUpdate();
+  scrollingTextTimeoutId = setTimeout(() => {
+    updateScrollingText();
+    scrollingTextTimeoutId = null;
+  }, delay);
 };
 
 const {
@@ -337,17 +372,17 @@ const getModeTitle = (): string => {
   }
 };
 
-const getTrackName = (track: any): string => {
+const getTrackName = (track: BgmTrack | null): string => {
   if (!track) return t('bgm.noTrack');
   return getI18nText(track.name, currentLanguage.value);
 };
 
-const getTrackArtist = (track: any): string => {
+const getTrackArtist = (track: BgmTrack | null): string => {
   if (!track?.artist) return '';
   return getI18nText(track.artist, currentLanguage.value);
 };
 
-const getTrackAlbum = (track: any): string => {
+const getTrackAlbum = (track: BgmTrack | null): string => {
   if (!track?.album) return '';
   return getI18nText(track.album, currentLanguage.value);
 };
@@ -386,9 +421,9 @@ const getLoopIndicatorStyle = (): Record<string, string> => {
   if (track.dualFile) {
     const introDuration = getIntroDuration();
     const loopDuration = getLoopDuration();
-    
+
     if (introDuration <= 0 || loopDuration <= 0) return {};
-    
+
     const startPercent = (introDuration / duration.value) * 100;
     const widthPercent = (loopDuration / duration.value) * 100;
 
@@ -435,50 +470,59 @@ const updateAudioIntensity = (): void => {
   intensityAnimationId = requestAnimationFrame(updateAudioIntensity);
 };
 
+const clearProgressUpdate = (): void => {
+  if (progressInterval === null) {
+    return;
+  }
+
+  clearInterval(progressInterval);
+  progressInterval = null;
+};
+
+const clearIntensityAnimation = (): void => {
+  if (intensityAnimationId === null) {
+    return;
+  }
+
+  cancelAnimationFrame(intensityAnimationId);
+  intensityAnimationId = null;
+};
+
 watch(isPlaying, (playing) => {
   if (playing) {
-    if (progressInterval !== null) {
-      clearInterval(progressInterval);
-    }
+    clearProgressUpdate();
     progressInterval = setInterval(() => {
       updateProgress();
     }, 100);
 
-    if (intensityAnimationId !== null) {
-      cancelAnimationFrame(intensityAnimationId);
-    }
+    clearIntensityAnimation();
     updateAudioIntensity();
   } else {
-    if (progressInterval !== null) {
-      clearInterval(progressInterval);
-      progressInterval = null;
-    }
-
-    if (intensityAnimationId !== null) {
-      cancelAnimationFrame(intensityAnimationId);
-      intensityAnimationId = null;
-    }
-
+    clearProgressUpdate();
+    clearIntensityAnimation();
     audioIntensity.value = 0;
   }
 });
 
 watch([currentTrack, currentLanguage], () => {
-  setTimeout(updateScrollingText, 100);
+  scheduleScrollingTextUpdate(100);
+});
+
+watch(isExpanded, (expanded) => {
+  if (expanded) {
+    scheduleScrollingTextUpdate(100);
+  }
 });
 
 onMounted(() => {
   init();
-  setTimeout(updateScrollingText, 200);
+  scheduleScrollingTextUpdate(200);
 });
 
 onUnmounted(() => {
-  if (progressInterval !== null) {
-    clearInterval(progressInterval);
-  }
-  if (intensityAnimationId !== null) {
-    cancelAnimationFrame(intensityAnimationId);
-  }
+  clearProgressUpdate();
+  clearIntensityAnimation();
+  clearScrollingTextUpdate();
 });
 </script>
 

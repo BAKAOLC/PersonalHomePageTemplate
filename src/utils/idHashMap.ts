@@ -1,6 +1,6 @@
 import mapData from '@/config/id-hash-map.json';
 
-const map: Record<string, string> = mapData as Record<string, string>;
+const map: Record<string, string> = mapData;
 
 const reverseMap: Record<string, string> = {};
 for (const k of Object.keys(map)) {

@@ -1,4 +1,10 @@
-import type { CharacterConfigLevel, CharacterProfile, ResolvedCharacterInfoCard } from '../types/character';
+import type {
+  CharacterConfigLevel,
+  CharacterInfoCard,
+  CharacterInfoCardTemplate,
+  CharacterProfile,
+  ResolvedCharacterInfoCard,
+} from '../types/character';
 import { CharacterCardResolver } from '../utils/characterCardResolver';
 
 /**
@@ -102,7 +108,7 @@ export class CharacterConfigManager {
     // 检查模板引用
     const templateIds = new Set(character.infoCardTemplates?.map(t => t.id) ?? []);
 
-    const checkCardReferences = (cards: any[] | undefined, context: string): void => {
+    const checkCardReferences = (cards: CharacterInfoCard[] | undefined, context: string): void => {
       if (!cards) return;
 
       for (const card of cards) {
@@ -129,7 +135,7 @@ export class CharacterConfigManager {
     try {
       for (const variant of character.variants) {
         for (const image of variant.images) {
-          CharacterCardResolver.getResolvedCards(character, variant.id, image.id);
+          CharacterCardResolver.getResolvedCards(character, 'zh', variant.id, image.id);
         }
       }
     } catch (error) {
@@ -150,8 +156,8 @@ export class CharacterConfigManager {
    * @param character 角色配置
    * @returns 模板ID到模板对象的映射
    */
-  public static getAvailableTemplates(character: CharacterProfile): Map<string, any> {
-    const templates = new Map();
+  public static getAvailableTemplates(character: CharacterProfile): Map<string, CharacterInfoCardTemplate> {
+    const templates = new Map<string, CharacterInfoCardTemplate>();
 
     if (character.infoCardTemplates) {
       for (const template of character.infoCardTemplates) {
@@ -181,7 +187,7 @@ export class CharacterConfigManager {
     const context = CharacterCardResolver.buildContext(character, variantId, imageId);
 
     // 查找卡片
-    let card: any = null;
+    let card: CharacterInfoCard | undefined;
     let source = '';
 
     if (context.characterCards.has(cardId)) {

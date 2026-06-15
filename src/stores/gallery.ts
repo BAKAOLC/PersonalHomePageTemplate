@@ -2,7 +2,8 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
 import { siteConfig } from '@/config/site';
-import type { DisplayImage, GroupImage, ImageBase } from '@/types';
+import type { DisplayImage, GroupImage, ImageBase, I18nText } from '@/types';
+import { isVisible } from '@/utils/visibility';
 
 export const useGalleryStore = defineStore('gallery', () => {
   // 搜索状态
@@ -83,9 +84,13 @@ export const useGalleryStore = defineStore('gallery', () => {
   };
 
   // 从I18nText或字符串中提取可搜索文本
-  const getSearchableText = (text: any): string => {
+  const getSearchableText = (text: I18nText | I18nText[] | undefined): string => {
     if (typeof text === 'string') {
       return text.toLowerCase();
+    }
+
+    if (Array.isArray(text)) {
+      return text.map(item => getSearchableText(item)).join(' ');
     }
 
     // 确保是对象
@@ -163,7 +168,7 @@ export const useGalleryStore = defineStore('gallery', () => {
 
     const checkingImages: ImageBase[] = [];
     if (image.tags?.some(tagId => restrictedTags.find(restrictedTag => restrictedTag.id === tagId))) {
-      checkingImages.push(image as ImageBase);
+      checkingImages.push(image);
     }
     if (image.childImages) {
       for (const child of image.childImages) {
@@ -185,7 +190,9 @@ export const useGalleryStore = defineStore('gallery', () => {
 
   // 获取每个角色的匹配图像数量（支持图像组）
   const getCharacterMatchCount = (characterId: string): number => {
-    const validImageGroups = siteConfig.images.filter(image => getValidImagesInGroup(image, true, false, false));
+    const validImageGroups = siteConfig.images.filter(
+      image => getValidImagesInGroup(image, true, false, false).length > 0,
+    );
     if (characterId === 'all') {
       return validImageGroups.length;
     }
@@ -199,7 +206,8 @@ export const useGalleryStore = defineStore('gallery', () => {
     // 首先查找父图像
     const parentImage = siteConfig.images.find(img => img.id === id);
     if (parentImage) {
-      return parentImage;
+      const hasVisibleImage = getValidImagesInGroupWithoutFilter(parentImage).length > 0;
+      return hasVisibleImage ? parentImage : undefined;
     }
 
     // 如果没找到，查找子图像
@@ -262,7 +270,7 @@ export const useGalleryStore = defineStore('gallery', () => {
     for (const image of siteConfig.images) {
       if (image.childImages) {
         const childImage = image.childImages.find(child => child.id === childId);
-        if (childImage) {
+        if (childImage && doesImageValid(getChildImageWithDefaults(image, childImage))) {
           return { parentImage: image, childImage };
         }
       }
@@ -283,11 +291,16 @@ export const useGalleryStore = defineStore('gallery', () => {
       tags: childImage.tags ?? parentImage.tags,
       characters: childImage.characters ?? parentImage.characters,
       date: childImage.date ?? parentImage.date,
+      hidden: childImage.hidden ?? parentImage.hidden,
     };
     return resultImage;
   };
 
   const doesImageValid = (image: ImageBase): boolean => {
+    if (!isVisible(image)) {
+      return false;
+    }
+
     if (!image.src) {
       return false;
     }
@@ -417,7 +430,7 @@ export const useGalleryStore = defineStore('gallery', () => {
     const validImages: ImageBase[] = [];
 
     if (doesImagePassFilter(parentImage, skipCharacterFilter, skipTagFilter, skipRestrictedTagFilter)) {
-      validImages.push(parentImage as ImageBase);
+      validImages.push(parentImage);
     }
     if (parentImage.childImages && parentImage.childImages.length > 0) {
       for (const childImage of parentImage.childImages) {
@@ -434,7 +447,7 @@ export const useGalleryStore = defineStore('gallery', () => {
   const getValidImagesInGroupWithoutFilter = (parentImage: GroupImage): ImageBase[] => {
     const validImages: ImageBase[] = [];
     if (doesImageValid(parentImage)) {
-      validImages.push(parentImage as ImageBase);
+      validImages.push(parentImage);
     }
     if (parentImage.childImages && parentImage.childImages.length > 0) {
       for (const childImage of parentImage.childImages) {

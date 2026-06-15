@@ -1,13 +1,28 @@
-import { createI18n } from 'vue-i18n';
+import { createI18n, type DefineLocaleMessage } from 'vue-i18n';
 
 import type { Language } from '@/types';
+import { getBrowserLanguage, getLocalStorageItem } from '@/utils/browser';
 import { getDefaultLanguage, getEnabledLanguages, getFallbackLanguage, getLanguagesConfig, isValidLanguage } from '@/utils/language';
+
+type LocaleMessage = DefineLocaleMessage;
+
+const isLocaleMessageObject = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+const getLocaleMessageFromModule = (module: unknown): LocaleMessage | null => {
+  if (isLocaleMessageObject(module) && 'default' in module && isLocaleMessageObject(module.default)) {
+    return module.default as LocaleMessage;
+  }
+
+  return isLocaleMessageObject(module) ? module as LocaleMessage : null;
+};
 
 // 使用 Vite 的 glob 导入功能动态加载所有语言文件
 const languageModules = import.meta.glob('./*.json5', { eager: true });
 
 // 动态构建语言消息映射
-const messages: Record<string, any> = {};
+const messages: Record<string, LocaleMessage> = {};
 const enabledLanguages = getEnabledLanguages();
 
 // 加载所有启用的语言文件
@@ -16,14 +31,23 @@ for (const lang of enabledLanguages) {
   const module = languageModules[modulePath];
 
   if (module) {
-    messages[lang] = (module as any).default ?? module;
+    const message = getLocaleMessageFromModule(module);
+    if (message) {
+      messages[lang] = message;
+    } else {
+      console.warn(`Language file '${lang}.json5' has an invalid format.`);
+    }
   } else {
     console.warn(`Language file '${lang}.json5' not found.`);
   }
 }
 
 const getNavigatorLanguage = (): Language => {
-  const browserLang = navigator.language.toLowerCase();
+  const browserLang = getBrowserLanguage()?.toLowerCase();
+  if (!browserLang) {
+    return getDefaultLanguage();
+  }
+
   const languagesConfig = getLanguagesConfig();
 
   // 遍历所有启用的语言，检查是否匹配
@@ -67,7 +91,7 @@ const getNavigatorLanguage = (): Language => {
 };
 
 // 获取存储的语言设置
-const storedLocale = localStorage.getItem('locale');
+const storedLocale = getLocalStorageItem('locale');
 
 // 确定最终使用的语言，优先级：存储的有效语言 > 浏览器检测语言 > 默认语言
 let locale: Language;

@@ -33,16 +33,20 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import MonacoEditorToolbar from '@/components/MonacoEditorToolbar.vue';
-import { useMonacoEditor, type MonacoEditorOptions } from '@/composables/useMonacoEditor';
-import type monacoConfig from '@/config/monaco-editor.json5';
+import {
+  useMonacoEditor,
+  type MonacoEditorOptions,
+  type MonacoLanguage,
+  type MonacoTheme,
+  type MonacoToolbarOptions,
+} from '@/composables/useMonacoEditor';
 
 interface Props {
   modelValue?: string;
-  language?: keyof typeof monacoConfig.languageConfigs;
-  theme?: keyof typeof monacoConfig.themes;
+  language?: MonacoLanguage;
+  theme?: MonacoTheme;
   readOnly?: boolean;
   showMinimap?: boolean;
   showLineNumbers?: boolean;
@@ -57,18 +61,7 @@ interface Props {
   width?: string;
   placeholder?: string;
   showToolbar?: boolean;
-  toolbarOptions?: {
-    showUndoRedo?: boolean;
-    showFormat?: boolean;
-    showCopy?: boolean;
-    showFindReplace?: boolean;
-    showThemeToggle?: boolean;
-    showReadOnlyToggle?: boolean;
-    showMinimapToggle?: boolean;
-    showWordWrapToggle?: boolean;
-    showLineNumbersToggle?: boolean;
-    showFontSizeControls?: boolean;
-  };
+  toolbarOptions?: MonacoToolbarOptions;
 }
 
 interface Emits {
@@ -115,6 +108,8 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<Emits>();
+
+const MonacoEditorToolbar = defineAsyncComponent(() => import('@/components/MonacoEditorToolbar.vue'));
 
 const editorContainer = ref<HTMLElement | null>(null);
 const monacoEditor = useMonacoEditor();
@@ -231,6 +226,7 @@ defineExpose({
   setReadOnly: monacoEditor.setReadOnly,
   setTheme: monacoEditor.setTheme,
   setLanguage: monacoEditor.setLanguage,
+  getLineHeight: monacoEditor.getLineHeight,
   editor: monacoEditor.editor,
   isReady: monacoEditor.isReady,
 });

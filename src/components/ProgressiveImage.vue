@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import thumbnailMap from '@/assets/thumbnail-map.json';
@@ -114,6 +114,11 @@ interface Props {
   delayMainImage?: number;
 }
 
+type ThumbnailSize = NonNullable<Props['preloadSize']>;
+type ThumbnailEntry = Partial<Record<ThumbnailSize, string>>;
+
+const typedThumbnailMap = thumbnailMap as Record<string, ThumbnailEntry>;
+
 const imageLoaded = ref(false);
 const isLoading = ref(true);
 const showThumbnail = ref(false);
@@ -125,13 +130,14 @@ const mainImageStartedLoading = ref(false);
 const loadingProgress = ref(0);
 const progressImageUrl = ref<string | null>(null);
 const useProgressLoading = ref(false);
-// 统一的请求ID来处理竞态条件
-// 当快速切换src时，只有最新的请求应该更新UI状态
 const currentRequestId = ref<number>(0);
 
-// 检查请求是否仍然有效的辅助函数
 const isCurrentRequest = (requestId: number): boolean => {
   return requestId === currentRequestId.value && requestId !== 0;
+};
+
+const shouldUseProgressLoading = (): boolean => {
+  return props.showProgress && props.displayType === 'original' && props.showLoader;
 };
 
 // 转换优先级字符串到枚举
@@ -163,10 +169,32 @@ const loadImageWithProgress = (url: string, isThumbnail: boolean = false, reques
   }, isThumbnail);
 };
 
+const resetLoadingState = (): void => {
+  progressImageUrl.value = null;
+  imageLoaded.value = false;
+  isLoading.value = true;
+  showThumbnail.value = false;
+  thumbnailLoaded.value = false;
+  thumbnailHidden.value = false;
+  shouldShowMainImage.value = false;
+  mainImageStartedLoading.value = false;
+  loadingProgress.value = 0;
+  useProgressLoading.value = false;
+};
+
+const scheduleForCurrentRequest = (callback: () => void, delay: number): void => {
+  const requestId = currentRequestId.value;
+  setTimeout(() => {
+    if (isCurrentRequest(requestId)) {
+      callback();
+    }
+  }, delay);
+};
+
 // 从映射中获取预加载缩略图路径
 const preloadThumbnailSrc = computed(() => {
   if (!props.src) return null;
-  const thumbnails = (thumbnailMap as any)[props.src] as Record<string, string> | undefined;
+  const thumbnails = typedThumbnailMap[props.src];
   return thumbnails?.[props.preloadSize] ?? null;
 });
 
@@ -177,7 +205,7 @@ const displayImageSrc = computed(() => {
   if (props.displayType === 'original') {
     return props.src;
   } else {
-    const thumbnails = (thumbnailMap as any)[props.src] as Record<string, string> | undefined;
+    const thumbnails = typedThumbnailMap[props.src];
     return thumbnails?.[props.displaySize] ?? props.src;
   }
 });
@@ -194,13 +222,7 @@ const onThumbnailLoad = (): void => {
     mainImageStartedLoading.value = true;
     // 对于高优先级图片，减少延迟时间
     const delay = props.priority === 'high' ? 50 : props.delayMainImage;
-    const requestId = currentRequestId.value; // 捕获当前请求ID
-    setTimeout(() => {
-      // 确保仍然是当前请求
-      if (isCurrentRequest(requestId)) {
-        startMainImageLoading();
-      }
-    }, delay);
+    scheduleForCurrentRequest(startMainImageLoading, delay);
   }
 };
 
@@ -223,7 +245,7 @@ const startMainImageLoading = (): void => {
   const requestId = currentRequestId.value;
 
   // 决定是否使用进度加载：需要同时满足显示进度、是原始图片、且显示加载器
-  useProgressLoading.value = props.showProgress && props.displayType === 'original' && props.showLoader;
+  useProgressLoading.value = shouldUseProgressLoading();
 
   if (useProgressLoading.value) {
     // 使用带进度的加载
@@ -249,7 +271,7 @@ const startMainImageLoading = (): void => {
   }
 };
 
-const onImageLoad = (): void => {
+const markMainImageLoaded = (): void => {
   if (!isCurrentRequest(currentRequestId.value)) return;
 
   imageLoaded.value = true;
@@ -260,36 +282,19 @@ const onImageLoad = (): void => {
   const transitions = AnimationDurations.getProgressiveImageTransitions();
   const fadeOutDuration = transitions.thumbnailFade;
   const waitTime = fadeOutDuration + 50;
-  const requestId = currentRequestId.value; // 捕获当前请求ID
-  setTimeout(() => {
-    // 确保仍然是当前请求
-    if (isCurrentRequest(requestId)) {
-      thumbnailHidden.value = true;
-    }
+  scheduleForCurrentRequest(() => {
+    thumbnailHidden.value = true;
   }, waitTime); // 如果没有动画则等待50ms，有动画则等待动画时长+50ms
 
   emit('load');
 };
 
+const onImageLoad = (): void => {
+  markMainImageLoaded();
+};
+
 const onProgressImageLoad = (): void => {
-  if (!isCurrentRequest(currentRequestId.value)) return;
-
-  imageLoaded.value = true;
-  isLoading.value = false;
-
-  // 主图加载完成后，等待fade-out动画完成再隐藏缩略图
-  const transitions = AnimationDurations.getProgressiveImageTransitions();
-  const fadeOutDuration = transitions.thumbnailFade;
-  const waitTime = fadeOutDuration + 50;
-  const requestId = currentRequestId.value; // 捕获当前请求ID
-  setTimeout(() => {
-    // 确保仍然是当前请求
-    if (isCurrentRequest(requestId)) {
-      thumbnailHidden.value = true;
-    }
-  }, waitTime); // 如果没有动画则等待50ms，有动画则等待动画时长+50ms
-
-  emit('load');
+  markMainImageLoaded();
 };
 
 const onImageError = (): void => {
@@ -299,84 +304,48 @@ const onImageError = (): void => {
 
 // 监听src变化，重置状态
 watch(() => props.src, (newSrc) => {
-  if (newSrc) {
-    // 递增请求ID来标识新的加载请求，防止竞态条件
+  if (!newSrc) {
     currentRequestId.value += 1;
+    resetLoadingState();
+    isLoading.value = false;
+    return;
+  }
 
-    // 不取消之前图片的加载，让它们在后台继续加载到缓存中
-    // 这样用户切换回来时可以立即显示
+  // 递增请求ID来标识新的加载请求，防止竞态条件
+  currentRequestId.value += 1;
+  resetLoadingState();
 
-    // 清理之前的对象URL（如果是通过progressImageUrl创建的）
-    if (progressImageUrl.value) {
-      // 注意：不要撤销缓存中的URL，因为可能还在被其他组件使用
-      progressImageUrl.value = null;
-    }
-
-    // 重置所有状态
-    imageLoaded.value = false;
-    isLoading.value = true;
-    showThumbnail.value = false;
-    thumbnailLoaded.value = false;
-    thumbnailHidden.value = false;
-    shouldShowMainImage.value = false;
-    mainImageStartedLoading.value = false;
-    loadingProgress.value = 0;
-    useProgressLoading.value = false;
-
-    // 检查缓存中是否已有这个图片
-    const cachedImage = getImageCache().getCachedImage(newSrc);
-    if (cachedImage && cachedImage.loaded && !cachedImage.error) {
-      // 如果图片已经缓存且加载完成，直接使用
-      const requestId = currentRequestId.value; // 捕获当前请求ID
-
-      if (props.showProgress && props.displayType === 'original' && props.showLoader) {
-        useProgressLoading.value = true;
-        progressImageUrl.value = cachedImage.objectUrl;
-        loadingProgress.value = 100;
-        // 稍微延迟一下让用户看到已完成的状态
-        setTimeout(() => {
-          // 确保仍然是当前请求
-          if (isCurrentRequest(requestId)) {
-            imageLoaded.value = true;
-            isLoading.value = false;
-          }
-        }, 50);
-      } else {
-        shouldShowMainImage.value = true;
-        setTimeout(() => {
-          // 确保仍然是当前请求
-          if (isCurrentRequest(requestId)) {
-            imageLoaded.value = true;
-            isLoading.value = false;
-          }
-        }, 50);
-      }
-      return;
-    }
-
-    // 如果有预加载缩略图，立即开始加载
-    if (preloadThumbnailSrc.value) {
-      // 立即显示缩略图元素，让浏览器开始加载
-      showThumbnail.value = true;
+  // 检查缓存中是否已有这个图片
+  const cachedImage = getImageCache().getCachedImage(newSrc);
+  if (cachedImage && cachedImage.loaded && !cachedImage.error) {
+    // 如果图片已经缓存且加载完成，直接使用
+    if (shouldUseProgressLoading()) {
+      useProgressLoading.value = true;
+      progressImageUrl.value = cachedImage.objectUrl;
+      loadingProgress.value = 100;
     } else {
-      // 如果没有缩略图，直接加载主图
-      mainImageStartedLoading.value = true;
-      // 对于高优先级图片，立即开始加载
-      const delay = props.priority === 'high' ? 0 : 100;
-      const requestId = currentRequestId.value; // 捕获当前请求ID
-      setTimeout(() => {
-        // 确保仍然是当前请求
-        if (isCurrentRequest(requestId)) {
-          startMainImageLoading();
-        }
-      }, delay);
+      shouldShowMainImage.value = true;
     }
+    // 稍微延迟一下让用户看到已完成的状态
+    scheduleForCurrentRequest(() => {
+      imageLoaded.value = true;
+      isLoading.value = false;
+    }, 50);
+    return;
+  }
+
+  // 如果有预加载缩略图，立即开始加载
+  if (preloadThumbnailSrc.value) {
+    // 立即显示缩略图元素，让浏览器开始加载
+    showThumbnail.value = true;
+  } else {
+    // 如果没有缩略图，直接加载主图
+    mainImageStartedLoading.value = true;
+    // 对于高优先级图片，立即开始加载
+    const delay = props.priority === 'high' ? 0 : 100;
+    scheduleForCurrentRequest(startMainImageLoading, delay);
   }
 }, { immediate: true });
-
-onMounted(() => {
-  // 组件挂载时的初始化逻辑已在 watch 中处理
-});
 
 // 组件卸载时清理资源
 onUnmounted(() => {

@@ -1,6 +1,7 @@
 import type { Component } from 'vue';
 
 import { useModalStore, type ModalConfig, type ModalInstance, type ModalOptions } from '@/stores/modal';
+import { createPrefixedId } from '@/utils/id';
 
 export type { ModalConfig, ModalInstance, ModalOptions };
 
@@ -12,7 +13,7 @@ interface ModalManagerComposable {
   getVisibleModals: () => ModalInstance[];
   getTopModal: () => ModalInstance | null;
   isModalOpen: (id: string) => boolean;
-  openModal: (component: Component, props?: Record<string, any>, options?: ModalOptions) => string;
+  openModal: (component: Component, props?: Record<string, unknown>, options?: ModalOptions) => string;
 }
 
 export function useModalManager(): ModalManagerComposable {
@@ -47,8 +48,8 @@ export function useModalManager(): ModalManagerComposable {
   };
 
   // 便捷方法
-  const openModal = (component: Component, props?: Record<string, any>, options?: ModalOptions): string => {
-    const id = `modal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const openModal = (component: Component, props?: Record<string, unknown>, options?: ModalOptions): string => {
+    const id = createPrefixedId('modal');
     return open({
       id,
       component,

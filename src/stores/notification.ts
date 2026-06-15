@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-import { useTimers } from '@/composables/useTimers';
+import { getTimerService } from '@/services/timerService';
 import type { I18nText } from '@/types';
+import { createPrefixedId } from '@/utils/id';
 
 export interface NotificationConfig {
   id: string;
@@ -22,7 +23,7 @@ export const useNotificationStore = defineStore('notification', () => {
   const notifications = ref<NotificationInstance[]>([]);
   const maxNotifications = ref(5);
   const pendingQueue = ref<NotificationConfig[]>([]);
-  const { setTimeout, clearTimeout } = useTimers();
+  const timerService = getTimerService();
 
   // 获取可见通知数量
   const visibleCount = computed(() => notifications.value.filter(n => n.visible).length);
@@ -52,7 +53,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
     // 设置自动关闭定时器
     if (notification.duration && notification.duration > 0) {
-      notification.timer = setTimeout(() => {
+      notification.timer = timerService.setTimeout(() => {
         remove(notification.id);
       }, notification.duration);
     }
@@ -66,19 +67,21 @@ export const useNotificationStore = defineStore('notification', () => {
     if (index === -1) return;
 
     const notification = notifications.value[index];
+    if (!notification.visible) return;
 
     // 清除定时器
     if (notification.timer) {
-      clearTimeout(notification.timer);
+      timerService.clearTimeout(notification.timer);
+      notification.timer = undefined;
     }
 
     // 设置为不可见，让动画播放
     notification.visible = false;
 
     // 延迟移除，等待动画完成
-    setTimeout(() => {
+    timerService.setTimeout(() => {
       const currentIndex = notifications.value.findIndex(n => n.id === id);
-      if (currentIndex !== -1) {
+      if (currentIndex !== -1 && notifications.value[currentIndex] === notification) {
         notifications.value.splice(currentIndex, 1);
       }
 
@@ -106,7 +109,8 @@ export const useNotificationStore = defineStore('notification', () => {
     // 清除所有定时器并移除通知
     notifications.value.forEach(notification => {
       if (notification.timer) {
-        clearTimeout(notification.timer);
+        timerService.clearTimeout(notification.timer);
+        notification.timer = undefined;
       }
     });
 
@@ -120,7 +124,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
   // 便捷方法
   const success = (message: string | I18nText, options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id ?? createPrefixedId('notification');
     return show({
       id,
       message,
@@ -130,7 +134,7 @@ export const useNotificationStore = defineStore('notification', () => {
   };
 
   const error = (message: string | I18nText, options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id ?? createPrefixedId('notification');
     return show({
       id,
       message,
@@ -140,7 +144,7 @@ export const useNotificationStore = defineStore('notification', () => {
   };
 
   const warning = (message: string | I18nText, options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id ?? createPrefixedId('notification');
     return show({
       id,
       message,
@@ -150,7 +154,7 @@ export const useNotificationStore = defineStore('notification', () => {
   };
 
   const info = (message: string | I18nText, options: Partial<NotificationConfig> = {}): string => {
-    const id = options.id ?? `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = options.id ?? createPrefixedId('notification');
     return show({
       id,
       message,

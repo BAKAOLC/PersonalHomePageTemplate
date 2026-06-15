@@ -153,9 +153,11 @@ const widgetOpacity = computed(() => config.display.opacity);
 const summonBtnStyle = computed(() => {
   const { anchor } = config.display;
   const [v] = anchor.split('-');
-  const insetY = v === 'bottom' ? SUMMON_BTN_INSET_Y_BOTTOM
-    : v === 'top' ? SUMMON_BTN_INSET_Y_OTHER
-    : SUMMON_BTN_INSET_Y_OTHER;
+  const insetY = v === 'bottom'
+    ? SUMMON_BTN_INSET_Y_BOTTOM
+    : v === 'top'
+      ? SUMMON_BTN_INSET_Y_OTHER
+      : SUMMON_BTN_INSET_Y_OTHER;
   // 唤出按钮始终停靠锚点角落，独立于 widget 偏移
   return anchorToStyle(anchor, SUMMON_BTN_INSET_X, insetY, SUMMON_BTN_SIZE, SUMMON_BTN_SIZE);
 });
@@ -176,7 +178,6 @@ const summonBtnStyle = computed(() => {
   height: 100%;
   pointer-events: none;
 }
-
 
 /* ── canvas 容器 ────────────────────────────────────────────────── */
 .live2d-canvas-container {

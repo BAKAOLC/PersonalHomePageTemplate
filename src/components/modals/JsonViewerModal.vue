@@ -39,11 +39,10 @@
 </template>
 
 <script setup lang="ts">
-import * as monaco from 'monaco-editor';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import MonacoEditor from '@/components/MonacoEditor.vue';
+import type MonacoEditorComponent from '@/components/MonacoEditor.vue';
 import { useNotificationManager } from '@/composables/useNotificationManager';
 import { useScreenManager } from '@/composables/useScreenManager';
 import { useTimers } from '@/composables/useTimers';
@@ -70,8 +69,10 @@ const notificationManager = useNotificationManager();
 const screenManager = useScreenManager();
 const { setTimeout, clearTimeout } = useTimers();
 
+const MonacoEditor = defineAsyncComponent(() => import('@/components/MonacoEditor.vue'));
+
 // 响应式数据
-const monacoEditorRef = ref<InstanceType<typeof MonacoEditor> | null>(null);
+const monacoEditorRef = ref<InstanceType<typeof MonacoEditorComponent> | null>(null);
 const editorContent = ref(props.content);
 
 // 编辑器高度
@@ -103,7 +104,7 @@ const adjustEditorHeight = (): void => {
     const lineCount = model.getLineCount();
 
     // 获取行高
-    const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
+    const lineHeight = monacoEditorRef.value.getLineHeight();
 
     // 计算内容高度
     const contentHeight = lineCount * lineHeight;

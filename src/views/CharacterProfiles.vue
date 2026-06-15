@@ -18,6 +18,7 @@
                   v-for="character in characterProfiles"
                   :key="character.id"
                   :data-character-id="character.id"
+                  :ref="element => setCharacterButtonRef(character.id, element)"
                   @click="selectCharacter(character)"
                   class="selector-button"
                   :class="{ 'active': selectedCharacter?.id === character.id }"
@@ -46,6 +47,7 @@
                   v-for="(variant, index) in selectedCharacter.variants"
                   :key="variant.id"
                   :data-variant-id="variant.id"
+                  :ref="element => setVariantButtonRef(variant.id, element)"
                   @click="selectVariant(variant)"
                   class="selector-button"
                   :class="{ 'active': selectedVariant?.id === variant.id }"
@@ -70,7 +72,7 @@
         <div v-if="selectedCharacter && selectedVariant" class="main-content">
           <!-- 左侧信息卡片区域 -->
           <div class="info-section">
-            <div class="info-cards">
+            <div ref="infoCardsContainer" class="info-cards">
               <div
                 v-for="card in displayInfoCards"
                 :key="card.id"
@@ -150,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, type ComponentPublicInstance } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -160,6 +162,7 @@ import { useModalManager } from '@/composables/useModalManager';
 import characterProfilesData from '@/config/character-profiles.json5';
 import { useLanguageStore } from '@/stores/language';
 import type { CharacterProfile, CharacterVariant, CharacterVariantImage } from '@/types';
+import { getResizeObserverConstructor } from '@/utils/browser';
 import { CharacterConfigManager } from '@/utils/characterConfigManager';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
@@ -178,7 +181,7 @@ const router = useRouter();
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 响应式数据
-const characterProfiles = ref<CharacterProfile[]>(characterProfilesData);
+const characterProfiles = ref<CharacterProfile[]>(characterProfilesData as CharacterProfile[]);
 const selectedCharacter = ref<CharacterProfile | null>(null);
 const selectedVariant = ref<CharacterVariant | null>(null);
 const selectedImage = ref<CharacterVariantImage | null>(null);
@@ -190,6 +193,9 @@ const isVariantListExpanded = ref(false);
 // 滚动容器引用
 const characterScrollContainer = ref<HTMLElement | null>(null);
 const variantScrollContainer = ref<HTMLElement | null>(null);
+const infoCardsContainer = ref<HTMLElement | null>(null);
+const characterButtonRefs = new Map<string, HTMLElement>();
+const variantButtonRefs = new Map<string, HTMLElement>();
 
 // 是否显示展开按钮
 const showCharacterExpandButton = ref(false);
@@ -212,9 +218,51 @@ const updateButtonVisibility = (): void => {
   });
 };
 
+type TemplateRefValue = Element | ComponentPublicInstance | null;
+
+const setButtonRef = (
+  refs: Map<string, HTMLElement>,
+  id: string,
+  element: TemplateRefValue,
+): void => {
+  if (element instanceof HTMLElement) {
+    refs.set(id, element);
+    return;
+  }
+
+  refs.delete(id);
+};
+
+const setCharacterButtonRef = (id: string, element: TemplateRefValue): void => {
+  setButtonRef(characterButtonRefs, id, element);
+};
+
+const setVariantButtonRef = (id: string, element: TemplateRefValue): void => {
+  setButtonRef(variantButtonRefs, id, element);
+};
+
+const scrollButtonIntoView = (refs: Map<string, HTMLElement>, id: string): void => {
+  nextTick(() => {
+    refs.get(id)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    });
+  });
+};
+
 // ResizeObserver 实例
 let characterResizeObserver: ResizeObserver | null = null;
 let variantResizeObserver: ResizeObserver | null = null;
+
+const createButtonVisibilityResizeObserver = (): ResizeObserver | null => {
+  const ResizeObserverConstructor = getResizeObserverConstructor();
+  if (!ResizeObserverConstructor) return null;
+
+  return new ResizeObserverConstructor(() => {
+    updateButtonVisibility();
+  });
+};
 
 // 切换角色列表展开状态
 const toggleCharacterListExpanded = (): void => {
@@ -246,9 +294,8 @@ const displayInfoCards = computed(() => {
 // 监听卡片更新，自动滚动到顶部
 watch(displayInfoCards, () => {
   nextTick(() => {
-    const infoCards = document.querySelector('.info-cards');
-    if (infoCards) {
-      infoCards.scrollTop = 0;
+    if (infoCardsContainer.value) {
+      infoCardsContainer.value.scrollTop = 0;
     }
   });
 });
@@ -307,12 +354,7 @@ const selectCharacter = (character: CharacterProfile, skipUrlUpdate = false): vo
   }
 
   // 滚动到选中的角色按钮
-  nextTick(() => {
-    const characterButton = document.querySelector(`[data-character-id="${character.id}"]`);
-    if (characterButton) {
-      characterButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  });
+  scrollButtonIntoView(characterButtonRefs, character.id);
 };
 
 // 选择差分
@@ -330,12 +372,7 @@ const selectVariant = (variant: CharacterVariant, skipUrlUpdate = false): void =
   }
 
   // 滚动到选中的差分按钮
-  nextTick(() => {
-    const variantButton = document.querySelector(`[data-variant-id="${variant.id}"]`);
-    if (variantButton) {
-      variantButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  });
+  scrollButtonIntoView(variantButtonRefs, variant.id);
 };
 
 // 选择图片
@@ -399,10 +436,8 @@ watch(selectedCharacter, () => {
     // 重新设置 variant 的 ResizeObserver
     if (variantResizeObserver && variantScrollContainer.value) {
       variantResizeObserver.disconnect();
-      variantResizeObserver = new ResizeObserver(() => {
-        updateButtonVisibility();
-      });
-      variantResizeObserver.observe(variantScrollContainer.value);
+      variantResizeObserver = createButtonVisibilityResizeObserver();
+      variantResizeObserver?.observe(variantScrollContainer.value);
     }
   });
 });
@@ -473,17 +508,13 @@ onMounted(() => {
 
   // 设置 ResizeObserver 监听容器大小变化
   if (characterScrollContainer.value) {
-    characterResizeObserver = new ResizeObserver(() => {
-      updateButtonVisibility();
-    });
-    characterResizeObserver.observe(characterScrollContainer.value);
+    characterResizeObserver = createButtonVisibilityResizeObserver();
+    characterResizeObserver?.observe(characterScrollContainer.value);
   }
 
   if (variantScrollContainer.value) {
-    variantResizeObserver = new ResizeObserver(() => {
-      updateButtonVisibility();
-    });
-    variantResizeObserver.observe(variantScrollContainer.value);
+    variantResizeObserver = createButtonVisibilityResizeObserver();
+    variantResizeObserver?.observe(variantScrollContainer.value);
   }
 
   // 初始检查

@@ -12,42 +12,96 @@
  *  - setExpression(id) / playMotion(group, index) / setParameterValue(id, value)
  */
 
+import type { Live2DModel } from 'pixi-live2d-display';
 import { Application, Ticker } from 'pixi.js';
-import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue';
 
+import { useEventManager } from '@/composables/useEventManager';
+import { useTimers } from '@/composables/useTimers';
 import engineConfig from '@/config/live2d-engine.json5';
 import type { Live2DEngineConfig, Live2DExpressionDef, Live2DInteractionConfig, Live2DModelConfig, Live2DMotionDef, Live2DParameterInfo } from '@/types/live2d';
+import { getBrowserDocument, getBrowserWindow } from '@/utils/browser';
 // type-only import 不会触发运行时 side-effect
-import type { Live2DModel } from 'pixi-live2d-display';
 
 const engine = engineConfig as Live2DEngineConfig;
+
+interface Live2DExpressionSpec {
+  Name?: string;
+  name?: string;
+}
+
+interface Live2DCoreParameters {
+  ids?: string[];
+  values?: number[];
+  minimumValues?: number[];
+  maximumValues?: number[];
+  defaultValues?: number[];
+}
+
+interface Live2DCoreModelAdapter {
+  parameters?: Live2DCoreParameters;
+  setParameterValueById?: (id: string, value: number) => void;
+}
+
+type Live2DModelClass = typeof Live2DModel;
+type Live2DModelModule = {
+  Live2DModel: Live2DModelClass;
+};
 
 // ─── 运行时加载工具 ──────────────────────────────────────────────────
 
 let cubism2RuntimeLoaded = false;
 let cubism4RuntimeLoaded = false;
+let cubism2RuntimeLoadPromise: Promise<void> | null = null;
+let cubism4RuntimeLoadPromise: Promise<void> | null = null;
 
 async function loadExternalScript(url: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script');
+    const browserDocument = getBrowserDocument();
+    if (!browserDocument) {
+      reject(new Error(`Cannot load script outside a browser document: ${url}`));
+      return;
+    }
+
+    const script = browserDocument.createElement('script');
     script.src = url;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
-    document.head.appendChild(script);
+    browserDocument.head.appendChild(script);
   });
 }
 
 async function ensureCubism2Runtime(): Promise<void> {
   if (cubism2RuntimeLoaded || !engine.cubism2Runtime) return;
-  await loadExternalScript(engine.cubism2Runtime);
-  cubism2RuntimeLoaded = true;
+
+  cubism2RuntimeLoadPromise ??= loadExternalScript(engine.cubism2Runtime)
+    .then(() => {
+      cubism2RuntimeLoaded = true;
+    })
+    .finally(() => {
+      cubism2RuntimeLoadPromise = null;
+    });
+
+  await cubism2RuntimeLoadPromise;
 }
 
 async function ensureCubism4Runtime(): Promise<void> {
   if (cubism4RuntimeLoaded || !engine.cubism4Runtime) return;
-  await loadExternalScript(engine.cubism4Runtime);
-  cubism4RuntimeLoaded = true;
+
+  cubism4RuntimeLoadPromise ??= loadExternalScript(engine.cubism4Runtime)
+    .then(() => {
+      cubism4RuntimeLoaded = true;
+    })
+    .finally(() => {
+      cubism4RuntimeLoadPromise = null;
+    });
+
+  await cubism4RuntimeLoadPromise;
 }
+
+const getLive2DModelClass = (module: Live2DModelModule): Live2DModelClass => {
+  return module.Live2DModel;
+};
 
 // ─── Composable ────────────────────────────────────────────────────────
 
@@ -66,8 +120,26 @@ export interface UseLive2DOptions {
   onError?: (err: unknown) => void;
 }
 
-export function useLive2D(options: UseLive2DOptions) {
+export interface UseLive2DReturn {
+  isReady: Ref<boolean>;
+  isLoading: Ref<boolean>;
+  expressions: Ref<Live2DExpressionDef[]>;
+  motions: Ref<Live2DMotionDef[]>;
+  parameters: Ref<Live2DParameterInfo[]>;
+  setExpression: (id: number | string) => Promise<boolean>;
+  randomExpression: () => Promise<boolean>;
+  playMotion: (group: string, index?: number) => Promise<boolean>;
+  setParameterValue: (id: string, value: number) => void;
+  refreshParameters: () => void;
+  pixiApp: ShallowRef<Application | null>;
+  model: ShallowRef<Live2DModel | null>;
+  destroy: () => void;
+}
+
+export function useLive2D(options: UseLive2DOptions): UseLive2DReturn {
   const { model, interaction, canvasSize, containerRef, onReady, onError } = options;
+  const eventManager = useEventManager();
+  const { setTimeout, setInterval, clearTimeout, clearInterval } = useTimers();
 
   // Pixi + model 实例（shallowRef 避免深层响应式）
   const pixiApp = shallowRef<Application | null>(null);
@@ -82,9 +154,27 @@ export function useLive2D(options: UseLive2DOptions) {
   const isReady = ref(false);
   const isLoading = ref(false);
 
-  let expressionTimer: ReturnType<typeof setInterval> | null = null;
-  let expressionResetTimer: ReturnType<typeof setTimeout> | null = null;
-  let animFrameId: number | null = null;
+  let expressionTimer: number | null = null;
+  let expressionResetTimer: number | null = null;
+  let activeInitId = 0;
+
+  const addManagedEventListener = <T extends Event = Event>(
+    eventName: string,
+    handler: (event: T) => void,
+    options?: boolean | AddEventListenerOptions,
+    target?: EventTarget | null,
+  ): void => {
+    if (!target) return;
+
+    eventManager.addEventListener(eventName, handler, options, target);
+    cleanups.push(() => {
+      eventManager.removeEventListener(eventName, handler, undefined, target);
+    });
+  };
+
+  const isActiveInit = (initId: number, container: HTMLElement): boolean => {
+    return initId === activeInitId && containerRef.value === container;
+  };
 
   // ── 初始化 ────────────────────────────────────────────────────────────
 
@@ -92,6 +182,7 @@ export function useLive2D(options: UseLive2DOptions) {
     const container = containerRef.value;
     if (!container || !model.url) return;
 
+    const initId = ++activeInitId;
     isLoading.value = true;
 
     try {
@@ -100,12 +191,16 @@ export function useLive2D(options: UseLive2DOptions) {
       let live2dModelClass: typeof Live2DModel;
       if (model.url.endsWith('.model3.json')) {
         await ensureCubism4Runtime();
+        if (!isActiveInit(initId, container)) return;
         const mod = await import('pixi-live2d-display/cubism4');
-        live2dModelClass = mod.Live2DModel as unknown as typeof Live2DModel;
+        if (!isActiveInit(initId, container)) return;
+        live2dModelClass = getLive2DModelClass(mod);
       } else {
         await ensureCubism2Runtime();
+        if (!isActiveInit(initId, container)) return;
         const mod = await import('pixi-live2d-display/cubism2');
-        live2dModelClass = mod.Live2DModel as unknown as typeof Live2DModel;
+        if (!isActiveInit(initId, container)) return;
+        live2dModelClass = getLive2DModelClass(mod);
       }
       // 注册 PIXI Ticker（仅首次加载时需要，重复做无害）
       live2dModelClass.registerTicker(Ticker);
@@ -115,18 +210,26 @@ export function useLive2D(options: UseLive2DOptions) {
         view: container.querySelector('canvas') as HTMLCanvasElement,
         width: canvasSize.width,
         height: canvasSize.height,
-        backgroundAlpha: 0,        // 透明背景
+        backgroundAlpha: 0, // 透明背景
         antialias: true,
         autoDensity: true,
-        resolution: window.devicePixelRatio || 1,
+        resolution: getBrowserWindow()?.devicePixelRatio ?? 1,
       });
       pixiApp.value = app;
 
       // 3. 加载 Live2D 模型
       const live2dModel = await live2dModelClass.from(model.url, {
         autoInteract: false, // 关闭内置交互，我们自己控制
-        idleMotionGroup: interaction.idleMotionGroup || undefined,
+        idleMotionGroup: interaction.idleMotionGroup ? interaction.idleMotionGroup : undefined,
       });
+      if (!isActiveInit(initId, container) || pixiApp.value !== app) {
+        live2dModel.destroy({ children: true });
+        if (pixiApp.value === app) {
+          app.destroy(false, { children: true });
+          pixiApp.value = null;
+        }
+        return;
+      }
 
       liveModel.value = live2dModel;
 
@@ -137,15 +240,14 @@ export function useLive2D(options: UseLive2DOptions) {
       live2dModel.anchor.set(0.5, 0.5);
 
       // 基于模型内部尺寸自动适配 canvas，model.scale 直接作为倍率乘数
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const internalModel = (live2dModel as any).internalModel;
+
+      const { internalModel } = live2dModel;
       const modelW: number = internalModel?.originalWidth ?? internalModel?.width ?? canvasW;
       const modelH: number = internalModel?.originalHeight ?? internalModel?.height ?? canvasH;
       const fitScale = Math.min(canvasW / modelW, canvasH / modelH);
       live2dModel.scale.set(fitScale * model.scale);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      app.stage.addChild(live2dModel as any);
+      app.stage.addChild(live2dModel);
 
       // 5. 收集元数据
       collectMetadata(live2dModel);
@@ -163,23 +265,25 @@ export function useLive2D(options: UseLive2DOptions) {
       isReady.value = true;
       onReady?.();
     } catch (err) {
+      if (!isActiveInit(initId, container)) return;
       console.error('[useLive2D] 模型加载失败:', err);
       onError?.(err);
     } finally {
-      isLoading.value = false;
+      if (initId === activeInitId) {
+        isLoading.value = false;
+      }
     }
   }
 
   // ── 元数据收集 ────────────────────────────────────────────────────────
 
-  function collectMetadata(m: Live2DModel): void { // eslint-disable-line @typescript-eslint/no-unused-vars
+  function collectMetadata(m: Live2DModel): void {
     try {
       // 表情列表
       const exprMgr = m.internalModel.motionManager.expressionManager;
       if (exprMgr) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const defs: any[] = (exprMgr as any).definitions ?? [];
-        expressions.value = defs.map((d: { Name?: string; name?: string }, i: number) => ({
+        const defs = exprMgr.definitions as Live2DExpressionSpec[];
+        expressions.value = defs.map((d, i: number) => ({
           index: i,
           name: d.Name ?? d.name ?? `Expression ${i}`,
         }));
@@ -187,19 +291,19 @@ export function useLive2D(options: UseLive2DOptions) {
 
       // 动作列表
       const motionMgr = m.internalModel.motionManager;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const motionDefs: Record<string, any[]> = (motionMgr as any).definitions ?? {};
+
+      const motionDefs = motionMgr.definitions as Partial<Record<string, unknown[]>>;
       const collected: Live2DMotionDef[] = [];
       for (const [group, list] of Object.entries(motionDefs)) {
-        (list as unknown[]).forEach((_m: unknown, idx: number) => {
+        (list ?? []).forEach((_motion: unknown, idx: number) => {
           collected.push({ group, index: idx });
         });
       }
       motions.value = collected;
 
       // 参数列表（Cubism 4）
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const coreModel = (m.internalModel as any).coreModel;
+
+      const coreModel = m.internalModel.coreModel as Live2DCoreModelAdapter;
       if (coreModel?.parameters) {
         const ids: string[] = coreModel.parameters.ids ?? [];
         const values: number[] = coreModel.parameters.values ?? [];
@@ -223,17 +327,17 @@ export function useLive2D(options: UseLive2DOptions) {
   // ── 交互绑定 ──────────────────────────────────────────────────────────
 
   function bindInteraction(container: HTMLElement, m: Live2DModel): void {
-    const canvas = container.querySelector('canvas') as HTMLCanvasElement | null;
+    const canvas = container.querySelector('canvas');
     if (!canvas) return;
 
     // ── 1. 视角跟踪 ──────────────────────────────────────────────────────
     if (interaction.cursorTracking) {
+      const browserDocument = getBrowserDocument();
       const handleMouseMove = (e: MouseEvent): void => {
         const rect = canvas.getBoundingClientRect();
         m.focus(e.clientX - rect.left, e.clientY - rect.top);
       };
-      document.addEventListener('mousemove', handleMouseMove, { passive: true });
-      cleanups.push(() => document.removeEventListener('mousemove', handleMouseMove));
+      addManagedEventListener('mousemove', handleMouseMove, { passive: true }, browserDocument);
     }
 
     // ── 2. 点击切换表情 ──────────────────────────────────────────────────
@@ -242,8 +346,7 @@ export function useLive2D(options: UseLive2DOptions) {
         m.expression();
         scheduleExpressionReset(m);
       };
-      canvas.addEventListener('click', handleClick);
-      cleanups.push(() => canvas.removeEventListener('click', handleClick));
+      addManagedEventListener('click', handleClick, undefined, canvas);
 
       // 触摸点击支持：touchstart 记录起点，touchend 若为轻触（移动 < 10px）则触发表情
       let touchStartX = 0;
@@ -264,12 +367,9 @@ export function useLive2D(options: UseLive2DOptions) {
           scheduleExpressionReset(m);
         }
       };
-      canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
-      canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-      cleanups.push(() => canvas.removeEventListener('touchstart', handleTouchStart));
-      cleanups.push(() => canvas.removeEventListener('touchend', handleTouchEnd));
+      addManagedEventListener('touchstart', handleTouchStart, { passive: true }, canvas);
+      addManagedEventListener('touchend', handleTouchEnd, { passive: false }, canvas);
     }
-
   }
 
   // 设置表情自动恢复计时器
@@ -282,11 +382,8 @@ export function useLive2D(options: UseLive2DOptions) {
     expressionResetTimer = setTimeout(() => {
       try {
         // 调用 ExpressionManager.resetExpression() 恢复 defaultExpression（真正的无表情状态）
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const exprMgr = (m.internalModel.motionManager as any).expressionManager;
-        if (exprMgr?.resetExpression) {
-          exprMgr.resetExpression();
-        }
+
+        m.internalModel.motionManager.expressionManager?.resetExpression();
       } catch {
         // 忽略
       }
@@ -317,8 +414,7 @@ export function useLive2D(options: UseLive2DOptions) {
    */
   function setParameterValue(id: string, value: number): void {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const coreModel = (liveModel.value?.internalModel as any)?.coreModel;
+      const coreModel = liveModel.value?.internalModel.coreModel as Live2DCoreModelAdapter | undefined;
       if (coreModel?.setParameterValueById) {
         coreModel.setParameterValueById(id, value);
       }
@@ -330,8 +426,7 @@ export function useLive2D(options: UseLive2DOptions) {
   /** 同步当前参数值快照（用于可视化编辑器刷新） */
   function refreshParameters(): void {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const coreModel = (liveModel.value?.internalModel as any)?.coreModel;
+      const coreModel = liveModel.value?.internalModel.coreModel as Live2DCoreModelAdapter | undefined;
       if (coreModel?.parameters?.values) {
         const vals: number[] = coreModel.parameters.values;
         parameters.value = parameters.value.map((p, i) => ({
@@ -349,6 +444,9 @@ export function useLive2D(options: UseLive2DOptions) {
   const cleanups: (() => void)[] = [];
 
   function destroy(): void {
+    activeInitId++;
+    isLoading.value = false;
+
     if (expressionTimer) {
       clearInterval(expressionTimer);
       expressionTimer = null;
@@ -356,10 +454,6 @@ export function useLive2D(options: UseLive2DOptions) {
     if (expressionResetTimer) {
       clearTimeout(expressionResetTimer);
       expressionResetTimer = null;
-    }
-    if (animFrameId !== null) {
-      cancelAnimationFrame(animFrameId);
-      animFrameId = null;
     }
     cleanups.forEach(fn => fn());
     cleanups.length = 0;
@@ -383,7 +477,7 @@ export function useLive2D(options: UseLive2DOptions) {
         // 若 PIXI app 已存在，检查其 canvas 是否仍属于当前容器
         // v-if 切换会销毁旧 DOM、创建新 canvas，此时需要销毁旧实例再重建
         if (pixiApp.value) {
-          const view = pixiApp.value.view as HTMLCanvasElement;
+          const { view } = pixiApp.value;
           if (el.contains(view)) return; // 同一 canvas，无需重建
           destroy(); // canvas 已被替换，销毁旧实例
         }

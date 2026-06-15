@@ -7,7 +7,7 @@
 
 <script setup lang="ts">
 import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, type Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useThemeStore } from '@/stores/theme';
@@ -22,7 +22,7 @@ const toggleTheme = (): void => {
 };
 
 // 获取当前主题图标
-const getThemeIcon = (): any => {
+const getThemeIcon = (): Component => {
   switch (themeMode.value) {
     case 'light':
       return SunIcon;

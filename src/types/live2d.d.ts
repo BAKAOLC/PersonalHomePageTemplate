@@ -59,8 +59,8 @@ export interface Live2DEngineConfig {
  * 9 点锚点枚举：控制挂件停靠在视口的哪个角/边/中心。
  * 格式为 "垂直-水平"，垂直取 top / middle / bottom，水平取 left / center / right。
  */
-export type Live2DAnchor =
-  | 'top-left'    | 'top-center'    | 'top-right'
+export type Live2DAnchor
+  = | 'top-left' | 'top-center' | 'top-right'
   | 'middle-left' | 'middle-center' | 'middle-right'
   | 'bottom-left' | 'bottom-center' | 'bottom-right';
 

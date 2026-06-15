@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
+import { getLocalStorageItem, setLocalStorageItem } from '@/utils/browser';
+
 const STORAGE_KEY = 'live2d-widget-visible';
 
 export const useLive2DStore = defineStore('live2d', () => {
@@ -9,7 +11,7 @@ export const useLive2DStore = defineStore('live2d', () => {
    * true = 显示, false = 用户主动关闭过
    */
   const isWidgetVisible = ref<boolean>(
-    localStorage.getItem(STORAGE_KEY) !== 'false',
+    getLocalStorageItem(STORAGE_KEY) !== 'false',
   );
 
   /** 模型是否已成功初始化（用于显示加载状态） */
@@ -21,13 +23,13 @@ export const useLive2DStore = defineStore('live2d', () => {
   /** 显示挂件，并持久化 */
   const showWidget = (): void => {
     isWidgetVisible.value = true;
-    localStorage.setItem(STORAGE_KEY, 'true');
+    setLocalStorageItem(STORAGE_KEY, 'true');
   };
 
   /** 隐藏挂件，并持久化（用户主动关闭） */
   const hideWidget = (): void => {
     isWidgetVisible.value = false;
-    localStorage.setItem(STORAGE_KEY, 'false');
+    setLocalStorageItem(STORAGE_KEY, 'false');
   };
 
   /** 模型加载完成回调 */

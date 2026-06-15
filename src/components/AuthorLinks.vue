@@ -38,6 +38,7 @@ const props = defineProps<{
 
 const { t: $t } = useI18n();
 const languageStore = useLanguageStore();
+const sitesConfig = siteNames as SitesConfig;
 
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
@@ -134,11 +135,8 @@ const getLinkName = (link: AuthorLink): string => {
     const url = new URL(link.url);
     const hostname = url.hostname.toLowerCase();
 
-    // 使用配置文件中的网站名称映射
-    const siteConfig = siteNames as SitesConfig;
-
     // 智能匹配域名，支持子域名和多种变体
-    for (const [configDomain, siteInfo] of Object.entries(siteConfig)) {
+    for (const [configDomain, siteInfo] of Object.entries(sitesConfig)) {
       if (isMatchingDomain(hostname, configDomain)) {
         // 过滤掉 undefined 值和特殊属性，创建有效的 I18nText 对象
         const validSiteInfo = Object.fromEntries(
@@ -167,11 +165,8 @@ const getFaviconUrl = (link: AuthorLink): string | undefined => {
     const url = new URL(link.url);
     const hostname = url.hostname.toLowerCase();
 
-    // 使用配置文件中的网站图标映射
-    const siteConfig = siteNames as SitesConfig;
-
     // 智能匹配域名，支持子域名和多种变体
-    for (const [configDomain, siteInfo] of Object.entries(siteConfig)) {
+    for (const [configDomain, siteInfo] of Object.entries(sitesConfig)) {
       if (isMatchingDomain(hostname, configDomain)) {
         if (siteInfo.iconUrl) {
           return siteInfo.iconUrl;

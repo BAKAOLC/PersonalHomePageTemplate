@@ -3,7 +3,19 @@ import { createRouter, createWebHashHistory, type NavigationGuardNext, type Rout
 import { siteConfig } from '@/config/site';
 import { titleManager } from '@/services/titleManager';
 import { useGalleryStore } from '@/stores/gallery';
+import { scrollWindowToTop } from '@/utils/browser';
 import { parseParam } from '@/utils/idHashMap';
+
+const featureRouteGuards: Record<string, () => boolean> = {
+  gallery: () => siteConfig.features.gallery,
+  'image-viewer': () => siteConfig.features.gallery,
+  'image-viewer-child': () => siteConfig.features.gallery,
+  'external-image-viewer': () => siteConfig.features.gallery,
+  articles: () => siteConfig.features.articles,
+  'article-detail': () => siteConfig.features.articles,
+  links: () => siteConfig.features.links,
+  'character-profiles': () => siteConfig.features.characterProfiles,
+};
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -111,32 +123,9 @@ const router = createRouter({
 // 路由前置守卫：处理图像组重定向和功能禁用重定向
 router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
   // 检查功能是否被禁用，如果禁用则自动重定向到首页
-  if (to.name === 'gallery') {
-    if (!siteConfig.features.gallery) {
-      console.log('Gallery feature is disabled, redirecting to home');
-      return next({ name: 'home', replace: true });
-    }
-  }
-
-  if (to.name === 'articles') {
-    if (!siteConfig.features.articles) {
-      console.log('Articles feature is disabled, redirecting to home');
-      return next({ name: 'home', replace: true });
-    }
-  }
-
-  if (to.name === 'links') {
-    if (!siteConfig.features.links) {
-      console.log('Links feature is disabled, redirecting to home');
-      return next({ name: 'home', replace: true });
-    }
-  }
-
-  if (to.name === 'character-profiles') {
-    if (!siteConfig.features.characterProfiles) {
-      console.log('Character profiles feature is disabled, redirecting to home');
-      return next({ name: 'home', replace: true });
-    }
+  const featureGuard = typeof to.name === 'string' ? featureRouteGuards[to.name] : undefined;
+  if (featureGuard && !featureGuard()) {
+    return next({ name: 'home', replace: true });
   }
 
   // 检查是否访问单个图像路由且imageId是图像组
@@ -186,7 +175,7 @@ titleManager.setRouter(router);
 router.afterEach((to: RouteLocationNormalized) => {
   // 确保页面滚动到顶部（除非有hash）
   if (!to.hash) {
-    window.scrollTo(0, 0);
+    scrollWindowToTop();
   }
 
   // 更新页面标题

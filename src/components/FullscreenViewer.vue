@@ -419,7 +419,7 @@
 <script setup lang="ts">
 
 import { ChevronLeftIcon, ChevronRightIcon, InfoIcon, LayersIcon, MessageCircleIcon, RotateCcwIcon, XIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-vue-next';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type ComponentPublicInstance } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import AuthorLinks from './AuthorLinks.vue';
@@ -428,15 +428,23 @@ import ProgressiveImage from './ProgressiveImage.vue';
 
 import thumbnailMap from '@/assets/thumbnail-map.json';
 import { useEventManager } from '@/composables/useEventManager';
-import { useMobileDetection } from '@/composables/useScreenManager';
+import { useMobileDetection, type ScreenInfo } from '@/composables/useScreenManager';
 import { useTags } from '@/composables/useTags';
 import { useTimers } from '@/composables/useTimers';
 import { siteConfig } from '@/config/site';
 import { getImageCache, LoadPriority } from '@/services/imageCache';
 import { useGalleryStore } from '@/stores/gallery';
 import { useLanguageStore } from '@/stores/language';
-import type { DisplayImage, ExternalImageInfo, GroupImage, I18nText, ViewerUIConfig } from '@/types';
+import type { DisplayImage, ExternalImageInfo, GroupImage, ImageBase, I18nText, ViewerUIConfig } from '@/types';
 import { AnimationDurations } from '@/utils/animations';
+import { lockBodyScroll, unlockBodyScroll } from '@/utils/bodyScrollLock';
+import {
+  getBrowserDocument,
+  getBrowserWindow,
+  getLocalStorageItem,
+  getResizeObserverConstructor,
+  setLocalStorageItem,
+} from '@/utils/browser';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
 
@@ -459,11 +467,20 @@ const galleryStore = useGalleryStore();
 const languageStore = useLanguageStore();
 const { setTimeout, clearTimeout } = useTimers();
 const eventManager = useEventManager();
-const { addEventListener, removeEventListener } = useEventManager();
+const { addEventListener, removeEventListener } = eventManager;
 const { isMobile, onScreenChange } = useMobileDetection();
 const { getSortedTags, getTagColor, getTagName } = useTags();
+const mobileInfoOverlayScrollLockId = 'fullscreen-mobile-info-overlay';
+const commentsModalScrollLockId = 'fullscreen-comments-modal';
+const mobileGroupSelectorScrollLockId = 'fullscreen-mobile-group-selector';
 
 const currentLanguage = computed(() => languageStore.currentLanguage);
+
+interface ViewerScreenInfo extends ScreenInfo {
+  wasMobile?: boolean;
+}
+
+type ProgressiveImageRef = ComponentPublicInstance | HTMLElement;
 
 // 合并默认配置和传入的配置
 const effectiveViewerConfig = computed((): ViewerUIConfig => {
@@ -503,7 +520,7 @@ const mobileGroupImagesGrid = ref<HTMLElement | null>(null);
 
 // 图像容器和图像元素引用
 const imageContainer = ref<HTMLElement>();
-const imageElement = ref<any>(); // Vue组件实例
+const imageElement = ref<ProgressiveImageRef | null>(null);
 const minimapImage = ref<HTMLElement>();
 
 // 添加过渡动画状态
@@ -852,7 +869,6 @@ const scrollToActiveItemInContainer = (container: HTMLElement, activeSelector: s
   // 查找当前选中的项
   const activeItem = container.querySelector(activeSelector) as HTMLElement;
   if (!activeItem) {
-    console.log('[FullscreenViewer] Active item not found:', activeSelector);
     return;
   }
 
@@ -870,7 +886,7 @@ const navigateToImage = (imageId: string, childImageId?: string): void => {
   eventManager.dispatchEvent('viewerNavigate', { imageId, childImageId });
 
   // 强制重置用户滚动状态，确保自动定位生效
-  isUserScrolling.value = false;
+  setUserScrolling(false);
 
   // 更新缩略图位置
   nextTick(() => {
@@ -959,6 +975,28 @@ const resetImageTransform = (): void => {
   updateMinimapVisibility();
 };
 
+const getProgressiveImageRoot = (): Element | null => {
+  const imageRef = imageElement.value;
+  if (!imageRef) {
+    return null;
+  }
+
+  if (imageRef instanceof HTMLElement) {
+    return imageRef;
+  }
+
+  return imageRef.$el instanceof Element ? imageRef.$el : null;
+};
+
+const getRenderedImageElement = (): HTMLImageElement | null => {
+  const root = getProgressiveImageRoot();
+  if (!root) {
+    return null;
+  }
+
+  return root instanceof HTMLImageElement ? root : root.querySelector('img');
+};
+
 // 获取图像的实际显示信息（考虑object-fit: contain）
 const getImageDisplayInfo = (): {
   naturalWidth: number;
@@ -974,13 +1012,11 @@ const getImageDisplayInfo = (): {
   offsetX: number;
   offsetY: number;
 } | null => {
-  if (!imageElement.value || !imageContainer.value) {
+  if (!imageContainer.value) {
     return null;
   }
 
-  // 从Vue组件实例中获取实际的DOM元素
-  const imageEl = imageElement.value.$el ?? imageElement.value;
-  const image = imageEl.querySelector ? imageEl.querySelector('img') as HTMLImageElement : imageEl as HTMLImageElement;
+  const image = getRenderedImageElement();
   if (!image) {
     return null;
   }
@@ -1261,9 +1297,9 @@ const toggleMobileInfoOverlay = (): void => {
 
   // 防止背景滚动
   if (showMobileInfoOverlay.value) {
-    document.body.style.overflow = 'hidden';
+    lockBodyScroll(mobileInfoOverlayScrollLockId);
   } else {
-    document.body.style.overflow = '';
+    unlockBodyScroll(mobileInfoOverlayScrollLockId);
   }
 
   // 动画结束后重置状态
@@ -1281,7 +1317,7 @@ const closeMobileInfoOverlay = (): void => {
   showMobileInfoOverlay.value = false;
 
   // 恢复背景滚动
-  document.body.style.overflow = '';
+  unlockBodyScroll(mobileInfoOverlayScrollLockId);
 
   setTimeout(() => {
     mobileInfoOverlayAnimating.value = false;
@@ -1299,9 +1335,9 @@ const toggleCommentsModal = (): void => {
 
   // 防止背景滚动
   if (showCommentsModal.value) {
-    document.body.style.overflow = 'hidden';
+    lockBodyScroll(commentsModalScrollLockId);
   } else {
-    document.body.style.overflow = '';
+    unlockBodyScroll(commentsModalScrollLockId);
   }
 
   // 动画结束后重置状态
@@ -1318,7 +1354,7 @@ const closeCommentsModal = (): void => {
   showCommentsModal.value = false;
 
   // 恢复背景滚动
-  document.body.style.overflow = '';
+  unlockBodyScroll(commentsModalScrollLockId);
 
   setTimeout(() => {
     commentsModalAnimating.value = false;
@@ -1330,20 +1366,20 @@ const toggleMobileGroupSelector = (): void => {
   isMobileGroupSelectorOpen.value = !isMobileGroupSelectorOpen.value;
   // 阻止背景滚动
   if (isMobileGroupSelectorOpen.value) {
-    document.body.style.overflow = 'hidden';
+    lockBodyScroll(mobileGroupSelectorScrollLockId);
     // 打开时滚动到当前选中的项
     nextTick(() => {
       scrollToActiveGroupImage();
     });
   } else {
-    document.body.style.overflow = '';
+    unlockBodyScroll(mobileGroupSelectorScrollLockId);
   }
 };
 
 const closeMobileGroupSelector = (): void => {
   isMobileGroupSelectorOpen.value = false;
   // 恢复背景滚动
-  document.body.style.overflow = '';
+  unlockBodyScroll(mobileGroupSelectorScrollLockId);
 };
 
 const handleMobileGroupImageClick = (imageId: string): void => {
@@ -1365,27 +1401,28 @@ const maxGroupSelectorWidth = 400; // 最大宽度
 
 // 从本地存储加载保存的子图像列表宽度
 const loadGroupSelectorWidth = (): number | null => {
-  try {
-    const saved = localStorage.getItem('groupSelectorWidth');
-    if (saved) {
-      const width = parseInt(saved, 10);
-      if (width >= minGroupSelectorWidth && width <= maxGroupSelectorWidth) {
-        return width;
-      }
+  const saved = getLocalStorageItem('groupSelectorWidth');
+  if (saved) {
+    const width = parseInt(saved, 10);
+    if (width >= minGroupSelectorWidth && width <= maxGroupSelectorWidth) {
+      return width;
     }
-  } catch (error) {
-    console.warn('Failed to load group selector width from localStorage:', error);
   }
+
   return null;
 };
 
 // 保存子图像列表宽度到本地存储
 const saveGroupSelectorWidth = (width: number): void => {
-  try {
-    localStorage.setItem('groupSelectorWidth', width.toString());
-  } catch (error) {
-    console.warn('Failed to save group selector width to localStorage:', error);
-  }
+  setLocalStorageItem('groupSelectorWidth', width.toString());
+};
+
+const setGroupResizeBodyStyle = (isResizing: boolean): void => {
+  const body = getBrowserDocument()?.body;
+  if (!body) return;
+
+  body.style.cursor = isResizing ? 'ew-resize' : '';
+  body.style.userSelect = isResizing ? 'none' : '';
 };
 
 // 开始拖拽调整子图像列表宽度
@@ -1403,20 +1440,16 @@ const startResizeGroupSelector = (event: MouseEvent | TouchEvent): void => {
   groupResizeStartWidth.value = currentWidth;
 
   // 添加全局事件监听器
-  const handleMouseMove = (e: MouseEvent | TouchEvent): void => handleResizeGroupSelector(e);
-  const handleMouseUp = (e: MouseEvent | TouchEvent): void => stopResizeGroupSelector(e);
-
   if ('touches' in event) {
-    addEventListener('touchmove', handleMouseMove, { passive: false });
-    addEventListener('touchend', handleMouseUp);
+    addEventListener('touchmove', handleResizeGroupSelector, { passive: false });
+    addEventListener('touchend', stopResizeGroupSelector);
   } else {
-    addEventListener('mousemove', handleMouseMove);
-    addEventListener('mouseup', handleMouseUp);
+    addEventListener('mousemove', handleResizeGroupSelector);
+    addEventListener('mouseup', stopResizeGroupSelector);
   }
 
   // 添加拖拽样式
-  document.body.style.cursor = 'ew-resize';
-  document.body.style.userSelect = 'none';
+  setGroupResizeBodyStyle(true);
 };
 
 // 拖拽调整子图像列表宽度过程
@@ -1455,8 +1488,7 @@ const stopResizeGroupSelector = (event: MouseEvent | TouchEvent): void => {
   removeEventListener('touchend', stopResizeGroupSelector);
 
   // 恢复样式
-  document.body.style.cursor = '';
-  document.body.style.userSelect = '';
+  setGroupResizeBodyStyle(false);
 };
 
 // 动态获取缩略图的实际尺寸（基于DOM计算而非硬编码）
@@ -1486,8 +1518,8 @@ const getThumbnailDimensions = (): { width: number; gap: number } => {
     gap = secondRect.left - firstRect.right;
   } else if (thumbnailsElement) {
     // 如果只有一个缩略图，尝试从CSS计算gap值
-    const computedStyle = window.getComputedStyle(thumbnailsElement);
-    const gapValue = computedStyle.gap ?? computedStyle.columnGap;
+    const computedStyle = getBrowserWindow()?.getComputedStyle(thumbnailsElement);
+    const gapValue = computedStyle?.gap ?? computedStyle?.columnGap;
     if (gapValue && gapValue !== 'normal') {
       const gapPx = parseFloat(gapValue);
       if (!isNaN(gapPx)) {
@@ -1517,7 +1549,7 @@ const getThumbnailCenterPosition = (index: number): number => {
 const getThumbnailContainerWidth = (): number => {
   if (!thumbnailsContainer.value) {
     // 后备计算方式
-    return window.innerWidth - 136;
+    return (getBrowserWindow()?.innerWidth ?? 136) - 136;
   }
 
   // 基于实际DOM元素计算可用宽度
@@ -1566,6 +1598,47 @@ const isDragging = ref(false);
 const dragStartX = ref(0);
 const dragStartOffset = ref(0);
 const isUserScrolling = ref(false); // 标记用户是否在手动滚动
+let thumbnailDragResetTimer: number | null = null;
+let userScrollingResetTimer: number | null = null;
+
+const clearThumbnailDragResetTimer = (): void => {
+  if (thumbnailDragResetTimer === null) {
+    return;
+  }
+
+  clearTimeout(thumbnailDragResetTimer);
+  thumbnailDragResetTimer = null;
+};
+
+const clearUserScrollingResetTimer = (): void => {
+  if (userScrollingResetTimer === null) {
+    return;
+  }
+
+  clearTimeout(userScrollingResetTimer);
+  userScrollingResetTimer = null;
+};
+
+const resetThumbnailDragAfter = (delay: number): void => {
+  clearThumbnailDragResetTimer();
+  thumbnailDragResetTimer = setTimeout(() => {
+    isDragging.value = false;
+    thumbnailDragResetTimer = null;
+  }, delay);
+};
+
+const setUserScrolling = (scrolling: boolean): void => {
+  clearUserScrollingResetTimer();
+  isUserScrolling.value = scrolling;
+};
+
+const resetUserScrollingAfter = (delay: number): void => {
+  clearUserScrollingResetTimer();
+  userScrollingResetTimer = setTimeout(() => {
+    isUserScrolling.value = false;
+    userScrollingResetTimer = null;
+  }, delay);
+};
 
 // 手动设置缩略图偏移量（用户拖拽时）
 const setManualThumbnailOffset = (offset: number): void => {
@@ -1592,7 +1665,7 @@ const setManualThumbnailOffset = (offset: number): void => {
 // 滚轮事件处理
 const handleThumbnailWheel = (event: WheelEvent): void => {
   event.preventDefault();
-  isUserScrolling.value = true;
+  setUserScrolling(true);
 
   const scrollSpeed = 40; // 滚动速度
   let delta = 0;
@@ -1605,9 +1678,7 @@ const handleThumbnailWheel = (event: WheelEvent): void => {
   setManualThumbnailOffset(thumbnailsOffset.value + delta);
 
   // 1秒后重置用户滚动状态
-  setTimeout(() => {
-    isUserScrolling.value = false;
-  }, 1000);
+  resetUserScrollingAfter(1000);
 };
 
 // 鼠标拖拽处理
@@ -1615,7 +1686,8 @@ const handleThumbnailMouseDown = (event: MouseEvent): void => {
   if (event.button !== 0) return; // 只处理左键
 
   event.preventDefault();
-  isUserScrolling.value = true;
+  setUserScrolling(true);
+  clearThumbnailDragResetTimer();
   dragStartX.value = event.clientX;
   dragStartOffset.value = thumbnailsOffset.value;
 
@@ -1636,13 +1708,8 @@ const handleThumbnailMouseDown = (event: MouseEvent): void => {
 
   const handleMouseUp = (): void => {
     // 延迟重置拖拽状态，确保点击事件处理完毕
-    setTimeout(() => {
-      isDragging.value = false;
-    }, 50);
-
-    setTimeout(() => {
-      isUserScrolling.value = false;
-    }, 500);
+    resetThumbnailDragAfter(50);
+    resetUserScrollingAfter(500);
 
     removeEventListener('mousemove', handleMouseMove);
     removeEventListener('mouseup', handleMouseUp);
@@ -1656,8 +1723,12 @@ const handleThumbnailMouseDown = (event: MouseEvent): void => {
 const handleThumbnailTouchStart = (event: TouchEvent): void => {
   if (event.touches.length !== 1) return;
 
+  const touchTarget = thumbnailsContainer.value;
+  if (!touchTarget) return;
+
   const touch = event.touches[0];
-  isUserScrolling.value = true;
+  setUserScrolling(true);
+  clearThumbnailDragResetTimer();
   dragStartX.value = touch.clientX;
   dragStartOffset.value = thumbnailsOffset.value;
 
@@ -1683,20 +1754,15 @@ const handleThumbnailTouchStart = (event: TouchEvent): void => {
 
   const handleTouchEnd = (): void => {
     // 延迟重置拖拽状态，确保点击事件处理完毕
-    setTimeout(() => {
-      isDragging.value = false;
-    }, 50);
+    resetThumbnailDragAfter(50);
+    resetUserScrollingAfter(500);
 
-    setTimeout(() => {
-      isUserScrolling.value = false;
-    }, 500);
-
-    thumbnailsContainer.value?.removeEventListener('touchmove', handleTouchMove as any);
-    thumbnailsContainer.value?.removeEventListener('touchend', handleTouchEnd);
+    eventManager.removeEventListener('touchmove', handleTouchMove, undefined, touchTarget);
+    eventManager.removeEventListener('touchend', handleTouchEnd, undefined, touchTarget);
   };
 
-  thumbnailsContainer.value?.addEventListener('touchmove', handleTouchMove as any, { passive: false });
-  thumbnailsContainer.value?.addEventListener('touchend', handleTouchEnd);
+  eventManager.addEventListener('touchmove', handleTouchMove, { passive: false }, touchTarget);
+  eventManager.addEventListener('touchend', handleTouchEnd, undefined, touchTarget);
 };
 
 // 拖拽相关状态
@@ -2518,7 +2584,7 @@ const handleImageContainerResize = (): void => {
 };
 
 // 处理屏幕变化（移动端状态切换等）
-const handleScreenChange = (info: any): void => {
+const handleScreenChange = (info: ViewerScreenInfo): void => {
   const wasMobile = info.wasMobile ?? false;
   const currentIsMobile = info.isMobile;
   // 标记正在进行响应式切换
@@ -2530,6 +2596,8 @@ const handleScreenChange = (info: any): void => {
     showMobileInfoOverlay.value = false;
     mobileInfoOverlayAnimating.value = false;
     isMobileGroupSelectorOpen.value = false;
+    unlockBodyScroll(mobileInfoOverlayScrollLockId);
+    unlockBodyScroll(mobileGroupSelectorScrollLockId);
 
     // 根据用户对固定信息栏的偏好设置桌面端信息面板状态
     showInfoPanel.value = userInfoPanelPreference.value;
@@ -2539,6 +2607,7 @@ const handleScreenChange = (info: any): void => {
     showInfoPanel.value = false;
     // 移动端信息浮窗保持关闭状态（临时弹窗不持久化）
     showMobileInfoOverlay.value = false;
+    unlockBodyScroll(mobileInfoOverlayScrollLockId);
   }
 
   // 清除之前的防抖定时器
@@ -2613,8 +2682,9 @@ onMounted(() => {
 
   // 设置图像容器的 ResizeObserver
   nextTick(() => {
-    if (imageContainer.value && 'ResizeObserver' in window) {
-      imageContainerResizeObserver = new ResizeObserver((entries) => {
+    const ResizeObserverConstructor = getResizeObserverConstructor();
+    if (imageContainer.value && ResizeObserverConstructor) {
+      imageContainerResizeObserver = new ResizeObserverConstructor((entries) => {
         // 只有当容器尺寸确实发生变化时才处理
         for (const entry of entries) {
           if (entry.target === imageContainer.value) {
@@ -2657,6 +2727,9 @@ onBeforeUnmount(() => {
     containerResizeDebounceTimer = null;
   }
 
+  clearThumbnailDragResetTimer();
+  clearUserScrollingResetTimer();
+
   // 清理 ResizeObserver
   if (imageContainerResizeObserver) {
     imageContainerResizeObserver.disconnect();
@@ -2664,9 +2737,9 @@ onBeforeUnmount(() => {
   }
 
   // 清理移动端覆盖层状态
-  if (showMobileInfoOverlay.value) {
-    document.body.style.overflow = '';
-  }
+  unlockBodyScroll(mobileInfoOverlayScrollLockId);
+  unlockBodyScroll(commentsModalScrollLockId);
+  unlockBodyScroll(mobileGroupSelectorScrollLockId);
 
   // 清理子图像列表拖拽调整宽度的事件监听器
   if (isDraggingGroupResize.value) {
@@ -2674,8 +2747,7 @@ onBeforeUnmount(() => {
     removeEventListener('mouseup', stopResizeGroupSelector);
     removeEventListener('touchmove', handleResizeGroupSelector);
     removeEventListener('touchend', stopResizeGroupSelector);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
+    setGroupResizeBodyStyle(false);
   }
 });
 
@@ -2694,7 +2766,7 @@ const getCommentsButtonTitle = (): string => {
 };
 
 // 获取子图像在列表中的显示名称
-const getChildImageDisplayName = (image: any): string => {
+const getChildImageDisplayName = (image: ImageBase): string => {
   // 优先使用 listName，如果没有则使用 name
   if (image.listName) {
     return t(image.listName, currentLanguage.value);
@@ -2703,7 +2775,7 @@ const getChildImageDisplayName = (image: any): string => {
 };
 
 // 获取子图像的标签（优先使用子图像自己的标签，没有时才使用父图像的）
-const getChildImageTags = (image: any): string[] => {
+const getChildImageTags = (image: ImageBase): string[] => {
   // 如果子图像定义了自己的标签，直接使用子图像的标签
   if (image.tags && image.tags.length > 0) {
     return image.tags;

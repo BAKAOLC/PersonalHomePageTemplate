@@ -2,6 +2,7 @@
 
 import { getTimerService } from '@/services/timerService';
 import type { CacheStats } from '@/types';
+import { getURLConstructor, getXMLHttpRequestConstructor } from '@/utils/browser';
 
 // LoadPriority 枚举
 enum LoadPriority {
@@ -22,7 +23,10 @@ interface CachedImage {
   isThumbnail: boolean; // 是否是缩略图
   xhr?: XMLHttpRequest;
   loadPromise?: Promise<string>;
+  progressListeners?: Set<ProgressCallback>;
 }
+
+type ProgressCallback = (progress: number) => void;
 
 class ImageCacheService {
   private cache = new Map<string, CachedImage>();
@@ -96,6 +100,129 @@ class ImageCacheService {
     return null;
   }
 
+  private updateCachedPriority(cached: CachedImage, url: string, priority: LoadPriority, isThumbnail: boolean): void {
+    cached.isThumbnail = isThumbnail;
+
+    const calculatedPriority = this.calculatePriority(url, isThumbnail);
+    cached.priority = Math.max(cached.priority, priority, calculatedPriority);
+  }
+
+  private addProgressListener(cached: CachedImage, onProgress?: ProgressCallback): void {
+    if (!onProgress) return;
+
+    cached.progressListeners ??= new Set();
+    cached.progressListeners.add(onProgress);
+
+    if (cached.loadingProgress > 0) {
+      onProgress(cached.loadingProgress);
+    }
+  }
+
+  private updateProgress(cached: CachedImage, progress: number): void {
+    cached.loadingProgress = progress;
+    cached.progressListeners?.forEach(listener => {
+      listener(progress);
+    });
+  }
+
+  private detachRequest(cached: CachedImage, xhr: XMLHttpRequest): void {
+    xhr.onload = null;
+    xhr.onerror = null;
+    xhr.onprogress = null;
+    xhr.onabort = null;
+
+    if (cached.xhr === xhr) {
+      cached.xhr = undefined;
+      cached.loadPromise = undefined;
+      cached.progressListeners = undefined;
+    }
+  }
+
+  private createCachedImage(url: string, priority: LoadPriority, isThumbnail: boolean): CachedImage {
+    const cached: CachedImage = {
+      url,
+      objectUrl: '',
+      loaded: false,
+      loading: false,
+      error: false,
+      loadingProgress: 0,
+      priority,
+      isThumbnail,
+    };
+
+    this.cache.set(url, cached);
+    this.updateAccessOrder(url);
+    return cached;
+  }
+
+  private createImageRequest(cached: CachedImage, url: string): Promise<string> {
+    const XMLHttpRequestConstructor = getXMLHttpRequestConstructor();
+    const URLConstructor = getURLConstructor();
+
+    if (!XMLHttpRequestConstructor || !URLConstructor) {
+      cached.loading = false;
+      cached.error = true;
+      return Promise.reject(new Error('Image loading requires a browser environment'));
+    }
+
+    return new Promise<string>((resolve, reject) => {
+      const xhr = new XMLHttpRequestConstructor();
+      cached.xhr = xhr;
+
+      xhr.open('GET', url, true);
+      xhr.responseType = 'blob';
+
+      xhr.onprogress = (event: ProgressEvent) => {
+        if (event.lengthComputable) {
+          this.updateProgress(cached, (event.loaded / event.total) * 100);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          this.updateProgress(cached, 100);
+
+          const objectUrl = URLConstructor.createObjectURL(xhr.response);
+          cached.objectUrl = objectUrl;
+          cached.loaded = true;
+          cached.loading = false;
+          cached.error = false;
+
+          // 如果是高优先级图片加载完成，恢复被暂停的低优先级请求
+          if (cached.priority >= LoadPriority.CURRENT_IMAGE) {
+            getTimerService().setTimeout(() => {
+              this.resumePausedRequests();
+            }, 100); // 稍微延迟以确保当前图片开始显示
+          }
+
+          this.detachRequest(cached, xhr);
+          resolve(objectUrl);
+          return;
+        }
+
+        cached.error = true;
+        cached.loading = false;
+        this.detachRequest(cached, xhr);
+        reject(new Error(`HTTP ${xhr.status}`));
+      };
+
+      xhr.onerror = () => {
+        cached.error = true;
+        cached.loading = false;
+        this.detachRequest(cached, xhr);
+        reject(new Error('Network error'));
+      };
+
+      xhr.onabort = () => {
+        cached.loading = false;
+        this.detachRequest(cached, xhr);
+        reject(new Error('Request aborted'));
+      };
+
+      xhr.send();
+    });
+  }
+
   // 开始加载图片
   loadImage(
     url: string,
@@ -109,36 +236,19 @@ class ImageCacheService {
     let cached = this.getCachedImage(url);
 
     if (cached) {
-      // 更新缩略图标记
-      cached.isThumbnail = isThumbnail;
-
-      // 重新计算优先级
-      const newPriority = this.calculatePriority(url, isThumbnail);
-      if (newPriority > cached.priority) {
-        cached.priority = newPriority;
-      }
+      this.updateCachedPriority(cached, url, priority, isThumbnail);
 
       // 如果已经加载完成，直接返回
       if (cached.loaded && !cached.error) {
+        if (onProgress) {
+          onProgress(100);
+        }
         return Promise.resolve(cached.objectUrl);
       }
 
       // 如果正在加载，返回现有的Promise
       if (cached.loading && cached.loadPromise) {
-        // 如果有新的进度回调，添加到现有的xhr中
-        if (onProgress && cached.xhr) {
-          const originalOnProgress = cached.xhr.onprogress;
-          cached.xhr.onprogress = (event) => {
-            if (originalOnProgress && cached?.xhr) {
-              originalOnProgress.call(cached.xhr, event);
-            }
-            if (event.lengthComputable && cached) {
-              const progress = (event.loaded / event.total) * 100;
-              cached.loadingProgress = progress;
-              onProgress(progress);
-            }
-          };
-        }
+        this.addProgressListener(cached, onProgress);
         return cached.loadPromise;
       }
 
@@ -155,20 +265,7 @@ class ImageCacheService {
     }
 
     // 创建新的缓存项
-    if (!cached) {
-      cached = {
-        url,
-        objectUrl: '',
-        loaded: false,
-        loading: true,
-        error: false,
-        loadingProgress: 0,
-        priority,
-        isThumbnail,
-      };
-      this.cache.set(url, cached);
-      this.updateAccessOrder(url);
-    }
+    cached ??= this.createCachedImage(url, priority, isThumbnail);
 
     // 开始加载
     cached.loading = true;
@@ -176,68 +273,14 @@ class ImageCacheService {
     cached.loadingProgress = 0;
     cached.priority = priority;
     cached.isThumbnail = isThumbnail;
+    this.addProgressListener(cached, onProgress);
 
-    const loadPromise = new Promise<string>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      cached.xhr = xhr;
-
-      xhr.open('GET', url, true);
-      xhr.responseType = 'blob';
-
-      xhr.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = (event.loaded / event.total) * 100;
-          cached.loadingProgress = progress;
-          if (onProgress) {
-            onProgress(progress);
-          }
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          cached.loadingProgress = 100;
-          const blob = xhr.response;
-          const objectUrl = URL.createObjectURL(blob);
-          cached.objectUrl = objectUrl;
-          cached.loaded = true;
-          cached.loading = false;
-
-          // 如果是高优先级图片加载完成，恢复被暂停的低优先级请求
-          if (cached.priority >= LoadPriority.CURRENT_IMAGE) {
-            getTimerService().setTimeout(() => {
-              this.resumePausedRequests();
-            }, 100); // 稍微延迟以确保当前图片开始显示
-          }
-
-          resolve(objectUrl);
-        } else {
-          cached.error = true;
-          cached.loading = false;
-          reject(new Error(`HTTP ${xhr.status}`));
-        }
-      };
-
-      xhr.onerror = () => {
-        cached.error = true;
-        cached.loading = false;
-        reject(new Error('Network error'));
-      };
-
-      xhr.onabort = () => {
-        cached.loading = false;
-        reject(new Error('Request aborted'));
-      };
-
-      xhr.send();
-    });
-
-    cached.loadPromise = loadPromise;
+    cached.loadPromise = this.createImageRequest(cached, url);
 
     // 清理缓存如果超过限制
     this.cleanupCache();
 
-    return loadPromise;
+    return cached.loadPromise;
   }
 
   // 取消加载
@@ -282,19 +325,17 @@ class ImageCacheService {
     const cached = this.cache.get(url);
     if (cached) {
       if (cached.xhr) {
+        const { xhr } = cached;
         if (cached.loading) {
-          cached.xhr.abort();
+          xhr.abort();
         }
-        // 完全清理XMLHttpRequest对象的所有回调引用
-        cached.xhr.onload = null;
-        cached.xhr.onerror = null;
-        cached.xhr.onprogress = null;
-        cached.xhr.onabort = null;
-        cached.xhr = undefined;
+        this.detachRequest(cached, xhr);
       }
       if (cached.objectUrl) {
-        URL.revokeObjectURL(cached.objectUrl);
+        getURLConstructor()?.revokeObjectURL(cached.objectUrl);
       }
+      cached.loadPromise = undefined;
+      cached.progressListeners = undefined;
       this.cache.delete(url);
       const index = this.accessOrder.indexOf(url);
       if (index > -1) {

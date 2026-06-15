@@ -125,6 +125,7 @@ function articlesConfigPlugin() {
     if (!obj.date || typeof obj.date !== 'string') return false;
     if (obj.categories && !Array.isArray(obj.categories)) return false;
     if (obj.allowComments !== undefined && typeof obj.allowComments !== 'boolean') return false;
+    if (obj.hidden !== undefined && typeof obj.hidden !== 'boolean') return false;
     // markdownPath 可以是字符串（全语言通用）或对象（多语言）
     if (obj.markdownPath && typeof obj.markdownPath !== 'string' && typeof obj.markdownPath !== 'object') return false;
     return true;

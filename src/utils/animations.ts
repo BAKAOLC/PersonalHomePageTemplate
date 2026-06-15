@@ -2,7 +2,8 @@
  * 动画工具函数 - 从CSS读取动画时长避免硬编码魔数
  */
 
-import { useTimers } from '@/composables/useTimers';
+import { getTimerService } from '@/services/timerService';
+import { getBrowserDocument, getBrowserWindow } from '@/utils/browser';
 
 /**
  * 从CSS transition-duration属性获取动画时长（毫秒）
@@ -11,7 +12,11 @@ import { useTimers } from '@/composables/useTimers';
  * @returns 动画时长（毫秒）
  */
 export const getTransitionDuration = (element: HTMLElement, property?: string): number => {
-  const computedStyle = window.getComputedStyle(element);
+  const computedStyle = getBrowserWindow()?.getComputedStyle(element);
+  if (!computedStyle) {
+    return 0;
+  }
+
   const { transitionDuration } = computedStyle;
 
   if (!transitionDuration || transitionDuration === '0s') {
@@ -47,18 +52,24 @@ export const getTransitionDuration = (element: HTMLElement, property?: string): 
  * @returns 动画时长（毫秒）
  */
 export const getTransitionDurationByClass = (className: string, property?: string): number => {
+  const browserDocument = getBrowserDocument();
+  if (!browserDocument?.body) {
+    return 0;
+  }
+
   // 创建临时元素来读取CSS
-  const tempElement = document.createElement('div');
+  const tempElement = browserDocument.createElement('div');
   tempElement.className = className;
   tempElement.style.position = 'absolute';
   tempElement.style.visibility = 'hidden';
   tempElement.style.pointerEvents = 'none';
 
-  document.body.appendChild(tempElement);
-  const duration = getTransitionDuration(tempElement, property);
-  document.body.removeChild(tempElement);
-
-  return duration;
+  browserDocument.body.appendChild(tempElement);
+  try {
+    return getTransitionDuration(tempElement, property);
+  } finally {
+    browserDocument.body.removeChild(tempElement);
+  }
 };
 
 /**
@@ -70,11 +81,13 @@ const parseDuration = (duration: string): number => {
   const trimmed = duration.trim();
 
   if (trimmed.endsWith('ms')) {
-    return parseFloat(trimmed.slice(0, -2)) ?? 0;
+    const milliseconds = parseFloat(trimmed.slice(0, -2));
+    return Number.isFinite(milliseconds) ? milliseconds : 0;
   }
 
   if (trimmed.endsWith('s')) {
-    return (parseFloat(trimmed.slice(0, -1)) ?? 0) * 1000;
+    const seconds = parseFloat(trimmed.slice(0, -1));
+    return Number.isFinite(seconds) ? seconds * 1000 : 0;
   }
 
   return 0;
@@ -94,21 +107,27 @@ export const waitForTransition = (element: HTMLElement, property?: string): Prom
   }
 
   return new Promise<void>(resolve => {
+    const timerService = getTimerService();
+    let resolved = false;
+    let fallbackTimeout = 0;
+
+    const finish = (): void => {
+      if (resolved) return;
+
+      resolved = true;
+      element.removeEventListener('transitionend', handler);
+      timerService.clearTimeout(fallbackTimeout);
+      resolve();
+    };
+
     const handler = (event: TransitionEvent): void => {
       if (!property || event.propertyName === property) {
-        element.removeEventListener('transitionend', handler);
-        resolve();
+        finish();
       }
     };
 
     element.addEventListener('transitionend', handler);
-
-    // 后备超时，防止transitionend事件未触发
-    const { setTimeout } = useTimers();
-    setTimeout(() => {
-      element.removeEventListener('transitionend', handler);
-      resolve();
-    }, duration + 50);
+    fallbackTimeout = timerService.setTimeout(finish, duration + 50);
   });
 };
 

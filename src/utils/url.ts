@@ -2,6 +2,8 @@
  * URL处理工具函数
  */
 
+import { getCurrentOrigin } from '@/utils/browser';
+
 /**
  * 判断URL是否为外部链接（包含协议的完整URL）
  * @param url - 要检查的URL字符串
@@ -27,6 +29,10 @@ export const toAbsoluteUrl = (url: string, baseUrl?: string): string => {
     return url;
   }
 
-  const base = baseUrl ?? window.location.origin;
+  const base = baseUrl ?? getCurrentOrigin();
+  if (!base) {
+    return url;
+  }
+
   return `${base}${url}`;
 };

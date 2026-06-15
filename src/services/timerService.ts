@@ -1,5 +1,6 @@
-/* eslint-disable no-restricted-syntax */
 // 定时器管理服务 - 使用原生 window 监听器
+
+import { getBrowserWindow } from '@/utils/browser';
 
 interface TimerManager {
   setTimeout: (callback: () => void, delay: number) => number;
@@ -17,11 +18,17 @@ class TimerService implements TimerManager {
   private intervals = new Set<number>();
   private animationFrames = new Set<number>();
   private isDestroyed = false;
+  private readonly handleBeforeUnload = (): void => {
+    if (!this.isDestroyed) {
+      this.clearAll();
+    }
+  };
 
   constructor() {
     // 页面卸载时清理所有定时器
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', this.clearAll.bind(this));
+    const browserWindow = getBrowserWindow();
+    if (browserWindow) {
+      browserWindow.addEventListener('beforeunload', this.handleBeforeUnload);
     }
   }
 
@@ -32,10 +39,20 @@ class TimerService implements TimerManager {
     }
   }
 
+  private getWindow(): Window {
+    const browserWindow = getBrowserWindow();
+    if (!browserWindow) {
+      throw new Error('TimerService requires a browser window.');
+    }
+
+    return browserWindow;
+  }
+
   setTimeout(callback: () => void, delay: number): number {
     this.checkDestroyed();
 
-    const id = window.setTimeout(() => {
+    const browserWindow = this.getWindow();
+    const id = browserWindow.setTimeout(() => {
       this.timeouts.delete(id);
       callback();
     }, delay);
@@ -47,14 +64,14 @@ class TimerService implements TimerManager {
   clearTimeout(id: number): void {
     this.checkDestroyed();
 
-    window.clearTimeout(id);
+    this.getWindow().clearTimeout(id);
     this.timeouts.delete(id);
   }
 
   setInterval(callback: () => void, delay: number): number {
     this.checkDestroyed();
 
-    const id = window.setInterval(callback, delay);
+    const id = this.getWindow().setInterval(callback, delay);
     this.intervals.add(id);
     return id;
   }
@@ -62,14 +79,14 @@ class TimerService implements TimerManager {
   clearInterval(id: number): void {
     this.checkDestroyed();
 
-    window.clearInterval(id);
+    this.getWindow().clearInterval(id);
     this.intervals.delete(id);
   }
 
   requestAnimationFrame(callback: (time: number) => void): number {
     this.checkDestroyed();
 
-    const id = window.requestAnimationFrame((time: number) => {
+    const id = this.getWindow().requestAnimationFrame((time: number) => {
       this.animationFrames.delete(id);
       callback(time);
     });
@@ -81,26 +98,33 @@ class TimerService implements TimerManager {
   cancelAnimationFrame(id: number): void {
     this.checkDestroyed();
 
-    window.cancelAnimationFrame(id);
+    this.getWindow().cancelAnimationFrame(id);
     this.animationFrames.delete(id);
   }
 
   clearAll(): void {
     this.checkDestroyed();
+    const browserWindow = getBrowserWindow();
+    if (!browserWindow) {
+      this.timeouts.clear();
+      this.intervals.clear();
+      this.animationFrames.clear();
+      return;
+    }
 
     // 清理所有定时器
     this.timeouts.forEach(id => {
-      window.clearTimeout(id);
+      browserWindow.clearTimeout(id);
     });
     this.timeouts.clear();
 
     this.intervals.forEach(id => {
-      window.clearInterval(id);
+      browserWindow.clearInterval(id);
     });
     this.intervals.clear();
 
     this.animationFrames.forEach(id => {
-      window.cancelAnimationFrame(id);
+      browserWindow.cancelAnimationFrame(id);
     });
     this.animationFrames.clear();
   }
@@ -112,7 +136,15 @@ class TimerService implements TimerManager {
 
   // 销毁服务
   destroy(): void {
+    if (this.isDestroyed) {
+      return;
+    }
+
     this.clearAll();
+    const browserWindow = getBrowserWindow();
+    if (browserWindow) {
+      browserWindow.removeEventListener('beforeunload', this.handleBeforeUnload);
+    }
     this.isDestroyed = true;
   }
 }

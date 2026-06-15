@@ -3,6 +3,8 @@
 import { getEventManagerService } from './eventManagerService';
 import { getTimerService } from './timerService';
 
+import { getBrowserWindow } from '@/utils/browser';
+
 /**
  * 屏幕尺寸变化回调函数类型
  */
@@ -74,6 +76,15 @@ class ScreenManagerService implements ScreenManager {
   private isInitialized = false;
   private timerService = getTimerService();
   private eventService = getEventManagerService();
+  private readonly handleBeforeUnload = (): void => {
+    this.destroy();
+  };
+  private readonly handleResizeEvent = (): void => {
+    this.handleResize();
+  };
+  private readonly handleOrientationChange = (): void => {
+    this.handleResizeImmediate();
+  };
 
   // 断点配置
   private readonly MOBILE_BREAKPOINT = 768; // 移动端断点
@@ -84,9 +95,7 @@ class ScreenManagerService implements ScreenManager {
 
   constructor() {
     // 页面卸载时清理
-    if (typeof window !== 'undefined') {
-      this.eventService.addEventListener('beforeunload', this.destroy.bind(this));
-    }
+    this.eventService.addEventListener('beforeunload', this.handleBeforeUnload);
   }
 
   // 检查是否已销毁
@@ -117,8 +126,8 @@ class ScreenManagerService implements ScreenManager {
     this.updateScreenInfo();
 
     // 添加事件监听器
-    this.eventService.addEventListener('resize', this.handleResize.bind(this));
-    this.eventService.addEventListener('orientationchange', this.handleResizeImmediate.bind(this));
+    this.eventService.addEventListener('resize', this.handleResizeEvent);
+    this.eventService.addEventListener('orientationchange', this.handleOrientationChange);
 
     this.isInitialized = true;
   }
@@ -128,27 +137,7 @@ class ScreenManagerService implements ScreenManager {
    * 返回取消注册函数
    */
   registerCallback(callback: ScreenChangeCallback): (() => void) {
-    this.checkDestroyed();
-
-    // 确保服务已初始化
-    if (!this.isInitialized) {
-      this.initialize();
-    }
-
-    // 添加回调
-    this.callbacks.add(callback);
-
-    // 立即调用一次回调，传递当前屏幕信息
-    try {
-      callback(this.calculateScreenInfo());
-    } catch (error) {
-      console.error('Screen change callback initialization error', error);
-    }
-
-    // 返回取消注册函数
-    return () => {
-      this.callbacks.delete(callback);
-    };
+    return this.onScreenChange(callback);
   }
 
   /**
@@ -185,9 +174,14 @@ class ScreenManagerService implements ScreenManager {
   updateScreenInfo(): void {
     this.checkDestroyed();
 
-    const newWidth = window.innerWidth;
-    const newHeight = window.innerHeight;
-    const newDevicePixelRatio = window.devicePixelRatio ?? 1;
+    const browserWindow = getBrowserWindow();
+    if (!browserWindow) {
+      return;
+    }
+
+    const newWidth = browserWindow.innerWidth;
+    const newHeight = browserWindow.innerHeight;
+    const newDevicePixelRatio = browserWindow.devicePixelRatio ?? 1;
 
     // 检查是否有实际变化
     const hasChanged
@@ -318,9 +312,11 @@ class ScreenManagerService implements ScreenManager {
     }
 
     // 清理事件监听器
+    this.eventService.removeEventListener('beforeunload', this.handleBeforeUnload);
+
     if (this.isInitialized) {
-      this.eventService.removeEventListener('resize', this.handleResize.bind(this));
-      this.eventService.removeEventListener('orientationchange', this.handleResizeImmediate.bind(this));
+      this.eventService.removeEventListener('resize', this.handleResizeEvent);
+      this.eventService.removeEventListener('orientationchange', this.handleOrientationChange);
     }
 
     // 清理防抖定时器

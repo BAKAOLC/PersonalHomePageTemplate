@@ -1,17 +1,18 @@
-/* eslint-disable no-restricted-syntax */
 // 事件管理服务 - 支持组件级别和全局级别的事件监听
 
+import { getBrowserWindow } from '@/utils/browser';
+
 interface EventManager {
-  dispatchEvent: (eventName: string, detail?: any, target?: EventTarget) => void;
+  dispatchEvent: (eventName: string, detail?: unknown, target?: EventTarget) => void;
   addEventListener: (
     eventName: string,
-    handler: Function,
+    handler: EventListener,
     target?: EventTarget,
     options?: boolean | AddEventListenerOptions,
   ) => void;
   removeEventListener: (
     eventName: string,
-    handler: Function,
+    handler: EventListener,
     target?: EventTarget,
     options?: boolean | EventListenerOptions,
   ) => void;
@@ -19,17 +20,40 @@ interface EventManager {
   getActiveListenersCount: (target?: EventTarget) => number;
 }
 
+interface ListenerRecord {
+  handler: EventListener;
+  listener: EventListener;
+  capture: boolean;
+  options?: boolean | AddEventListenerOptions;
+}
+
+type ListenerOptions = boolean | AddEventListenerOptions;
+type ListenerRemovalOptions = boolean | EventListenerOptions;
+type ListenerMap = Map<string, ListenerRecord[]>;
+
+const getCaptureOption = (options?: ListenerRemovalOptions): boolean => {
+  if (typeof options === 'boolean') {
+    return options;
+  }
+
+  return options?.capture === true;
+};
+
 class EventManagerService implements EventManager {
-  private eventListeners = new Map<string, Map<Function, EventListener>>();
-  private targetListeners = new Map<EventTarget, Map<string, Map<Function, EventListener>>>();
+  private eventListeners: ListenerMap = new Map();
+  private targetListeners = new Map<EventTarget, ListenerMap>();
   private isDestroyed = false;
+  private readonly handleBeforeUnload = (): void => {
+    if (!this.isDestroyed) {
+      this.removeAllListeners();
+    }
+  };
 
   constructor() {
     // 页面卸载时清理所有事件监听器
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', () => {
-        this.removeAllListeners();
-      });
+    const browserWindow = getBrowserWindow();
+    if (browserWindow) {
+      browserWindow.addEventListener('beforeunload', this.handleBeforeUnload);
     }
   }
 
@@ -40,32 +64,45 @@ class EventManagerService implements EventManager {
     }
   }
 
-  dispatchEvent(eventName: string, detail?: any, target?: EventTarget): void {
+  private getEventTarget(target?: EventTarget): EventTarget | null {
+    return target ?? getBrowserWindow();
+  }
+
+  private isWindowTarget(target: EventTarget): boolean {
+    return target === getBrowserWindow();
+  }
+
+  dispatchEvent(eventName: string, detail?: unknown, target?: EventTarget): void {
     this.checkDestroyed();
 
+    const eventTarget = this.getEventTarget(target);
+    if (!eventTarget) return;
+
     const event = new CustomEvent(eventName, { detail });
-    const eventTarget = target ?? window;
     eventTarget.dispatchEvent(event);
   }
 
   addEventListener(
     eventName: string,
-    handler: Function,
+    handler: EventListener,
     target?: EventTarget,
-    options?: boolean | AddEventListenerOptions,
+    options?: ListenerOptions,
   ): void {
     this.checkDestroyed();
 
-    const eventTarget = target ?? window;
+    const eventTarget = this.getEventTarget(target);
+    if (!eventTarget) return;
+
+    const capture = getCaptureOption(options);
 
     // 如果是 window 对象，使用原有的全局监听器管理
-    if (eventTarget === window) {
+    if (this.isWindowTarget(eventTarget)) {
       if (!this.eventListeners.has(eventName)) {
-        this.eventListeners.set(eventName, new Map());
+        this.eventListeners.set(eventName, []);
       }
 
-      const listeners = this.eventListeners.get(eventName) ?? new Map();
-      if (listeners.has(handler)) {
+      const listeners = this.eventListeners.get(eventName) ?? [];
+      if (listeners.some(record => record.handler === handler && record.capture === capture)) {
         return; // 已经添加过了
       }
 
@@ -73,21 +110,26 @@ class EventManagerService implements EventManager {
         handler(event);
       };
 
-      listeners.set(handler, eventListener);
-      window.addEventListener(eventName, eventListener, options);
+      listeners.push({
+        handler,
+        listener: eventListener,
+        capture,
+        options,
+      });
+      eventTarget.addEventListener(eventName, eventListener, options);
     } else {
       // 对于其他目标元素，使用目标特定的监听器管理
       if (!this.targetListeners.has(eventTarget)) {
         this.targetListeners.set(eventTarget, new Map());
       }
 
-      const targetMap = this.targetListeners.get(eventTarget) ?? new Map();
+      const targetMap: ListenerMap = this.targetListeners.get(eventTarget) ?? new Map<string, ListenerRecord[]>();
       if (!targetMap.has(eventName)) {
-        targetMap.set(eventName, new Map());
+        targetMap.set(eventName, []);
       }
 
-      const listeners = targetMap.get(eventName) ?? new Map();
-      if (listeners.has(handler)) {
+      const listeners = targetMap.get(eventName) ?? [];
+      if (listeners.some(record => record.handler === handler && record.capture === capture)) {
         return; // 已经添加过了
       }
 
@@ -95,33 +137,41 @@ class EventManagerService implements EventManager {
         handler(event);
       };
 
-      listeners.set(handler, eventListener);
+      listeners.push({
+        handler,
+        listener: eventListener,
+        capture,
+        options,
+      });
       eventTarget.addEventListener(eventName, eventListener, options);
     }
   }
 
   removeEventListener(
     eventName: string,
-    handler: Function,
+    handler: EventListener,
     target?: EventTarget,
-    options?: boolean | EventListenerOptions,
+    options?: ListenerRemovalOptions,
   ): void {
     this.checkDestroyed();
 
-    const eventTarget = target ?? window;
+    const eventTarget = this.getEventTarget(target);
+    if (!eventTarget) return;
+
+    const capture = getCaptureOption(options);
 
     // 如果是 window 对象，使用原有的全局监听器管理
-    if (eventTarget === window) {
+    if (this.isWindowTarget(eventTarget)) {
       const listeners = this.eventListeners.get(eventName);
       if (!listeners) return;
 
-      const eventListener = listeners.get(handler);
-      if (!eventListener) return;
+      const recordIndex = listeners.findIndex(record => record.handler === handler && record.capture === capture);
+      if (recordIndex === -1) return;
 
-      window.removeEventListener(eventName, eventListener, options);
-      listeners.delete(handler);
+      const [record] = listeners.splice(recordIndex, 1);
+      eventTarget.removeEventListener(eventName, record.listener, options ?? record.options);
 
-      if (listeners.size === 0) {
+      if (listeners.length === 0) {
         this.eventListeners.delete(eventName);
       }
     } else {
@@ -132,13 +182,13 @@ class EventManagerService implements EventManager {
       const listeners = targetMap.get(eventName);
       if (!listeners) return;
 
-      const eventListener = listeners.get(handler);
-      if (!eventListener) return;
+      const recordIndex = listeners.findIndex(record => record.handler === handler && record.capture === capture);
+      if (recordIndex === -1) return;
 
-      eventTarget.removeEventListener(eventName, eventListener, options);
-      listeners.delete(handler);
+      const [record] = listeners.splice(recordIndex, 1);
+      eventTarget.removeEventListener(eventName, record.listener, options ?? record.options);
 
-      if (listeners.size === 0) {
+      if (listeners.length === 0) {
         targetMap.delete(eventName);
       }
 
@@ -152,12 +202,22 @@ class EventManagerService implements EventManager {
     this.checkDestroyed();
 
     if (target) {
+      if (this.isWindowTarget(target)) {
+        for (const [eventName, listeners] of this.eventListeners) {
+          for (const record of listeners) {
+            target.removeEventListener(eventName, record.listener, record.options);
+          }
+        }
+        this.eventListeners.clear();
+        return;
+      }
+
       // 只清理指定目标的事件监听器
       const targetMap = this.targetListeners.get(target);
       if (targetMap) {
         for (const [eventName, listeners] of targetMap) {
-          for (const [_handler, eventListener] of listeners) {
-            target.removeEventListener(eventName, eventListener);
+          for (const record of listeners) {
+            target.removeEventListener(eventName, record.listener, record.options);
           }
         }
         this.targetListeners.delete(target);
@@ -165,9 +225,12 @@ class EventManagerService implements EventManager {
     } else {
       // 清理所有事件监听器
       // 清理全局监听器
+      const browserWindow = getBrowserWindow();
       for (const [eventName, listeners] of this.eventListeners) {
-        for (const [_handler, eventListener] of listeners) {
-          window.removeEventListener(eventName, eventListener);
+        for (const record of listeners) {
+          if (browserWindow) {
+            browserWindow.removeEventListener(eventName, record.listener, record.options);
+          }
         }
       }
       this.eventListeners.clear();
@@ -175,8 +238,8 @@ class EventManagerService implements EventManager {
       // 清理目标特定的监听器
       for (const [eventTarget, targetMap] of this.targetListeners) {
         for (const [eventName, listeners] of targetMap) {
-          for (const [_handler, eventListener] of listeners) {
-            eventTarget.removeEventListener(eventName, eventListener);
+          for (const record of listeners) {
+            eventTarget.removeEventListener(eventName, record.listener, record.options);
           }
         }
       }
@@ -188,13 +251,21 @@ class EventManagerService implements EventManager {
     this.checkDestroyed();
 
     if (target) {
+      if (this.isWindowTarget(target)) {
+        let count = 0;
+        for (const listeners of this.eventListeners.values()) {
+          count += listeners.length;
+        }
+        return count;
+      }
+
       // 只计算指定目标的监听器数量
       const targetMap = this.targetListeners.get(target);
       if (!targetMap) return 0;
 
       let count = 0;
       for (const listeners of targetMap.values()) {
-        count += listeners.size;
+        count += listeners.length;
       }
       return count;
     } else {
@@ -203,13 +274,13 @@ class EventManagerService implements EventManager {
 
       // 全局监听器
       for (const listeners of this.eventListeners.values()) {
-        count += listeners.size;
+        count += listeners.length;
       }
 
       // 目标特定的监听器
       for (const targetMap of this.targetListeners.values()) {
         for (const listeners of targetMap.values()) {
-          count += listeners.size;
+          count += listeners.length;
         }
       }
 
@@ -219,7 +290,15 @@ class EventManagerService implements EventManager {
 
   // 销毁服务
   destroy(): void {
+    if (this.isDestroyed) {
+      return;
+    }
+
     this.removeAllListeners();
+    const browserWindow = getBrowserWindow();
+    if (browserWindow) {
+      browserWindow.removeEventListener('beforeunload', this.handleBeforeUnload);
+    }
     this.isDestroyed = true;
   }
 }

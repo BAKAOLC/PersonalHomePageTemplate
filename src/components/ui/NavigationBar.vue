@@ -75,10 +75,11 @@ import { useRoute } from 'vue-router';
 import { useEventManager } from '@/composables/useEventManager';
 import { useScreenManager } from '@/composables/useScreenManager';
 import { siteConfig } from '@/config/site';
+import { getBrowserDocument } from '@/utils/browser';
 
 const { t } = useI18n();
 const route = useRoute();
-const { addEventListener, removeEventListener } = useEventManager();
+const { addEventListener } = useEventManager();
 const { isMobile, onScreenChange } = useScreenManager();
 
 // 移动端菜单状态
@@ -223,8 +224,11 @@ const handleKeyDown = (event: KeyboardEvent): void => {
 let cleanupScreenListener: (() => void) | null = null;
 
 onMounted(() => {
-  addEventListener('click', handleClickOutside, undefined, document);
-  addEventListener('keydown', handleKeyDown, undefined, document);
+  const browserDocument = getBrowserDocument();
+  if (browserDocument) {
+    addEventListener('click', handleClickOutside, undefined, browserDocument);
+    addEventListener('keydown', handleKeyDown, undefined, browserDocument);
+  }
 
   // 注册屏幕变化监听器，确保响应式更新
   cleanupScreenListener = onScreenChange((screenInfo) => {
@@ -236,9 +240,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  removeEventListener('click', handleClickOutside, undefined, document);
-  removeEventListener('keydown', handleKeyDown, undefined, document);
-
   // 清理屏幕变化监听器
   if (cleanupScreenListener) {
     cleanupScreenListener();

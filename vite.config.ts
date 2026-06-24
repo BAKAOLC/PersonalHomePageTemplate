@@ -39,8 +39,7 @@ const getManualChunk = (id: string): string | undefined => {
   }
 
   if (
-    normalizedId.includes('/node_modules/pixi-live2d-display/')
-    || normalizedId.includes('/node_modules/pixi.js/')
+    normalizedId.includes('/node_modules/pixi.js/')
     || normalizedId.includes('/node_modules/@pixi/')
   ) {
     return 'live2d-runtime';

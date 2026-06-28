@@ -8,15 +8,24 @@ import { createPrefixedId } from '@/utils/id';
 export interface NotificationConfig {
   id: string;
   message: string | I18nText;
+  title?: string | I18nText;
   type?: 'success' | 'error' | 'warning' | 'info';
   duration?: number; // 显示时长，0表示不自动关闭
   closable?: boolean; // 是否可手动关闭
   icon?: string; // 图标类名
+  onClick?: () => void;
+  dismissOnClick?: boolean;
 }
 
 export interface NotificationInstance extends NotificationConfig {
+  renderId: string;
   visible: boolean;
+  closing: boolean;
   timer?: number;
+  totalDuration: number;
+  remainingDuration: number;
+  startedAt?: number;
+  paused: boolean;
 }
 
 export const useNotificationStore = defineStore('notification', () => {
@@ -43,22 +52,85 @@ export const useNotificationStore = defineStore('notification', () => {
   const showNotification = (config: NotificationConfig): string => {
     const notification: NotificationInstance = {
       ...config,
+      renderId: createPrefixedId('notification-render'),
       visible: true,
       duration: config.duration ?? 3000,
       closable: config.closable ?? true,
+      dismissOnClick: config.dismissOnClick ?? true,
       type: config.type ?? 'info',
+      totalDuration: config.duration ?? 3000,
+      remainingDuration: config.duration ?? 3000,
+      paused: false,
+      closing: false,
     };
 
     notifications.value.push(notification);
 
     // 设置自动关闭定时器
-    if (notification.duration && notification.duration > 0) {
-      notification.timer = timerService.setTimeout(() => {
-        remove(notification.id);
-      }, notification.duration);
-    }
+    startAutoCloseTimer(notification);
 
     return config.id;
+  };
+
+  const startAutoCloseTimer = (notification: NotificationInstance): void => {
+    if (notification.timer) {
+      timerService.clearTimeout(notification.timer);
+      notification.timer = undefined;
+    }
+
+    if (notification.remainingDuration <= 0) {
+      return;
+    }
+
+    notification.startedAt = Date.now();
+    notification.paused = false;
+    notification.timer = timerService.setTimeout(() => {
+      remove(notification.id);
+    }, notification.remainingDuration);
+  };
+
+  const pauseNotificationTimer = (notification: NotificationInstance): void => {
+    if (!notification.timer || notification.paused) {
+      return;
+    }
+
+    const elapsed = notification.startedAt ? Date.now() - notification.startedAt : 0;
+    notification.remainingDuration = Math.max(0, notification.remainingDuration - elapsed);
+    timerService.clearTimeout(notification.timer);
+    notification.timer = undefined;
+    notification.paused = true;
+  };
+
+  const resumeNotificationTimer = (notification: NotificationInstance): void => {
+    if (!notification.visible || notification.closing || !notification.paused || notification.remainingDuration <= 0) {
+      return;
+    }
+
+    startAutoCloseTimer(notification);
+  };
+
+  const pauseAll = (): void => {
+    notifications.value
+      .filter(notification => notification.visible && !notification.closing)
+      .forEach(pauseNotificationTimer);
+  };
+
+  const resumeAll = (): void => {
+    notifications.value
+      .filter(notification => notification.visible && !notification.closing)
+      .forEach(resumeNotificationTimer);
+  };
+
+  const activate = (id: string): void => {
+    const notification = notifications.value.find(n => n.id === id);
+    if (!notification?.visible || notification.closing) {
+      return;
+    }
+
+    notification.onClick?.();
+    if (notification.dismissOnClick !== false) {
+      remove(id);
+    }
   };
 
   // 移除通知
@@ -67,7 +139,7 @@ export const useNotificationStore = defineStore('notification', () => {
     if (index === -1) return;
 
     const notification = notifications.value[index];
-    if (!notification.visible) return;
+    if (!notification.visible || notification.closing) return;
 
     // 清除定时器
     if (notification.timer) {
@@ -75,8 +147,7 @@ export const useNotificationStore = defineStore('notification', () => {
       notification.timer = undefined;
     }
 
-    // 设置为不可见，让动画播放
-    notification.visible = false;
+    notification.closing = true;
 
     // 延迟移除，等待动画完成
     timerService.setTimeout(() => {
@@ -85,8 +156,9 @@ export const useNotificationStore = defineStore('notification', () => {
         notifications.value.splice(currentIndex, 1);
       }
 
-      // 处理等待队列
-      processQueue();
+      timerService.requestAnimationFrame(() => {
+        processQueue();
+      });
     }, 300);
   };
 
@@ -112,6 +184,7 @@ export const useNotificationStore = defineStore('notification', () => {
         timerService.clearTimeout(notification.timer);
         notification.timer = undefined;
       }
+      notification.closing = true;
     });
 
     notifications.value = [];
@@ -169,6 +242,9 @@ export const useNotificationStore = defineStore('notification', () => {
     visibleCount,
     show,
     remove,
+    pauseAll,
+    resumeAll,
+    activate,
     clear,
     setMaxNotifications,
     success,

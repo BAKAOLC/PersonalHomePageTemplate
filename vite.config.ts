@@ -6,7 +6,6 @@ import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
 const require = createRequire(import.meta.url);
-const monacoEditorPlugin = require('vite-plugin-monaco-editor').default;
 
 const articlesConfigPlugin = require('./vite-plugins/articles-config-plugin.cjs');
 const characterProfilesConfigPlugin = require('./vite-plugins/character-profiles-config-plugin.cjs');
@@ -24,18 +23,6 @@ const getManualChunk = (id: string): string | undefined => {
   const normalizedId = normalizeModuleId(id);
   if (!normalizedId.includes('/node_modules/')) {
     return undefined;
-  }
-
-  if (normalizedId.includes('/node_modules/monaco-editor/esm/vs/basic-languages/')) {
-    return 'monaco-languages';
-  }
-
-  if (normalizedId.includes('/node_modules/monaco-editor/esm/vs/language/json/')) {
-    return 'monaco-json';
-  }
-
-  if (normalizedId.includes('/node_modules/monaco-editor/')) {
-    return 'monaco-core';
   }
 
   if (
@@ -95,9 +82,6 @@ export default defineConfig({
     thumbnailPlugin(),
     vue(),
     tailwindcss(),
-    monacoEditorPlugin({
-      languageWorkers: ['editorWorkerService', 'json'],
-    }),
   ],
   resolve: {
     alias: {

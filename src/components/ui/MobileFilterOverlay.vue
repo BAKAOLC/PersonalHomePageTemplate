@@ -1,39 +1,40 @@
 <template>
-  <div
-    v-if="visible"
-    class="mobile-filter-overlay"
-    :style="{ zIndex }"
-    role="dialog"
-    aria-modal="true"
-    :aria-labelledby="titleId"
-    :aria-describedby="describedBy"
-    @click="$emit('close')"
-  >
-    <div :id="contentId" class="mobile-filter-content" @click.stop>
-      <header class="mobile-filter-header">
-        <h3 :id="titleId">{{ title }}</h3>
-        <button
-          class="close-button"
-          :aria-label="closeLabel"
-          type="button"
-          @click="$emit('close')"
+  <DialogRoot :open="visible" @update:open="handleOpenChange">
+    <DialogPortal>
+      <div class="mobile-filter-layer" :style="{ zIndex }">
+        <DialogOverlay class="mobile-filter-overlay" />
+        <DialogContent
+          :id="contentId"
+          class="mobile-filter-content"
+          :aria-describedby="describedBy"
         >
-          <i :class="getIconClass('times')" aria-hidden="true"></i>
-        </button>
-      </header>
-      <div
-        :id="bodyId"
-        class="mobile-filter-body"
-        :role="bodyRole"
-        :aria-label="bodyAriaLabel"
-      >
-        <slot />
+          <header class="mobile-filter-header">
+            <DialogTitle :id="titleId" class="mobile-filter-title">{{ title }}</DialogTitle>
+            <DialogClose
+              class="close-button"
+              :aria-label="closeLabel"
+              type="button"
+            >
+              <i :class="getIconClass('times')" aria-hidden="true"></i>
+            </DialogClose>
+          </header>
+          <div
+            :id="bodyId"
+            class="mobile-filter-body"
+            :role="bodyRole"
+            :aria-label="bodyAriaLabel"
+          >
+            <slot />
+          </div>
+        </DialogContent>
       </div>
-    </div>
-  </div>
+    </DialogPortal>
+  </DialogRoot>
 </template>
 
 <script setup lang="ts">
+import { DialogClose, DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui';
+
 import { getIconClass } from '@/utils/icons';
 
 interface Props {
@@ -59,24 +60,39 @@ withDefaults(defineProps<Props>(), {
   zIndex: 1000,
 });
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'close'): void;
 }>();
+
+const handleOpenChange = (open: boolean): void => {
+  if (!open) {
+    emit('close');
+  }
+};
 </script>
 
 <style scoped>
 @reference "@/assets/styles/main.css";
 
+.mobile-filter-layer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+
 .mobile-filter-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: flex-end;
   touch-action: none;
+  pointer-events: auto;
 }
 
 .mobile-filter-content {
+  position: relative;
   width: 100%;
   max-height: 80vh;
   background: white;
@@ -84,6 +100,9 @@ defineEmits<{
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  pointer-events: auto;
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.22);
+  animation: mobileFilterIn 0.2s ease-out;
 }
 
 .dark .mobile-filter-content {
@@ -102,13 +121,13 @@ defineEmits<{
   border-bottom-color: rgb(75, 85, 99);
 }
 
-.mobile-filter-header h3 {
+.mobile-filter-title {
   font-size: 1.125rem;
   font-weight: 600;
   color: rgb(17, 24, 39);
 }
 
-.dark .mobile-filter-header h3 {
+.dark .mobile-filter-title {
   color: rgb(243, 244, 246);
 }
 
@@ -147,5 +166,20 @@ defineEmits<{
   overflow-y: auto;
   padding: 1.5rem;
   @apply flex flex-col gap-3;
+}
+
+@keyframes mobileFilterIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-filter-content {
+    animation: none;
+  }
 }
 </style>

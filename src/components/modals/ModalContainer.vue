@@ -1,58 +1,79 @@
 <template>
   <div class="modal-container">
-    <div
+    <DialogRoot
       v-for="modal in visibleModals"
       :key="modal.id"
-      class="modal-wrapper" :class="[
-        modal.options?.className,
-        {
-          'visible': modal.visible,
-          'fullscreen': modal.options?.fullscreen,
-          'centered': modal.options?.centered !== false
-        }
-      ]"
-      :data-modal-id="modal.id"
+      :open="modal.visible"
+      modal
+      @update:open="(open) => handleOpenChange(modal, open)"
     >
-      <!-- 遮罩层 -->
-      <div
-        class="modal-mask"
-        @click="handleMaskClick(modal)"
-      ></div>
+      <DialogPortal>
+        <div
+          class="modal-wrapper"
+          :class="[
+            modal.options?.className,
+            {
+              'visible': modal.visible,
+              'fullscreen': modal.options?.fullscreen,
+              'centered': modal.options?.centered !== false
+            }
+          ]"
+          :style="{ zIndex: modal.zIndex }"
+          :data-modal-id="modal.id"
+        >
+          <DialogOverlay class="modal-mask" />
 
-      <!-- 内容区域 -->
-      <div
-        class="modal-content"
-        :class="{ 'custom-size': modal.options?.width ?? modal.options?.height }"
-        :style="getContentStyle(modal)"
-      >
-        <!-- 渲染组件 -->
-        <component
-          :is="modal.component"
-          v-bind="modal.props"
-          :on-close="() => closeModal(modal.id)"
-          :on-navigate="modal.onNavigate"
-          @close="() => closeModal(modal.id)"
-          @modal-close="() => closeModal(modal.id)"
-        />
-      </div>
-    </div>
+          <DialogContent
+            class="modal-content"
+            :class="{ 'custom-size': modal.options?.width ?? modal.options?.height }"
+            :style="getContentStyle(modal)"
+            @escape-key-down="(event) => handleEscapeKeyDown(event, modal)"
+            @pointer-down-outside="(event) => handlePointerDownOutside(event, modal)"
+            @interact-outside="(event) => handleInteractOutside(event, modal)"
+          >
+            <VisuallyHidden>
+              <DialogTitle>{{ getModalTitle(modal) }}</DialogTitle>
+              <DialogDescription>{{ getModalDescription(modal) }}</DialogDescription>
+            </VisuallyHidden>
+
+            <component
+              :is="modal.component"
+              v-bind="modal.props"
+              :on-close="() => closeModal(modal.id)"
+              :on-navigate="modal.onNavigate"
+              @close="() => closeModal(modal.id)"
+              @modal-close="() => closeModal(modal.id)"
+            />
+          </DialogContent>
+        </div>
+      </DialogPortal>
+    </DialogRoot>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import {
+  DialogContent,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogRoot,
+  DialogTitle,
+  VisuallyHidden,
+} from 'reka-ui';
+import { computed } from 'vue';
 
-import { useEventManager } from '@/composables/useEventManager';
 import { useModalStore, type ModalInstance } from '@/stores/modal';
-import { getBrowserDocument } from '@/utils/browser';
 
 const modalStore = useModalStore();
-const { addEventListener } = useEventManager();
 const visibleModals = computed(() => modalStore.visibleModals);
 
-// 处理遮罩点击
-const handleMaskClick = (modal: ModalInstance): void => {
-  if (modal.options?.maskClosable !== false) {
+type DismissEvent = Event & { preventDefault: () => void };
+
+const handleOpenChange = (modal: ModalInstance, open: boolean): void => {
+  if (open) return;
+
+  if (modal.options?.closable !== false) {
     modalStore.close(modal.id);
   }
 };
@@ -81,35 +102,45 @@ const getContentStyle = (modal: ModalInstance): Record<string, string> => {
   return style;
 };
 
-// 键盘事件处理
-const handleKeydown = (e: KeyboardEvent): void => {
-  if (e.key === 'Escape') {
-    const { topModal } = modalStore;
-    if (topModal && topModal.options?.escClosable !== false) {
-      modalStore.close(topModal.id);
-    }
+const handleEscapeKeyDown = (event: DismissEvent, modal: ModalInstance): void => {
+  const isTopModal = modalStore.topModal?.id === modal.id;
+
+  if (!isTopModal || modal.options?.escClosable === false || modal.options?.closable === false) {
+    event.preventDefault();
   }
 };
 
-onMounted(() => {
-  const browserDocument = getBrowserDocument();
-  if (!browserDocument) return;
+const handlePointerDownOutside = (event: DismissEvent, modal: ModalInstance): void => {
+  const isTopModal = modalStore.topModal?.id === modal.id;
 
-  addEventListener('keydown', handleKeydown, undefined, browserDocument);
-});
+  if (!isTopModal || modal.options?.maskClosable === false || modal.options?.closable === false) {
+    event.preventDefault();
+  }
+};
+
+const handleInteractOutside = (event: DismissEvent, modal: ModalInstance): void => {
+  const isTopModal = modalStore.topModal?.id === modal.id;
+
+  if (!isTopModal || modal.options?.maskClosable === false || modal.options?.closable === false) {
+    event.preventDefault();
+  }
+};
+
+const getModalTitle = (modal: ModalInstance): string => `Modal ${modal.id}`;
+
+const getModalDescription = (modal: ModalInstance): string => `Dialog content for ${modal.id}`;
 </script>
 
 <style scoped>
 @reference "@/assets/styles/main.css";
 
 .modal-container {
-  @apply fixed inset-0;
+  @apply contents;
   @apply pointer-events-none;
-  @apply z-[2000];
 }
 
 .modal-wrapper {
-  @apply absolute inset-0 flex items-center justify-center;
+  @apply fixed inset-0 flex items-center justify-center;
   @apply opacity-0 pointer-events-none;
   @apply transition-opacity duration-300 ease-in-out;
   @apply p-2;

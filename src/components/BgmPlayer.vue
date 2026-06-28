@@ -166,10 +166,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
 import { useBgmPlayerCustom } from '@/composables/useBgmPlayerCustom';
 import { useModalManager } from '@/composables/useModalManager';
 import { useTimers } from '@/composables/useTimers';
@@ -179,6 +178,7 @@ import type { BgmConfig, BgmTrack } from '@/types/bgm';
 import { getI18nText } from '@/utils/i18nText';
 
 const config = bgmConfig as BgmConfig;
+const ImageViewerModal = defineAsyncComponent(() => import('@/components/modals/ImageViewerModal.vue'));
 const isExpanded = ref(false);
 const isPlaylistExpanded = ref(true);
 const currentTime = ref(0);

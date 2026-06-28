@@ -163,74 +163,72 @@
         </button>
       </transition>
 
-      <!-- 移动端图像组悬浮窗 -->
-      <transition name="mobile-group-selector-fade">
-        <div
-          v-if="effectiveViewerConfig.imageGroupList && isMobileGroupSelectorOpen"
-          class="mobile-group-selector-overlay"
-          @click="closeMobileGroupSelector">
-          <transition name="mobile-group-selector-slide">
-            <div v-if="isMobileGroupSelectorOpen" class="mobile-group-selector-content" @click.stop>
-              <div class="mobile-group-selector-header">
-                <h3>{{ $t('viewer.imageGroup') }}</h3>
-                <button @click="closeMobileGroupSelector" class="close-button">
-                  <i :class="getIconClass('times')"></i>
-                </button>
-              </div>
-              <div class="mobile-group-selector-body">
-                <div class="mobile-group-images-grid" ref="mobileGroupImagesGrid">
-                  <div
-                    v-for="image in groupImageList"
-                    :key="image.id"
-                    class="mobile-group-image-item"
-                    :class="{ 'active': image.id === currentDisplayImageId }"
-                    @click="handleMobileGroupImageClick(image.id)"
-                  >
-                    <div class="mobile-group-image-container">
-                      <ProgressiveImage
-                        v-if="image.src"
-                        :src="image.src"
-                        :alt="t(image.name, currentLanguage)"
-                        class="mobile-group-image"
-                        object-fit="contain"
-                        :show-loader="false"
-                        :show-progress="false"
-                        preload-size="tiny"
-                        display-type="thumbnail"
-                        display-size="medium"
-                      />
-                      <div
-                        v-else
-                        class="mobile-group-image-placeholder"
-                        :title="t(image.name, currentLanguage)"
-                      >
-                        <svg class="placeholder-icon" viewBox="0 0 24 24" fill="currentColor">
-                          <path
-                            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z
-                               M9 17l1.5-2L12 17h7V5H5v12z"
-                          />
-                        </svg>
-                      </div>
+      <DialogRoot
+        :open="effectiveViewerConfig.imageGroupList && isMobileGroupSelectorOpen"
+        @update:open="setMobileGroupSelectorOpen"
+      >
+        <DialogPortal>
+          <DialogOverlay class="mobile-group-selector-overlay" />
+          <DialogContent class="mobile-group-selector-content">
+            <div class="mobile-group-selector-header">
+              <DialogTitle>{{ $t('viewer.imageGroup') }}</DialogTitle>
+              <DialogClose class="close-button">
+                <i :class="getIconClass('times')"></i>
+              </DialogClose>
+            </div>
+            <div class="mobile-group-selector-body">
+              <div class="mobile-group-images-grid" ref="mobileGroupImagesGrid">
+                <div
+                  v-for="image in groupImageList"
+                  :key="image.id"
+                  class="mobile-group-image-item"
+                  :class="{ 'active': image.id === currentDisplayImageId }"
+                  @click="handleMobileGroupImageClick(image.id)"
+                >
+                  <div class="mobile-group-image-container">
+                    <ProgressiveImage
+                      v-if="image.src"
+                      :src="image.src"
+                      :alt="t(image.name, currentLanguage)"
+                      class="mobile-group-image"
+                      object-fit="contain"
+                      :show-loader="false"
+                      :show-progress="false"
+                      preload-size="tiny"
+                      display-type="thumbnail"
+                      display-size="medium"
+                    />
+                    <div
+                      v-else
+                      class="mobile-group-image-placeholder"
+                      :title="t(image.name, currentLanguage)"
+                    >
+                      <svg class="placeholder-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                          d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z
+                             M9 17l1.5-2L12 17h7V5H5v12z"
+                        />
+                      </svg>
                     </div>
-                    <div class="mobile-group-image-info">
-                      <span class="mobile-group-image-name">{{ getChildImageDisplayName(image) }}</span>
-                      <div class="mobile-group-image-tags">
-                        <span
-                          v-for="tagId in getSortedTags(getChildImageTags(image))"
-                          :key="tagId"
-                          class="mobile-group-image-tag"
-                          :style="{ backgroundColor: getTagColor(tagId) }">
-                          {{ getTagName(tagId, currentLanguage) }}
-                        </span>
-                      </div>
+                  </div>
+                  <div class="mobile-group-image-info">
+                    <span class="mobile-group-image-name">{{ getChildImageDisplayName(image) }}</span>
+                    <div class="mobile-group-image-tags">
+                      <span
+                        v-for="tagId in getSortedTags(getChildImageTags(image))"
+                        :key="tagId"
+                        class="mobile-group-image-tag"
+                        :style="{ backgroundColor: getTagColor(tagId) }">
+                        {{ getTagName(tagId, currentLanguage) }}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </transition>
-        </div>
-      </transition>
+          </DialogContent>
+        </DialogPortal>
+      </DialogRoot>
     </div>
 
     <div v-if="effectiveViewerConfig.imageList" class="viewer-navigation">
@@ -331,16 +329,15 @@
       </div>
     </transition>
 
-    <!-- 移动端信息覆盖层 -->
-    <transition name="mobile-overlay-fade">
-      <div v-show="showMobileInfoOverlay && isMobile" class="mobile-info-overlay" @click="closeMobileInfoOverlay">
-        <transition name="mobile-info-slide">
-          <div v-show="showMobileInfoOverlay" class="mobile-info-panel" @click.stop>
+    <DialogRoot :open="showMobileInfoOverlay && isMobile" @update:open="setMobileInfoOverlayOpen">
+      <DialogPortal>
+        <DialogOverlay class="mobile-info-overlay" />
+        <DialogContent class="mobile-info-panel">
             <div class="mobile-info-header">
-              <h3 class="mobile-info-title">{{ $t('viewer.imageInfo') }}</h3>
-              <button class="mobile-info-close" @click="closeMobileInfoOverlay">
+              <DialogTitle class="mobile-info-title">{{ $t('viewer.imageInfo') }}</DialogTitle>
+              <DialogClose class="mobile-info-close">
                 <XIcon class="icon" />
-              </button>
+              </DialogClose>
             </div>
 
             <div class="mobile-info-content">
@@ -384,24 +381,22 @@
                 </div>
               </div>
             </div>
-          </div>
-        </transition>
-      </div>
-    </transition>
+        </DialogContent>
+      </DialogPortal>
+    </DialogRoot>
 
-    <!-- 评论模态框 -->
-    <transition name="comments-modal-fade">
-      <div
-        v-show="effectiveViewerConfig.commentsButton && siteConfig.features.comments && showCommentsModal"
-        class="comments-modal-overlay"
-        @click="closeCommentsModal">
-        <transition name="comments-modal-slide">
-          <div v-show="showCommentsModal" class="comments-modal-panel" @click.stop>
+    <DialogRoot
+      :open="effectiveViewerConfig.commentsButton && siteConfig.features.comments && showCommentsModal"
+      @update:open="setCommentsModalOpen"
+    >
+      <DialogPortal>
+        <DialogOverlay class="comments-modal-overlay" />
+        <DialogContent class="comments-modal-panel">
             <div class="comments-modal-header">
-              <h3 class="comments-modal-title">{{ $t('viewer.comments') }}</h3>
-              <button class="comments-modal-close" @click="closeCommentsModal">
+              <DialogTitle class="comments-modal-title">{{ $t('viewer.comments') }}</DialogTitle>
+              <DialogClose class="comments-modal-close">
                 <XIcon class="icon" />
-              </button>
+              </DialogClose>
             </div>
             <div class="comments-modal-content">
               <GiscusComments
@@ -409,16 +404,16 @@
                 :prefix="props.commentsPrefix ?? 'gallery-comment'"
               />
             </div>
-          </div>
-        </transition>
-      </div>
-    </transition>
+        </DialogContent>
+      </DialogPortal>
+    </DialogRoot>
   </div>
 </template>
 
 <script setup lang="ts">
 
 import { ChevronLeftIcon, ChevronRightIcon, InfoIcon, LayersIcon, MessageCircleIcon, RotateCcwIcon, XIcon, ZoomInIcon, ZoomOutIcon } from '@lucide/vue';
+import { DialogClose, DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type ComponentPublicInstance } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -1325,6 +1320,16 @@ const closeMobileInfoOverlay = (): void => {
   }, 300);
 };
 
+const setMobileInfoOverlayOpen = (open: boolean): void => {
+  if (open === showMobileInfoOverlay.value) return;
+
+  if (open) {
+    toggleMobileInfoOverlay();
+  } else {
+    closeMobileInfoOverlay();
+  }
+};
+
 // 评论模态框切换
 const toggleCommentsModal = (): void => {
   if (commentsModalAnimating.value) return;
@@ -1361,6 +1366,16 @@ const closeCommentsModal = (): void => {
   }, 300);
 };
 
+const setCommentsModalOpen = (open: boolean): void => {
+  if (open === showCommentsModal.value) return;
+
+  if (open) {
+    toggleCommentsModal();
+  } else {
+    closeCommentsModal();
+  }
+};
+
 // 移动端图像组选择器相关方法
 const toggleMobileGroupSelector = (): void => {
   isMobileGroupSelectorOpen.value = !isMobileGroupSelectorOpen.value;
@@ -1380,6 +1395,16 @@ const closeMobileGroupSelector = (): void => {
   isMobileGroupSelectorOpen.value = false;
   // 恢复背景滚动
   unlockBodyScroll(mobileGroupSelectorScrollLockId);
+};
+
+const setMobileGroupSelectorOpen = (open: boolean): void => {
+  if (open === isMobileGroupSelectorOpen.value) return;
+
+  if (open) {
+    toggleMobileGroupSelector();
+  } else {
+    closeMobileGroupSelector();
+  }
 };
 
 const handleMobileGroupImageClick = (imageId: string): void => {
@@ -3350,15 +3375,17 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 .mobile-info-overlay {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 3100;
   background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
   touch-action: none;
 }
 
 .mobile-info-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3101;
   width: 100%;
   max-height: 70vh;
   background-color: rgba(255, 255, 255, 0.98);
@@ -3368,6 +3395,8 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   overflow: hidden;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.1);
+  outline: none;
+  animation: mobileInfoPanelIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark .mobile-info-panel {
@@ -3439,6 +3468,15 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 .mobile-info-slide-enter-from,
 .mobile-info-slide-leave-to {
   transform: translateY(100%);
+}
+
+@keyframes mobileInfoPanelIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 /* 图像组选择器 */
@@ -3658,18 +3696,18 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 /* 移动端图像组选择器悬浮窗 */
 .mobile-group-selector-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.7);
-  z-index: 1000;
-  display: flex;
-  align-items: flex-end;
+  z-index: 3110;
   touch-action: none;
 }
 
 .mobile-group-selector-content {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3111;
   width: 100%;
   max-height: 75vh;
   background: rgba(0, 0, 0, 0.95);
@@ -3679,6 +3717,8 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   overflow: hidden;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  outline: none;
+  animation: mobileGroupSelectorIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mobile-group-selector-header {
@@ -3881,6 +3921,15 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   transform: translateY(100%);
 }
 
+@keyframes mobileGroupSelectorIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 /* 确保按钮在小屏幕上不被遮挡 */
 @media (max-width: 480px) {
   .mobile-group-selector-toggle {
@@ -3900,15 +3949,16 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 .comments-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 70; /* 比 mobile-info-overlay 的 z-index: 60 更高 */
+  z-index: 3120;
   background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   touch-action: none;
 }
 
 .comments-modal-panel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 3121;
   width: 95vw;
   max-width: 800px;
   height: 80vh;
@@ -3920,6 +3970,9 @@ const t = (text: I18nText | undefined, lang?: string): string => {
   overflow: hidden;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.1);
+  outline: none;
+  transform: translate(-50%, -50%);
+  animation: commentsModalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark .comments-modal-panel {
@@ -3996,6 +4049,25 @@ const t = (text: I18nText | undefined, lang?: string): string => {
 .comments-modal-slide-leave-to {
   transform: scale(0.95) translateY(20px);
   opacity: 0;
+}
+
+@keyframes commentsModalIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 20px)) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-info-panel,
+  .mobile-group-selector-content,
+  .comments-modal-panel {
+    animation: none;
+  }
 }
 
 </style>

@@ -152,12 +152,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch, type ComponentPublicInstance } from 'vue';
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref, watch, type ComponentPublicInstance } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import ProgressiveImage from '@/components/ProgressiveImage.vue';
-import ImageViewerModal from '@/components/modals/ImageViewerModal.vue';
 import { useModalManager } from '@/composables/useModalManager';
 import characterProfilesData from '@/config/character-profiles.json5';
 import { useLanguageStore } from '@/stores/language';
@@ -172,6 +171,7 @@ import { encodeKey, parseParam } from '@/utils/idHashMap';
 
 // 不需要使用 useI18n 的返回值
 useI18n();
+const ImageViewerModal = defineAsyncComponent(() => import('@/components/modals/ImageViewerModal.vue'));
 const languageStore = useLanguageStore();
 const modalManager = useModalManager();
 const route = useRoute();

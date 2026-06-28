@@ -58,10 +58,7 @@
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import BgmPlayer from '@/components/BgmPlayer.vue';
 import LoadingScreen from '@/components/LoadingScreen.vue';
-import NotificationContainer from '@/components/NotificationContainer.vue';
-import ModalContainer from '@/components/modals/ModalContainer.vue';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher.vue';
 import NavigationBar from '@/components/ui/NavigationBar.vue';
 import ThemeToggle from '@/components/ui/ThemeToggle.vue';
@@ -83,7 +80,10 @@ const languageStore = useLanguageStore();
 const themeStore = useThemeStore();
 const { setTimeout } = useTimers();
 
+const BgmPlayer = defineAsyncComponent(() => import('@/components/BgmPlayer.vue'));
 const Live2DWidget = defineAsyncComponent(() => import('@/components/Live2DWidget.vue'));
+const ModalContainer = defineAsyncComponent(() => import('@/components/modals/ModalContainer.vue'));
+const NotificationContainer = defineAsyncComponent(() => import('@/components/NotificationContainer.vue'));
 
 // 应用配置的计算属性
 const appTitle = computed(() => getAppTitle(languageStore.currentLanguage));

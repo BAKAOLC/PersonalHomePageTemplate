@@ -168,22 +168,10 @@
 </template>
 
 <script setup lang="ts">
-import DOMPurify from 'dompurify';
-import type { LanguageFn } from 'highlight.js';
-import hljs from 'highlight.js/lib/core';
-import bash from 'highlight.js/lib/languages/bash';
-import css from 'highlight.js/lib/languages/css';
-import javascript from 'highlight.js/lib/languages/javascript';
-import json from 'highlight.js/lib/languages/json';
-import markdown from 'highlight.js/lib/languages/markdown';
-import typescript from 'highlight.js/lib/languages/typescript';
-import xml from 'highlight.js/lib/languages/xml';
-import yaml from 'highlight.js/lib/languages/yaml';
-import 'highlight.js/styles/github-dark.css';
-import { marked } from 'marked';
 import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { renderArticleMarkdown } from '@/composables/useArticleMarkdownRenderer';
 import { useEventManager } from '@/composables/useEventManager';
 import { useModalManager } from '@/composables/useModalManager';
 import { useNotificationManager } from '@/composables/useNotificationManager';
@@ -244,109 +232,6 @@ const { setTimeout, requestAnimationFrame } = useTimers();
 const GiscusComments = defineAsyncComponent(() => import('@/components/GiscusComments.vue'));
 const ImageViewerModal = defineAsyncComponent(() => import('@/components/modals/ImageViewerModal.vue'));
 
-const highlightLanguageAliases: Record<string, string> = {
-  js: 'javascript',
-  jsx: 'javascript',
-  ts: 'typescript',
-  tsx: 'typescript',
-  sh: 'bash',
-  shell: 'bash',
-  zsh: 'bash',
-  html: 'xml',
-  vue: 'xml',
-  yml: 'yaml',
-  'c++': 'cpp',
-  'c#': 'csharp',
-  ps1: 'powershell',
-};
-
-const registeredHighlightLanguages = new Set<string>();
-
-const createHighlightLanguageLoader = (
-  loader: () => Promise<{ default: LanguageFn }>,
-): (() => Promise<LanguageFn>) => {
-  return async () => (await loader()).default;
-};
-
-const highlightLanguageLoaders: Record<string, () => Promise<LanguageFn>> = {
-  c: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/c')),
-  cpp: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/cpp')),
-  csharp: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/csharp')),
-  diff: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/diff')),
-  dockerfile: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/dockerfile')),
-  go: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/go')),
-  java: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/java')),
-  php: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/php')),
-  powershell: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/powershell')),
-  python: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/python')),
-  rust: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/rust')),
-  sql: createHighlightLanguageLoader(() => import('highlight.js/lib/languages/sql')),
-};
-
-const registerHighlightLanguage = (name: string, language: LanguageFn): void => {
-  if (registeredHighlightLanguages.has(name)) return;
-  hljs.registerLanguage(name, language);
-  registeredHighlightLanguages.add(name);
-};
-
-const bundledHighlightLanguages: Array<[string, LanguageFn]> = [
-  ['bash', bash],
-  ['css', css],
-  ['javascript', javascript],
-  ['json', json],
-  ['markdown', markdown],
-  ['typescript', typescript],
-  ['xml', xml],
-  ['yaml', yaml],
-];
-
-bundledHighlightLanguages.forEach(([name, language]) => {
-  registerHighlightLanguage(name, language);
-});
-
-const normalizeHighlightLanguage = (language: string): string => {
-  const normalized = language.trim().toLowerCase();
-  return highlightLanguageAliases[normalized] ?? normalized;
-};
-
-const extractCodeBlockLanguages = (content: string): string[] => {
-  const languages = new Set<string>();
-  const codeFencePattern = /(?:```|~~~)([^\s`~]*)/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = codeFencePattern.exec(content)) !== null) {
-    const language = match[1]?.trim();
-    if (language) {
-      languages.add(normalizeHighlightLanguage(language));
-    }
-  }
-
-  return [...languages];
-};
-
-const ensureHighlightLanguage = async (language: string): Promise<void> => {
-  if (!language || hljs.getLanguage(language)) return;
-
-  const loader = highlightLanguageLoaders[language];
-  if (!loader) return;
-
-  try {
-    registerHighlightLanguage(language, await loader());
-  } catch (error) {
-    console.warn(`Failed to load highlight language: ${language}`, error);
-  }
-};
-
-const ensureHighlightLanguages = async (content: string): Promise<void> => {
-  await Promise.all(extractCodeBlockLanguages(content).map(ensureHighlightLanguage));
-};
-
-const sanitizeArticleHtml = (html: string): string => {
-  return DOMPurify.sanitize(html, {
-    ADD_ATTR: ['target', 'rel'],
-  });
-};
-
 // 响应式数据
 const viewerContainer = ref<HTMLElement>();
 const viewerContent = ref<HTMLElement>();
@@ -386,70 +271,6 @@ const getCategoryName = (categoryId: string): string => {
 const getCategoryColor = (categoryId: string): string => {
   const category = (articleCategoriesConfig as ArticleCategoriesConfig)[categoryId];
   return category?.color ?? '#6b7280';
-};
-
-const renderMarkdown = async (content: string): Promise<string> => {
-  try {
-    await ensureHighlightLanguages(content);
-
-    // 配置 marked 选项
-    marked.setOptions({
-      breaks: true,
-      gfm: true,
-    });
-
-    // 设置代码高亮渲染器
-    const renderer = new marked.Renderer();
-
-    renderer.code = (token: { text: string; lang?: string; escaped?: boolean }) => {
-      const { text: code, lang: language } = token;
-      if (language && hljs.getLanguage(language)) {
-        try {
-          const highlighted = hljs.highlight(code, { language }).value;
-          return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
-        } catch (err) {
-          console.warn('Highlight.js error:', err);
-        }
-      }
-      const highlighted = hljs.highlightAuto(code).value;
-      return `<pre><code class="hljs">${highlighted}</code></pre>`;
-    };
-
-    // 处理图片路径 - 将相对路径转换为绝对路径，并添加点击事件
-    renderer.image = (token: { href: string; title?: string | null; text: string }) => {
-      let { href } = token;
-      const { title, text } = token;
-
-      // 如果是相对路径（不以 / 或 http:// 或 https:// 开头）
-      if (href && !href.startsWith('/') && !href.startsWith('http://') && !href.startsWith('https://')) {
-        // 获取当前 markdown 文件的路径
-        const { markdownPath } = props.article;
-        if (markdownPath) {
-          // 获取当前语言的 markdown 路径
-          const currentPath
-            = typeof markdownPath === 'string'
-              ? markdownPath
-              : markdownPath[currentLanguage.value] ?? Object.values(markdownPath)[0];
-
-          if (currentPath) {
-            // 提取 markdown 文件所在的目录路径
-            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-            // 构建完整的图片路径，添加前导斜杠
-            href = `/${dirPath}/${href}`;
-          }
-        }
-      }
-
-      // 构建 img 标签，添加点击事件的 data 属性
-      const titleAttr = title ? ` title="${title}"` : '';
-      return `<img src="${href}" alt="${text}"${titleAttr} loading="lazy" class="clickable-image" data-image-url="${href}" style="cursor: pointer;">`;
-    };
-
-    return marked.parse(content, { renderer }) as string;
-  } catch (error) {
-    console.error('Markdown parsing error:', error);
-    return content.replace(/\n/g, '<br>');
-  }
 };
 
 // 打开图像查看器
@@ -918,10 +739,10 @@ const loadArticleContent = async (): Promise<void> => {
   try {
     const content = await getArticleContent(props.article, currentLanguage.value);
     if (sequence !== contentLoadSequence) return;
-    const html = await renderMarkdown(content);
+    const html = await renderArticleMarkdown(content, props.article, currentLanguage.value);
     if (sequence !== contentLoadSequence) return;
     articleContent.value = content;
-    renderedContent.value = sanitizeArticleHtml(html);
+    renderedContent.value = html;
   } catch (error) {
     if (sequence !== contentLoadSequence) return;
     console.error('Failed to load article content:', error);

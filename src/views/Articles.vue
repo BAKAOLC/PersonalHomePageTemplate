@@ -62,46 +62,14 @@
               }}</span>
             </button>
 
-            <!-- 每页显示数量 -->
-            <div ref="pageSizeSelectorRef" class="page-size-selector">
-              <button
-                @click="togglePageSizeMenu"
-                class="page-size-button"
-                :aria-expanded="isPageSizeMenuOpen"
-                aria-haspopup="listbox"
-                :aria-label="$t('articles.selectPageSize')"
-                type="button"
-              >
-                <i :class="getIconClass('list-ol')" class="page-size-icon" aria-hidden="true"></i>
-                <span class="page-size-text">{{ displayPageSize }}</span>
-                <i
-                  class="arrow-icon"
-                  :class="[getIconClass('chevron-down'), { 'rotate-180': isPageSizeMenuOpen }]"
-                  aria-hidden="true"
-                ></i>
-              </button>
-
-              <div
-                v-show="isPageSizeMenuOpen"
-                class="page-size-menu"
-                :class="{ 'menu-open': isPageSizeMenuOpen }"
-                role="listbox"
-                :aria-label="$t('articles.pageSizeOptions')"
-              >
-                <button
-                  v-for="option in pageSizeOptions"
-                  :key="option.value"
-                  @click="changePageSize(option.value)"
-                  class="page-size-option"
-                  :class="{ 'active': pageSize === option.value }"
-                  role="option"
-                  :aria-selected="pageSize === option.value"
-                  type="button"
-                >
-                  {{ option.label }}
-                </button>
-              </div>
-            </div>
+            <AccessibleSelect
+              v-model="pageSizeValue"
+              class="page-size-selector"
+              :options="pageSizeOptions"
+              :placeholder="displayPageSize"
+              :aria-label="$t('articles.selectPageSize')"
+              icon="list-ol"
+            />
           </div>
         </div>
       </header>
@@ -395,9 +363,9 @@ import { useRoute, useRouter } from 'vue-router';
 
 import ArticleCategoryFilter from '@/components/ArticleCategoryFilter.vue';
 import FeedLinks from '@/components/FeedLinks.vue';
+import AccessibleSelect, { type AccessibleSelectOption } from '@/components/ui/AccessibleSelect.vue';
 import MobileFilterOverlay from '@/components/ui/MobileFilterOverlay.vue';
 import ScrollToTopButton from '@/components/ui/ScrollToTopButton.vue';
-import { useClickOutside } from '@/composables/useClickOutside';
 import { useMobileFilterOverlay } from '@/composables/useMobileFilterOverlay';
 import { useModalManager } from '@/composables/useModalManager';
 import { useMobileDetection, type ScreenInfo } from '@/composables/useScreenManager';
@@ -461,11 +429,9 @@ const pageSize = ref<number | 'all'>(10); // Set a fixed number of articles to d
 const currentPage = ref(1);
 const jumpToPageNumber = ref(1);
 const selectedArticle = ref<Article | null>(null);
-const isPageSizeMenuOpen = ref(false);
 const isCategoriesExpanded = ref(true);
 const articlesMain = ref<HTMLDivElement | null>(null);
 const articlesListRef = ref<HTMLElement | null>(null);
-const pageSizeSelectorRef = ref<HTMLElement | null>(null);
 const {
   showScrollToTop,
   handleScroll,
@@ -587,12 +553,12 @@ const toggleSortBy = (): void => {
 };
 
 // 页数选择相关
-const pageSizeOptions = computed(() => [
-  { label: '10', value: 10 },
-  { label: '20', value: 20 },
-  { label: '50', value: 50 },
-  { label: '100', value: 100 },
-  { label: $t('articles.showAll'), value: 'all' as const },
+const pageSizeOptions = computed<AccessibleSelectOption[]>(() => [
+  { label: '10', value: '10' },
+  { label: '20', value: '20' },
+  { label: '50', value: '50' },
+  { label: '100', value: '100' },
+  { label: $t('articles.showAll'), value: 'all' },
 ]);
 
 const displayPageSize = computed(() => {
@@ -602,22 +568,16 @@ const displayPageSize = computed(() => {
   return pageSize.value.toString();
 });
 
-const togglePageSizeMenu = (): void => {
-  isPageSizeMenuOpen.value = !isPageSizeMenuOpen.value;
-};
-
-useClickOutside({
-  targets: [pageSizeSelectorRef],
-  enabled: () => isPageSizeMenuOpen.value,
-  onClickOutside: () => {
-    isPageSizeMenuOpen.value = false;
+const pageSizeValue = computed({
+  get: () => pageSize.value.toString(),
+  set: (value: string) => {
+    changePageSize(value === 'all' ? 'all' : Number(value));
   },
 });
 
 const changePageSize = (size: number | 'all'): void => {
   pageSize.value = size;
   currentPage.value = 1; // 重置到第一页
-  isPageSizeMenuOpen.value = false;
 };
 
 const getCategoryConfig = (categoryId: string): ArticleCategory | undefined => {

@@ -5,6 +5,12 @@ import { titleManager } from '@/services/titleManager';
 import { useGalleryStore } from '@/stores/gallery';
 import { scrollWindowToTop } from '@/utils/browser';
 import { parseParam } from '@/utils/idHashMap';
+import Articles from '@/views/Articles.vue';
+import CharacterProfiles from '@/views/CharacterProfiles.vue';
+import Gallery from '@/views/Gallery.vue';
+import Home from '@/views/Home.vue';
+import Links from '@/views/Links.vue';
+import NotFound from '@/views/NotFound.vue';
 
 const featureRouteGuards: Record<string, () => boolean> = {
   gallery: () => siteConfig.features.gallery,
@@ -23,7 +29,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/Home.vue'),
+      component: Home,
       meta: {
         titleKey: null, // 首页只显示站点标题
       },
@@ -31,7 +37,7 @@ const router = createRouter({
     {
       path: '/gallery',
       name: 'gallery',
-      component: () => import('@/views/Gallery.vue'),
+      component: Gallery,
       meta: {
         titleKey: 'gallery.title',
       },
@@ -39,7 +45,7 @@ const router = createRouter({
     {
       path: '/articles',
       name: 'articles',
-      component: () => import('@/views/Articles.vue'),
+      component: Articles,
       meta: {
         titleKey: 'articles.title',
       },
@@ -47,7 +53,7 @@ const router = createRouter({
     {
       path: '/articles/:articleId',
       name: 'article-detail',
-      component: () => import('@/views/Articles.vue'),
+      component: Articles,
       props: true,
       meta: {
         titleKey: 'articles.title',
@@ -56,7 +62,7 @@ const router = createRouter({
     {
       path: '/links',
       name: 'links',
-      component: () => import('@/views/Links.vue'),
+      component: Links,
       meta: {
         titleKey: 'links.title',
       },
@@ -64,7 +70,7 @@ const router = createRouter({
     {
       path: '/character-profiles/:character?/:variant?/:image?',
       name: 'character-profiles',
-      component: () => import('@/views/CharacterProfiles.vue'),
+      component: CharacterProfiles,
       meta: {
         titleKey: 'characterProfiles.title',
       },
@@ -72,7 +78,7 @@ const router = createRouter({
     {
       path: '/gallery/:imageId',
       name: 'image-viewer',
-      component: () => import('@/views/Gallery.vue'),
+      component: Gallery,
       props: true,
       meta: {
         titleKey: 'gallery.title',
@@ -81,7 +87,7 @@ const router = createRouter({
     {
       path: '/gallery/:imageId/:childImageId',
       name: 'image-viewer-child',
-      component: () => import('@/views/Gallery.vue'),
+      component: Gallery,
       props: true,
       meta: {
         titleKey: 'gallery.title',
@@ -90,7 +96,7 @@ const router = createRouter({
     {
       path: '/viewer-url',
       name: 'external-image-viewer',
-      component: () => import('@/views/Gallery.vue'),
+      component: Gallery,
       props: (route: RouteLocationNormalized) => ({
         externalImage: route.query.url
           ? {
@@ -112,7 +118,7 @@ const router = createRouter({
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
-      component: () => import('@/views/NotFound.vue'),
+      component: NotFound,
       meta: {
         titleKey: 'app.notFound',
       },

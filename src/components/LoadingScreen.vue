@@ -1,5 +1,5 @@
 <template>
-  <div class="loading-screen" :class="{ 'fade-out': fadeOut }">
+  <div class="loading-screen" :class="{ 'fade-out': fadeOut, 'is-embedded': !fullscreen }">
     <div class="loading-container">
       <div class="loading-logo">
         <div class="logo-circle">
@@ -29,9 +29,13 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useTimers } from '@/composables/useTimers';
 import { lockBodyScroll, unlockBodyScroll } from '@/utils/bodyScrollLock';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   onComplete?: () => void;
-}>();
+  fullscreen?: boolean;
+}>(), {
+  fullscreen: true,
+  onComplete: undefined,
+});
 
 const emit = defineEmits<{
   complete: [];
@@ -68,7 +72,9 @@ const updateProgress = (startTime: number): void => {
 
 // 初始化加载
 onMounted(() => {
-  lockBodyScroll(loadingScreenScrollLockId);
+  if (props.fullscreen) {
+    lockBodyScroll(loadingScreenScrollLockId);
+  }
 
   // 延迟0.5秒后开始填充进度条
   setTimeout(() => {
@@ -80,7 +86,9 @@ onMounted(() => {
 
 // 清理
 onBeforeUnmount(() => {
-  unlockBodyScroll(loadingScreenScrollLockId);
+  if (props.fullscreen) {
+    unlockBodyScroll(loadingScreenScrollLockId);
+  }
   if (animationFrameId.value !== null) {
     cancelAnimationFrame(animationFrameId.value);
   }
@@ -99,6 +107,11 @@ onBeforeUnmount(() => {
   justify-content: center;
   background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
   transition: opacity 500ms;
+}
+
+.loading-screen.is-embedded {
+  position: absolute;
+  z-index: 30;
 }
 
 :global(.dark) .loading-screen {

@@ -8,18 +8,16 @@ import imagesConfig from './images.json5';
 import live2dConfig from './live2d.json5';
 import personalConfig from './personal.json5';
 import tagsConfig from './tags.json5';
+import { validateSiteConfig } from './validation';
 
-import type { AppConfig, Character, FeaturesConfig, FontAwesomeConfig, GiscusConfig, GroupImage, ImageTag, PersonalInfo, SiteConfig } from '@/types';
-import type { Live2DWidgetConfig } from '@/types/live2d';
-
-export const siteConfig: SiteConfig = {
-  app: appConfig as AppConfig,
-  personal: personalConfig as PersonalInfo,
-  characters: charactersConfig as Character[],
-  tags: tagsConfig as ImageTag[],
-  images: imagesConfig as GroupImage[],
-  giscus: giscusConfig as GiscusConfig,
-  fontawesome: fontawesomeConfig as FontAwesomeConfig,
-  features: featuresConfig as FeaturesConfig,
-  live2d: live2dConfig as Live2DWidgetConfig,
-};
+export const siteConfig = validateSiteConfig({
+  app: appConfig,
+  personal: personalConfig,
+  characters: charactersConfig,
+  tags: tagsConfig,
+  images: imagesConfig,
+  giscus: giscusConfig,
+  fontawesome: fontawesomeConfig,
+  features: featuresConfig,
+  live2d: live2dConfig,
+});

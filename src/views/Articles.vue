@@ -159,24 +159,35 @@
 
           <!-- 文章列表 -->
           <div ref="articlesListRef" class="articles-list" role="list" :aria-label="$t('articles.articlesList')">
-            <div v-if="paginatedArticles.length === 0" class="no-articles" role="status" aria-live="polite">
+            <div v-if="isArticlesLoading" class="no-articles" role="status" aria-live="polite">
+              <i :class="getIconClass('spinner')" class="no-articles-icon" aria-hidden="true"></i>
+              <p class="no-articles-text">{{ $t('common.loading') }}</p>
+            </div>
+
+            <div v-else-if="articlesLoadError" class="no-articles" role="alert">
+              <i :class="getIconClass('exclamation-triangle')" class="no-articles-icon" aria-hidden="true"></i>
+              <p class="no-articles-text">{{ $t('common.error') }}</p>
+            </div>
+
+            <div v-else-if="paginatedArticles.length === 0" class="no-articles" role="status" aria-live="polite">
               <i :class="getIconClass('newspaper')" class="no-articles-icon" aria-hidden="true"></i>
               <p class="no-articles-text">
                 {{ searchQuery ? $t('articles.noSearchResults') : $t('articles.noArticles') }}
               </p>
             </div>
 
-            <article
-              v-for="article in paginatedArticles"
-              :key="article.id"
-              class="article-card"
-              @click="openArticle(article)"
-              @keydown.enter="openArticle(article)"
-              @keydown.space.prevent="openArticle(article)"
-              role="listitem"
-              :tabindex="0"
-              :aria-label="$t('articles.readArticle', { title: getI18nText(article.title, currentLanguage) })"
-            >
+            <template v-else>
+              <article
+                v-for="article in paginatedArticles"
+                :key="article.id"
+                class="article-card"
+                @click="openArticle(article)"
+                @keydown.enter="openArticle(article)"
+                @keydown.space.prevent="openArticle(article)"
+                role="listitem"
+                :tabindex="0"
+                :aria-label="$t('articles.readArticle', { title: getI18nText(article.title, currentLanguage) })"
+              >
               <!-- 文章封面 -->
               <div v-if="getArticleCover(article.cover, currentLanguage)" class="article-cover">
                 <img
@@ -234,7 +245,8 @@
                   </button>
                 </div>
               </div>
-            </article>
+              </article>
+            </template>
           </div>
 
           <!-- 分页器 -->
@@ -370,9 +382,9 @@ import { useMobileFilterOverlay } from '@/composables/useMobileFilterOverlay';
 import { useModalManager } from '@/composables/useModalManager';
 import { useMobileDetection, type ScreenInfo } from '@/composables/useScreenManager';
 import { useScrollToTop } from '@/composables/useScrollToTop';
+import { loadArticlesConfig } from '@/config/articles';
 import articleCategoriesConfig from '@/config/articles-categories.json5';
 import articlesPageConfig from '@/config/articles-page.json5';
-import articlesConfig from '@/config/articles.json5';
 import { siteConfig } from '@/config/site';
 import { useLanguageStore } from '@/stores/language';
 import type { ModalConfig } from '@/stores/modal';
@@ -394,7 +406,6 @@ import {
   getArticleSummary,
   paginateArticles,
 } from '@/utils/articles';
-import { parseArticlesConfig } from '@/utils/articlesConfig';
 import { getCurrentSiteBaseUrl } from '@/utils/browser';
 import { getI18nText } from '@/utils/i18nText';
 import { getIconClass } from '@/utils/icons';
@@ -456,7 +467,9 @@ const getCardImage = (image: string | { light: string; dark: string }): string =
 };
 
 // 配置数据
-const articles = ref<Article[]>(parseArticlesConfig(articlesConfig));
+const articles = ref<Article[]>([]);
+const isArticlesLoading = ref(false);
+const articlesLoadError = ref<unknown | null>(null);
 const articleCategories = ref<ArticleCategoriesConfig>(articleCategoriesConfig as ArticleCategoriesConfig);
 const personalInfo = computed(() => siteConfig.personal);
 
@@ -743,6 +756,20 @@ const openArticleFromRoute = (): void => {
   }
 };
 
+const loadArticles = async (): Promise<void> => {
+  isArticlesLoading.value = true;
+  articlesLoadError.value = null;
+
+  try {
+    articles.value = await loadArticlesConfig();
+  } catch (error) {
+    articlesLoadError.value = error;
+    console.error('Failed to load articles config:', error);
+  } finally {
+    isArticlesLoading.value = false;
+  }
+};
+
 // 处理屏幕变化
 const handleScreenChange = ({ isMobile }: ScreenInfo): void => {
   if (!isMobile) {
@@ -769,8 +796,10 @@ onMounted(() => {
   // 注册屏幕变化监听器
   unsubscribeScreenChange = onScreenChange(handleScreenChange);
 
-  // 检查是否需要从URL参数打开文章
-  openArticleFromRoute();
+  void loadArticles().then(() => {
+    // 检查是否需要从URL参数打开文章
+    openArticleFromRoute();
+  });
 });
 
 onBeforeUnmount(() => {

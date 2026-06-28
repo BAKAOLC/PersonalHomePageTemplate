@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { SiteConfig } from '@/types';
+import type { BaseSiteConfig, GalleryConfig, SiteConfig } from '@/types';
 
 const i18nTextSchema = z.union([
   z.string(),
@@ -108,6 +108,17 @@ const siteConfigSchema = z.object({
   live2d: z.object({}).passthrough(),
 });
 
+const baseSiteConfigSchema = siteConfigSchema.omit({
+  tags: true,
+  images: true,
+});
+
+const galleryConfigSchema = siteConfigSchema.pick({
+  characters: true,
+  tags: true,
+  images: true,
+});
+
 const collectImageIds = (images: SiteConfig['images']): string[] => {
   return images.flatMap(image => [
     image.id,
@@ -170,6 +181,66 @@ const assertKnownReferences = (config: SiteConfig): void => {
       Object.fromEntries([...unknownImageTags].map(([tagId, imageIds]) => [tagId, [...imageIds]])),
     );
   }
+};
+
+const assertKnownGalleryReferences = (config: GalleryConfig): void => {
+  const tagIds = new Set(config.tags.map(tag => tag.id));
+  const characterIds = new Set(config.characters.map(character => character.id));
+  const unknownImageTags = new Map<string, Set<string>>();
+
+  config.tags.forEach(tag => {
+    tag.prerequisiteTags?.forEach(prerequisiteTag => {
+      if (!tagIds.has(prerequisiteTag)) {
+        throw new Error(`Tag "${tag.id}" references unknown prerequisite tag "${prerequisiteTag}".`);
+      }
+    });
+  });
+
+  config.images.forEach(image => {
+    const imagesToCheck = [image, ...(image.childImages ?? [])];
+
+    imagesToCheck.forEach(item => {
+      item.tags?.forEach(tagId => {
+        if (!tagIds.has(tagId)) {
+          const imageIds = unknownImageTags.get(tagId) ?? new Set<string>();
+          imageIds.add(item.id);
+          unknownImageTags.set(tagId, imageIds);
+        }
+      });
+
+      item.characters?.forEach(characterId => {
+        if (!characterIds.has(characterId)) {
+          throw new Error(`Image "${item.id}" references unknown character "${characterId}".`);
+        }
+      });
+    });
+  });
+
+  if (unknownImageTags.size > 0) {
+    console.warn(
+      'Some image tags are not defined in site tags config. They will use fallback display behavior.',
+      Object.fromEntries([...unknownImageTags].map(([tagId, imageIds]) => [tagId, [...imageIds]])),
+    );
+  }
+};
+
+export const validateBaseSiteConfig = (config: unknown): BaseSiteConfig => {
+  const parsed = baseSiteConfigSchema.parse(config) as unknown as BaseSiteConfig;
+
+  assertUniqueIds('characters', parsed.characters.map(character => character.id));
+
+  return parsed;
+};
+
+export const validateGalleryConfig = (config: unknown): GalleryConfig => {
+  const parsed = galleryConfigSchema.parse(config) as unknown as GalleryConfig;
+
+  assertUniqueIds('characters', parsed.characters.map(character => character.id));
+  assertUniqueIds('tags', parsed.tags.map(tag => tag.id));
+  assertUniqueIds('images', collectImageIds(parsed.images));
+  assertKnownGalleryReferences(parsed);
+
+  return parsed;
 };
 
 export const validateSiteConfig = (config: unknown): SiteConfig => {

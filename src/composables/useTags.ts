@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 
-import { siteConfig } from '@/config/site';
+import { useGalleryStore } from '@/stores/gallery';
 import { getI18nText } from '@/utils/i18nText';
 import { getDefaultLanguage } from '@/utils/language';
 
@@ -13,17 +13,19 @@ export function useTags(): {
   getTagName: (tagId: string, language?: string) => string;
   tagIndexMap: Map<string, number>;
 } {
+  const galleryStore = useGalleryStore();
+
   // Precompute tag index map for O(1) lookup performance
   const tagIndexMap = computed(() => {
     const map = new Map<string, number>();
-    siteConfig.tags.forEach((tag, index) => {
+    galleryStore.tags.forEach((tag, index) => {
       map.set(tag.id, index);
     });
     return map;
   });
 
   /**
-   * Sort tag IDs based on their definition order in siteConfig.tags
+   * Sort tag IDs based on their gallery config definition order.
    * Uses precomputed index map for O(n) performance instead of O(n*m)
    * @param tagIds Array of tag IDs to sort
    * @returns Sorted array of tag IDs
@@ -51,7 +53,7 @@ export function useTags(): {
    * @returns Tag color or default purple color
    */
   const getTagColor = (tagId: string): string => {
-    const tag = siteConfig.tags.find(t => t.id === tagId);
+    const tag = galleryStore.tags.find(t => t.id === tagId);
     return tag?.color ?? '#8b5cf6';
   };
 
@@ -62,7 +64,7 @@ export function useTags(): {
    * @returns Localized tag name or tag ID if not found
    */
   const getTagName = (tagId: string, language?: string): string => {
-    const tag = siteConfig.tags.find(t => t.id === tagId);
+    const tag = galleryStore.tags.find(t => t.id === tagId);
     if (!tag) return tagId;
 
     if (!language) return getI18nText(tag.name, getDefaultLanguage());

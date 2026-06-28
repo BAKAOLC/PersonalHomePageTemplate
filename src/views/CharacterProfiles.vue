@@ -69,7 +69,17 @@
         </div>
 
         <!-- 主内容区域 -->
-        <div v-if="selectedCharacter && selectedVariant" class="main-content">
+        <div v-if="isProfilesLoading" class="empty-state" role="status" aria-live="polite">
+          <i class="fas fa-spinner"></i>
+          <h3>{{ $t('common.loading') }}</h3>
+        </div>
+
+        <div v-else-if="profilesLoadError" class="empty-state" role="alert">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3>{{ $t('common.error') }}</h3>
+        </div>
+
+        <div v-else-if="selectedCharacter && selectedVariant" class="main-content">
           <!-- 左侧信息卡片区域 -->
           <div class="info-section">
             <div ref="infoCardsContainer" class="info-cards">
@@ -158,7 +168,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 import ProgressiveImage from '@/components/ProgressiveImage.vue';
 import { useModalManager } from '@/composables/useModalManager';
-import characterProfilesData from '@/config/character-profiles.json5';
+import { loadCharacterProfilesConfig } from '@/config/characterProfiles';
 import { useLanguageStore } from '@/stores/language';
 import type { CharacterProfile, CharacterVariant, CharacterVariantImage } from '@/types';
 import { getResizeObserverConstructor } from '@/utils/browser';
@@ -181,7 +191,9 @@ const router = useRouter();
 const currentLanguage = computed(() => languageStore.currentLanguage);
 
 // 响应式数据
-const characterProfiles = ref<CharacterProfile[]>(characterProfilesData as CharacterProfile[]);
+const characterProfiles = ref<CharacterProfile[]>([]);
+const isProfilesLoading = ref(false);
+const profilesLoadError = ref<unknown | null>(null);
 const selectedCharacter = ref<CharacterProfile | null>(null);
 const selectedVariant = ref<CharacterVariant | null>(null);
 const selectedImage = ref<CharacterVariantImage | null>(null);
@@ -503,8 +515,23 @@ const initializeFromUrl = (): void => {
 };
 
 // 组件挂载时根据URL参数初始化或选择第一个角色
+const loadCharacterProfiles = async (): Promise<void> => {
+  isProfilesLoading.value = true;
+  profilesLoadError.value = null;
+
+  try {
+    characterProfiles.value = await loadCharacterProfilesConfig();
+    initializeFromUrl();
+  } catch (error) {
+    profilesLoadError.value = error;
+    console.error('Failed to load character profiles config:', error);
+  } finally {
+    isProfilesLoading.value = false;
+  }
+};
+
 onMounted(() => {
-  initializeFromUrl();
+  void loadCharacterProfiles();
 
   // 设置 ResizeObserver 监听容器大小变化
   if (characterScrollContainer.value) {

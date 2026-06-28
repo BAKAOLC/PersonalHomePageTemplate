@@ -92,6 +92,14 @@ export interface SiteConfig {
   live2d: Live2DWidgetConfig;
 }
 
+export type BaseSiteConfig = Omit<SiteConfig, 'tags' | 'images'>;
+
+export interface GalleryConfig {
+  characters: Character[];
+  tags: ImageTag[];
+  images: GroupImage[];
+}
+
 export interface LoadingConfig {
   minLoadTime: number;
   messages: I18nText[];

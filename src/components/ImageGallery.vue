@@ -105,7 +105,6 @@ import ProgressiveImage from './ProgressiveImage.vue';
 import { useEventManager } from '@/composables/useEventManager';
 import { useTags } from '@/composables/useTags';
 import { useTimers } from '@/composables/useTimers';
-import { siteConfig } from '@/config/site';
 import { useGalleryStore } from '@/stores/gallery';
 import { useLanguageStore } from '@/stores/language';
 import type { DisplayImage, I18nText } from '@/types';
@@ -193,7 +192,7 @@ const getAllImageTags = (image: DisplayImage): string[] => {
 // 检查图像是否通过当前过滤条件（复制 app store 的逻辑）
 const doesImagePassCurrentFilter = (image: DisplayImage): boolean => {
   // 获取所有限制级标签
-  const allRestrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
+  const allRestrictedTags = galleryStore.tags.filter(tag => tag.isRestricted);
 
   for (const restrictedTag of allRestrictedTags) {
     const imageHasTag = image.tags?.includes(restrictedTag.id);

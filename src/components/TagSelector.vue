@@ -28,7 +28,6 @@ import { useI18n } from 'vue-i18n';
 
 import FilterOptionButton from '@/components/ui/FilterOptionButton.vue';
 import FilterSection from '@/components/ui/FilterSection.vue';
-import { siteConfig } from '@/config/site';
 import { useGalleryStore } from '@/stores/gallery';
 import { useLanguageStore } from '@/stores/language';
 import { getI18nText } from '@/utils/i18nText';
@@ -38,7 +37,7 @@ const galleryStore = useGalleryStore();
 const languageStore = useLanguageStore();
 
 const sortedNormalTags = computed(() => {
-  const tags = siteConfig.tags.filter(tag => !tag.isRestricted && (galleryStore.tagCounts[tag.id] ?? 0) > 0);
+  const tags = galleryStore.tags.filter(tag => !tag.isRestricted && (galleryStore.tagCounts[tag.id] ?? 0) > 0);
 
   return [...tags].sort((a, b) => {
     const aName = getI18nText(a.name, languageStore.currentLanguage) ?? a.id;

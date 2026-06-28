@@ -29,7 +29,6 @@ import { useI18n } from 'vue-i18n';
 
 import FilterOptionButton from '@/components/ui/FilterOptionButton.vue';
 import FilterSection from '@/components/ui/FilterSection.vue';
-import { siteConfig } from '@/config/site';
 import { useGalleryStore } from '@/stores/gallery';
 import { useLanguageStore } from '@/stores/language';
 import { getI18nText } from '@/utils/i18nText';
@@ -42,10 +41,10 @@ const isSearching = computed(() => galleryStore.isSearching);
 
 const filteredCharacters = computed(() => {
   if (!isSearching.value) {
-    return siteConfig.characters;
+    return galleryStore.characters;
   }
 
-  return siteConfig.characters.filter(char => galleryStore.getCharacterMatchCount(char.id) > 0);
+  return galleryStore.characters.filter(char => galleryStore.getCharacterMatchCount(char.id) > 0);
 });
 
 const selectedCharacterId = computed({

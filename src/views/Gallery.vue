@@ -101,7 +101,22 @@
           role="region"
           :aria-label="$t('gallery.imageDisplayArea')"
         >
-          <ImageGallery :images="characterImages" :grid-view="isGridView" />
+          <div
+            v-if="galleryStore.isConfigLoading && !galleryStore.isConfigLoaded"
+            class="gallery-state"
+            role="status"
+            aria-live="polite"
+          >
+            {{ $t('common.loading') }}
+          </div>
+          <div
+            v-else-if="galleryStore.configLoadError"
+            class="gallery-state gallery-state-error"
+            role="alert"
+          >
+            {{ $t('common.error') }}
+          </div>
+          <ImageGallery v-else :images="characterImages" :grid-view="isGridView" />
         </section>
       </div>
     </div>
@@ -324,6 +339,8 @@ const openViewer = async (event: CustomEvent): Promise<void> => {
     return;
   }
 
+  await galleryStore.ensureConfigLoaded();
+
   const { imageId } = event.detail;
   let childImageId: string | undefined;
 
@@ -391,7 +408,9 @@ const openViewer = async (event: CustomEvent): Promise<void> => {
   });
 };
 // 打开URL直接访问的查看器
-const openUrlViewer = (): void => {
+const openUrlViewer = async (): Promise<void> => {
+  await galleryStore.ensureConfigLoaded();
+
   const urlData = getUrlImageData();
   if (urlData.imageList.length === 0) {
     router.replace({ name: 'gallery' });
@@ -636,13 +655,19 @@ onMounted(() => {
 
   updateDynamicHeightsAfterRender();
 
+  const galleryConfigLoad = galleryStore.ensureConfigLoaded().catch(error => {
+    console.error('Failed to load gallery config:', error);
+  });
+
   // 检查是否有需要打开的图像查看器（从路由参数）
   if (props.externalImage) {
     // 打开外部图像查看器
     openExternalImageViewer(props.externalImage);
   } else if (props.imageId) {
     // 直接URL访问，使用URL处理逻辑
-    openUrlViewer();
+    galleryConfigLoad.then(() => {
+      void openUrlViewer();
+    });
   }
 });
 
@@ -1037,6 +1062,23 @@ onBeforeUnmount(() => {
   padding-bottom: 1rem;
   /* 减少底部内边距，避免过多空白 */
   transition: padding-left 0.3s ease, padding-right 0.3s ease;
+}
+
+.gallery-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 16rem;
+  color: rgb(75, 85, 99);
+  font-size: 0.95rem;
+}
+
+.dark .gallery-state {
+  color: rgb(209, 213, 219);
+}
+
+.gallery-state-error {
+  color: rgb(220, 38, 38);
 }
 
 /* 优化 768-1024px 级别的内边距 */

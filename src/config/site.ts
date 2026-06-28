@@ -4,18 +4,14 @@ import charactersConfig from './characters.json5';
 import featuresConfig from './features.json5';
 import fontawesomeConfig from './fontawesome.json5';
 import giscusConfig from './giscus.json5';
-import imagesConfig from './images.json5';
 import live2dConfig from './live2d.json5';
 import personalConfig from './personal.json5';
-import tagsConfig from './tags.json5';
-import { validateSiteConfig } from './validation';
+import { validateBaseSiteConfig } from './validation';
 
-export const siteConfig = validateSiteConfig({
+export const siteConfig = validateBaseSiteConfig({
   app: appConfig,
   personal: personalConfig,
   characters: charactersConfig,
-  tags: tagsConfig,
-  images: imagesConfig,
   giscus: giscusConfig,
   fontawesome: fontawesomeConfig,
   features: featuresConfig,

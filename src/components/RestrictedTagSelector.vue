@@ -29,7 +29,6 @@ import { useI18n } from 'vue-i18n';
 
 import FilterOptionButton from '@/components/ui/FilterOptionButton.vue';
 import FilterSection from '@/components/ui/FilterSection.vue';
-import { siteConfig } from '@/config/site';
 import { useGalleryStore } from '@/stores/gallery';
 import { useLanguageStore } from '@/stores/language';
 import { getI18nText } from '@/utils/i18nText';
@@ -46,7 +45,7 @@ const canTagBeVisible = (tagId: string, visited = new Set<string>()): boolean =>
 
   visited.add(tagId);
 
-  const tag = siteConfig.tags.find(t => t.id === tagId);
+  const tag = galleryStore.tags.find(t => t.id === tagId);
   if (!tag) {
     return false;
   }
@@ -56,7 +55,7 @@ const canTagBeVisible = (tagId: string, visited = new Set<string>()): boolean =>
   }
 
   return tag.prerequisiteTags.every(prerequisiteTagId => {
-    const prerequisiteTag = siteConfig.tags.find(t => t.id === prerequisiteTagId);
+    const prerequisiteTag = galleryStore.tags.find(t => t.id === prerequisiteTagId);
     if (!prerequisiteTag || !galleryStore.getRestrictedTagState(prerequisiteTagId)) {
       return false;
     }
@@ -66,7 +65,7 @@ const canTagBeVisible = (tagId: string, visited = new Set<string>()): boolean =>
 };
 
 const visibleRestrictedTags = computed(() => {
-  const restrictedTags = siteConfig.tags.filter(tag => (
+  const restrictedTags = galleryStore.tags.filter(tag => (
     tag.isRestricted
     && canTagBeVisible(tag.id)
     && (galleryStore.restrictedTagCounts[tag.id] ?? 0) > 0

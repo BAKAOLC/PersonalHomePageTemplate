@@ -1,11 +1,50 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
+import { loadGalleryConfig } from '@/config/gallery';
 import { siteConfig } from '@/config/site';
-import type { DisplayImage, GroupImage, ImageBase, I18nText } from '@/types';
+import type { Character, DisplayImage, GroupImage, ImageBase, ImageTag, I18nText } from '@/types';
 import { isVisible } from '@/utils/visibility';
 
 export const useGalleryStore = defineStore('gallery', () => {
+  const characters = ref<Character[]>(siteConfig.characters);
+  const tags = ref<ImageTag[]>([]);
+  const images = ref<GroupImage[]>([]);
+  const isConfigLoaded = ref(false);
+  const isConfigLoading = ref(false);
+  const configLoadError = ref<unknown | null>(null);
+  let configLoadPromise: Promise<void> | null = null;
+
+  const ensureConfigLoaded = async (): Promise<void> => {
+    if (isConfigLoaded.value) return;
+
+    configLoadPromise ??= (async () => {
+      isConfigLoading.value = true;
+      configLoadError.value = null;
+
+      try {
+        const galleryConfig = await loadGalleryConfig();
+        characters.value = galleryConfig.characters;
+        tags.value = galleryConfig.tags;
+        images.value = galleryConfig.images;
+
+        if (!selectedCharacterId.value) {
+          selectedCharacterId.value = characters.value[0]?.id ?? 'all';
+        }
+
+        isConfigLoaded.value = true;
+      } catch (error) {
+        configLoadError.value = error;
+        configLoadPromise = null;
+        throw error;
+      } finally {
+        isConfigLoading.value = false;
+      }
+    })();
+
+    await configLoadPromise;
+  };
+
   // 搜索状态
   const searchQuery = ref('');
 
@@ -31,14 +70,14 @@ export const useGalleryStore = defineStore('gallery', () => {
 
   // 当前选择的角色
   const selectedCharacter = computed(() => {
-    return siteConfig.characters.find(character => character.id === selectedCharacterId.value);
+    return characters.value.find(character => character.id === selectedCharacterId.value);
   });
 
   // 当前角色的图像列表（支持图像组）
   const characterImages = computed(() => {
     const resultImages: DisplayImage[] = [];
 
-    for (const parentImage of siteConfig.images) {
+    for (const parentImage of images.value) {
       const validImages = getValidImagesInGroup(parentImage, false, false, false);
       if (validImages.length > 0) {
         const displayImage = getDisplayImageForGroup(parentImage, validImages);
@@ -109,7 +148,7 @@ export const useGalleryStore = defineStore('gallery', () => {
 
     // 计算有效的图像组数量
     // const validImageGroups: GroupImage[] = [];
-    const validImageGroups = siteConfig.images.map(image => {
+    const validImageGroups = images.value.map(image => {
       const validImages = getValidImagesInGroup(image, false, true, false);
       const firstValidImage = validImages.shift();
       if (firstValidImage) {
@@ -122,7 +161,7 @@ export const useGalleryStore = defineStore('gallery', () => {
     }).filter(image => image !== null);
 
     // 计算每个标签的数量
-    siteConfig.tags.forEach(tag => {
+    tags.value.forEach(tag => {
       const count = validImageGroups.filter(image => image.tags?.includes(tag.id)).length;
       counts[tag.id] = count;
     });
@@ -136,7 +175,7 @@ export const useGalleryStore = defineStore('gallery', () => {
   const restrictedTagCounts = computed(() => {
     const counts: Record<string, number> = {};
 
-    const validImageGroups = siteConfig.images.map(image => {
+    const validImageGroups = images.value.map(image => {
       const validImages = getValidImagesInGroup(image, false, false, true);
       const firstValidImage = validImages.shift();
       if (firstValidImage) {
@@ -148,7 +187,7 @@ export const useGalleryStore = defineStore('gallery', () => {
       return null;
     }).filter(image => image !== null);
 
-    const restrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
+    const restrictedTags = tags.value.filter(tag => tag.isRestricted);
     for (const tag of restrictedTags) {
       const count = validImageGroups.filter(image => {
         const imageHasTag = image.tags?.includes(tag.id) ?? false;
@@ -163,7 +202,7 @@ export const useGalleryStore = defineStore('gallery', () => {
   });
 
   const canBeCountIfRestrictedTagActive = (image: GroupImage, targetTagId: string): boolean => {
-    const restrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
+    const restrictedTags = tags.value.filter(tag => tag.isRestricted);
     const checkingTags = restrictedTags.filter(tag => tag.id !== targetTagId && !selectedRestrictedTags.value[tag.id]);
 
     const checkingImages: ImageBase[] = [];
@@ -190,7 +229,7 @@ export const useGalleryStore = defineStore('gallery', () => {
 
   // 获取每个角色的匹配图像数量（支持图像组）
   const getCharacterMatchCount = (characterId: string): number => {
-    const validImageGroups = siteConfig.images.filter(
+    const validImageGroups = images.value.filter(
       image => getValidImagesInGroup(image, true, false, false).length > 0,
     );
     if (characterId === 'all') {
@@ -204,7 +243,7 @@ export const useGalleryStore = defineStore('gallery', () => {
   // 获取单个图像（支持子图像ID）
   const getImageById = (id: string): ImageBase | undefined => {
     // 首先查找父图像
-    const parentImage = siteConfig.images.find(img => img.id === id);
+    const parentImage = images.value.find(img => img.id === id);
     if (parentImage) {
       const hasVisibleImage = getValidImagesInGroupWithoutFilter(parentImage).length > 0;
       return hasVisibleImage ? parentImage : undefined;
@@ -229,7 +268,7 @@ export const useGalleryStore = defineStore('gallery', () => {
     const dependentTags: string[] = [];
 
     // 找到所有直接依赖当前标签的子标签
-    const directDependents = siteConfig.tags.filter(tag => tag.isRestricted
+    const directDependents = tags.value.filter(tag => tag.isRestricted
       && tag.prerequisiteTags?.includes(tagId));
 
     directDependents.forEach(dependentTag => {
@@ -267,7 +306,7 @@ export const useGalleryStore = defineStore('gallery', () => {
 
   // 根据child image ID获取父图像和子图像
   const getImageGroupByChildId = (childId: string): { parentImage: GroupImage; childImage: ImageBase } | null => {
-    for (const image of siteConfig.images) {
+    for (const image of images.value) {
       if (image.childImages) {
         const childImage = image.childImages.find(child => child.id === childId);
         if (childImage && doesImageValid(getChildImageWithDefaults(image, childImage))) {
@@ -320,7 +359,7 @@ export const useGalleryStore = defineStore('gallery', () => {
 
     // 应用限制级标签过滤
     if (!skipRestrictedTagFilter) {
-      const restrictedTags = siteConfig.tags.filter(tag => tag.isRestricted);
+      const restrictedTags = tags.value.filter(tag => tag.isRestricted);
 
       for (const restrictedTag of restrictedTags) {
         // 检查父图像是否有该限制级标签
@@ -355,7 +394,7 @@ export const useGalleryStore = defineStore('gallery', () => {
 
       // 搜索标签
       const tagsMatch = image.tags?.some(tagId => {
-        const tag = siteConfig.tags.find(t => t.id === tagId);
+        const tag = tags.value.find(t => t.id === tagId);
         if (!tag) return false;
 
         const tagName = getSearchableText(tag.name);
@@ -497,6 +536,15 @@ export const useGalleryStore = defineStore('gallery', () => {
   };
 
   return {
+    // 配置加载
+    characters,
+    tags,
+    images,
+    isConfigLoaded,
+    isConfigLoading,
+    configLoadError,
+    ensureConfigLoaded,
+
     // 搜索相关
     searchQuery,
     isSearching,
